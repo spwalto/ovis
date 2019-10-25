@@ -1759,23 +1759,23 @@ int main(int argc, char *argv[])
 	handle_listening_endpoints();
 
 	if (ldmsd_use_failover) {
-		/* failover will be the one starting cfgobjs */
-		ret = ldmsd_failover_start();
-		if (ret) {
-			ldmsd_log(LDMSD_LERROR,
-				  "failover_start failed, rc: %d\n", ret);
-			cleanup(100, "failover start failed");
-		}
+//		/* failover will be the one starting cfgobjs */
+//		ret = ldmsd_failover_start();
+//		if (ret) {
+//			ldmsd_log(LDMSD_LERROR,
+//				  "failover_start failed, rc: %d\n", ret);
+//			cleanup(100, "failover start failed");
+//		}
 	} else {
 		/* we can start cfgobjs right away */
-		ret = ldmsd_ourcfg_start_proc();
-		if (ret) {
-			ldmsd_log(LDMSD_LERROR,
-				  "config start failed, rc: %d\n", ret);
-			cleanup(100, "config start failed");
-		}
-		ldmsd_linfo("Enabling in-band config\n");
-		ldmsd_inband_cfg_mask_add(0777);
+//		ret = ldmsd_ourcfg_start_proc();
+//		if (ret) {
+//			ldmsd_log(LDMSD_LERROR,
+//				  "config start failed, rc: %d\n", ret);
+//			cleanup(100, "config start failed");
+//		}
+//		ldmsd_linfo("Enabling in-band config\n");
+//		ldmsd_inband_cfg_mask_add(0777);
 	}
 
 	/* Keep the process alive */

@@ -351,35 +351,35 @@ static void prdcr_dir_cb(ldms_t xprt, int status, ldms_dir_t dir, void *arg)
 	ldms_xprt_dir_free(xprt, dir);
 }
 
-static int __on_subs_resp(ldmsd_req_cmd_t rcmd)
-{
-	return 0;
-}
+//static int __on_subs_resp(ldmsd_req_cmd_t rcmd)
+//{
+//	return 0;
+//}
 
 /* Send subscribe request to peer */
 static int __prdcr_subscribe(ldmsd_prdcr_t prdcr)
 {
-	ldmsd_req_cmd_t rcmd;
-	int rc;
-	ldmsd_prdcr_stream_t s;
-	LIST_FOREACH(s, &prdcr->stream_list, entry) {
-		rcmd = ldmsd_req_cmd_new(prdcr->xprt, LDMSD_STREAM_SUBSCRIBE_REQ,
-					 NULL, __on_subs_resp, prdcr);
-		rc = errno;
-		if (!rcmd)
-			goto err_0;
-		rc = ldmsd_req_cmd_attr_append_str(rcmd, LDMSD_ATTR_NAME, s->name);
-		if (rc)
-			goto err_1;
-		rc = ldmsd_req_cmd_attr_term(rcmd);
-		if (rc)
-			goto err_1;
-	}
+//	ldmsd_req_cmd_t rcmd;
+//	int rc;
+//	ldmsd_prdcr_stream_t s;
+//	LIST_FOREACH(s, &prdcr->stream_list, entry) {
+//		rcmd = ldmsd_req_cmd_new(prdcr->xprt, LDMSD_STREAM_SUBSCRIBE_REQ,
+//					 NULL, __on_subs_resp, prdcr);
+//		rc = errno;
+//		if (!rcmd)
+//			goto err_0;
+//		rc = ldmsd_req_cmd_attr_append_str(rcmd, LDMSD_ATTR_NAME, s->name);
+//		if (rc)
+//			goto err_1;
+//		rc = ldmsd_req_cmd_attr_term(rcmd);
+//		if (rc)
+//			goto err_1;
+//	}
 	return 0;
- err_1:
-	ldmsd_req_cmd_free(rcmd);
- err_0:
-	return rc;
+// err_1:
+//	ldmsd_req_cmd_free(rcmd);
+// err_0:
+//	return rc;
 }
 
 static void prdcr_connect_cb(ldms_t x, ldms_xprt_event_t e, void *cb_arg)
