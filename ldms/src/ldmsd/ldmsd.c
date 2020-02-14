@@ -945,11 +945,13 @@ void ldmsd_ev_init(void)
 	prdcr_stop_type = ev_type_new("prdcr:stop", sizeof(struct stop_data));
 	strgp_stop_type = ev_type_new("strgp:stop", sizeof(struct stop_data));
 	smplr_stop_type = ev_type_new("smplr:stop", sizeof(struct stop_data));
+	cfg_msg_ctxt_free_type = ev_type_new("cfg:msg_ctxt_free", sizeof(struct msg_ctxt_free_data));
 
 	producer = ev_worker_new("producer", default_actor);
 	updater = ev_worker_new("updater", default_actor);
 	sampler = ev_worker_new("sampler", default_actor);
 	storage = ev_worker_new("storage", default_actor);
+	cfg = ev_worker_new("cfg", default_actor);
 
 	ev_dispatch(sampler, smplr_sample_type, sample_actor);
 	ev_dispatch(updater, prdcr_set_update_type, prdcr_set_update_actor);
@@ -959,6 +961,7 @@ void ldmsd_ev_init(void)
 	ev_dispatch(producer, prdcr_connect_type, prdcr_connect_actor);
 	ev_dispatch(producer, updtr_start_type, updtr_start_actor);
 	ev_dispatch(producer, updtr_stop_type, updtr_stop_actor);
+	ev_dispatch(cfg, cfg_msg_ctxt_free_type, cfg_msg_ctxt_free_actor);
 }
 
 void ldmsd_thread_count_set(char *str)

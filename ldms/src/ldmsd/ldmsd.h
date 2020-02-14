@@ -1392,6 +1392,11 @@ struct stop_data {
 	void *entity;
 };
 
+typedef struct ldmsd_req_ctxt *ldmsd_req_ctxt_t;
+struct msg_ctxt_free_data {
+	ldmsd_req_ctxt_t reqc;
+};
+
 ev_type_t smplr_sample_type;
 ev_type_t prdcr_connect_type;
 ev_type_t prdcr_set_store_type;
@@ -1406,11 +1411,13 @@ ev_type_t updtr_stop_type;
 ev_type_t prdcr_stop_type;
 ev_type_t strgp_stop_type;
 ev_type_t smplr_stop_type;
+ev_type_t cfg_msg_ctxt_free_type;
 
 ev_worker_t producer;
 ev_worker_t updater;
 ev_worker_t sampler;
 ev_worker_t storage;
+ev_worker_t cfg;
 
 int default_actor(ev_worker_t src, ev_worker_t dst, ev_status_t status, ev_t ev);
 int sample_actor(ev_worker_t src, ev_worker_t dst, ev_status_t status, ev_t ev);
@@ -1427,6 +1434,7 @@ int strgp_start_actor(ev_worker_t src, ev_worker_t dst, ev_status_t status, ev_t
 int strgp_stop_actor(ev_worker_t src, ev_worker_t dst, ev_status_t status, ev_t ev);
 int smplr_start_actor(ev_worker_t src, ev_worker_t dst, ev_status_t status, ev_t ev);
 int smplr_stop_actor(ev_worker_t src, ev_worker_t dst, ev_status_t status, ev_t ev);
+int cfg_msg_ctxt_free_actor(ev_worker_t src, ev_worker_t dst, ev_status_t status, ev_t ev);
 
 #define ldmsd_prdcr_set_ref_get(_s_, _n_) _ref_get(&((_s_)->ref), (_n_), __func__, __LINE__)
 #define ldmsd_prdcr_set_ref_put(_s_, _n_) _ref_put(&((_s_)->ref), (_n_), __func__, __LINE__)

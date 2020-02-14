@@ -263,6 +263,8 @@ typedef struct ldmsd_req_ctxt {
 
 	ldmsd_cfg_xprt_t xprt;	/* network transport */
 
+	ev_t free_ev; /* Event to be posted when the context shouldn't or won't be used any further */
+
 	void *ctxt;
 
 	json_entity_t json;
@@ -369,10 +371,21 @@ void ldmsd_msg_key_get(void *xprt, struct ldmsd_msg_key *key_);
 ldmsd_req_ctxt_t
 ldmsd_req_ctxt_alloc(struct ldmsd_msg_key *key, ldmsd_cfg_xprt_t xprt);
 
-/**
- * \brief Call when \c reqc should not be used anymore
+/*
+ * \brief Free the request context.
+ *
+ * The function must be called when the context will not be used anymore or
+ * it should not be used any further in case of errors or disconnection.
+ *
+ * ldmsd_req_ctxt_ref_put(reqc, "create") MUST not be called. This function
+ * must be used instead.
+ *
+ * \param  reqc  The request context that won't be used anymore
+ *
+ * \return 0 is returned on success. If a non-zero is returned, someone has already
+ * express the intention that the request context \c reqc should not be used anymore.
  */
-void ldmsd_req_ctxt_free(ldmsd_req_ctxt_t reqc);
+int ldmsd_req_ctxt_free(ldmsd_req_ctxt_t reqc);
 
 ldmsd_req_ctxt_t ldmsd_req_ctxt_first(int type);
 ldmsd_req_ctxt_t ldmsd_req_ctxt_next(ldmsd_req_ctxt_t reqc);

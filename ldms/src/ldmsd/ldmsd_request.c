@@ -367,6 +367,14 @@ void __req_ctxt_del(ldmsd_req_ctxt_t reqc)
 	free(reqc);
 }
 
+int cfg_msg_ctxt_free_actor(ev_worker_t src, ev_worker_t dst, ev_status_t status, ev_t ev)
+{
+	ldmsd_req_ctxt_t reqc;
+	reqc = EV_DATA(ev, struct msg_ctxt_free_data)->reqc;
+	ldmsd_req_ctxt_ref_put(reqc, "create");
+	return 0;
+}
+
 void __msg_key_get(ldmsd_cfg_xprt_t xprt, uint32_t msg_no,
 						ldmsd_msg_key_t key_)
 {
@@ -408,6 +416,9 @@ __req_ctxt_alloc(ldmsd_msg_key_t key, ldmsd_cfg_xprt_t xprt, int type)
 	ldmsd_cfg_xprt_ref_get(xprt, "req_ctxt");
 	reqc->xprt = xprt;
 
+	reqc->free_ev = ev_new(cfg_msg_ctxt_free_type);
+	EV_DATA(reqc->free_ev, struct msg_ctxt_free_data)->reqc = reqc;
+
 	ref_init(&reqc->ref, "create", (ref_free_fn_t)__req_ctxt_del, reqc);
 	reqc->key = *key;
 	rbn_init(&reqc->rbn, &reqc->key);
@@ -432,7 +443,7 @@ ldmsd_req_ctxt_alloc(struct ldmsd_msg_key *key, ldmsd_cfg_xprt_t xprt)
 	return __req_ctxt_alloc(key, xprt, LDMSD_REQ_CTXT_RSP);
 }
 
-void ldmsd_req_ctxt_free(ldmsd_req_ctxt_t reqc)
+int ldmsd_req_ctxt_free(ldmsd_req_ctxt_t reqc)
 {
 	ldmsd_req_ctxt_tree_lock(reqc->type);
 	if (LDMSD_REQ_CTXT_REQ == reqc->type)
@@ -440,7 +451,7 @@ void ldmsd_req_ctxt_free(ldmsd_req_ctxt_t reqc)
 	else
 		rbt_del(&rsp_msg_tree, &reqc->rbn);
 	ldmsd_req_ctxt_tree_unlock(reqc->type);
-	ldmsd_req_ctxt_ref_put(reqc, "create");
+	return ev_post(cfg, cfg, reqc->free_ev, NULL);
 }
 
 int __ldmsd_append_buffer(ldmsd_cfg_xprt_t xprt, struct ldmsd_msg_key *key,
@@ -787,7 +798,7 @@ oom:
 err:
 	ldmsd_req_ctxt_tree_unlock(req_ctxt_type);
 	if (reqc)
-		ldmsd_req_ctxt_ref_put(reqc, "create");
+		ldmsd_req_ctxt_free(reqc);
 	return rc;
 }
 
@@ -978,6 +989,7 @@ int ldmsd_process_cfg_obj(ldmsd_req_ctxt_t reqc)
 	}
 
 	rc = handler->handler(reqc);
+	ldmsd_req_ctxt_free(reqc);
 	return rc;
 }
 
@@ -5128,7 +5140,7 @@ static int __greeting_ping_pong_request(greeting_ping_pong_ctxt_t ctxt)
 		goto err;
 	return 0;
 err:
-	ldmsd_req_ctxt_ref_put(reqc, "create");
+	ldmsd_req_ctxt_free(reqc);
 	return rc;
 }
 
@@ -5256,7 +5268,8 @@ static int __greeting_ping_pong_response(ldmsd_req_ctxt_t reqc)
 	}
 	if (prev->req) {
 		/*
-		 * We got the response of this request already.
+		 * We got the response of this request already,
+		 * so the context should not be used anymore.
 		 */
 		ldmsd_req_ctxt_free(prev->req);
 	}
