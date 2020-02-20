@@ -218,7 +218,7 @@ static int set_route_handler(ldmsd_req_ctxt_t req_ctxt);
 //static int eperm_handler(ldmsd_req_ctxt_t req_ctxt);
 //static int ebusy_handler(ldmsd_req_ctxt_t reqc);
 //static int daemon_handler(ldmsd_req_ctxt_t reqc);
-//static int listen_handler(ldmsd_req_ctxt_t reqc);
+static int listen_handler(ldmsd_req_ctxt_t reqc);
 //static int export_config_handler(ldmsd_req_ctxt_t reqc);
 //
 ///* these are implemented in ldmsd_failover.c */
@@ -247,7 +247,7 @@ static int set_route_handler(ldmsd_req_ctxt_t req_ctxt);
 //static int stream_publish_handler(ldmsd_req_ctxt_t req_ctxt);
 //static int stream_subscribe_handler(ldmsd_req_ctxt_t reqc);
 //
-//static int auth_add_handler(ldmsd_req_ctxt_t reqc);
+static int auth_handler(ldmsd_req_ctxt_t reqc);
 //static int auth_del_handler(ldmsd_req_ctxt_t reqc);
 
 /* executable for all */
@@ -268,9 +268,10 @@ static int handler_entry_comp(const void *a, const void *b)
  * TODO: Fill in the flag field of all obj_handler_entry in all tables.
  */
 static struct obj_handler_entry cfg_obj_handler_tbl[] = {
+		{ "auth",	auth_handler,		XUG },
 //		{ "env",	env_handler    },
 //		{ "daemon",	daemon_handler },
-//		{ "listen",	listen_handler },
+		{ "listen",	listen_handler,		XUG },
 //		{ "plugin_instance", /* TODO: fill this */ },
 //		{ "smplr",	smplr_add_handler },
 //		{ "prdcr",	prdcr_add_handler },
@@ -6021,104 +6022,92 @@ out:
 //	return rc;
 //}
 //
-//static int listen_handler(ldmsd_req_ctxt_t reqc)
-//{
-//	ldmsd_listen_t listen;
-//	int rc;
-//	char *xprt, *port, *host, *auth, *auth_args, *attr_name;
-//	char *str, *ptr1, *ptr2, *lval, *rval;
-//	unsigned short port_no = -1;
-//	struct attr_value_list *auth_opts = NULL;
-//	xprt = port = host = auth = auth_args = NULL;
-//
-//	if (ldmsd_is_initialized()) {
-//		/*
-//		 * Adding a new listening endpoint is prohibited
-//		 * after LDMSD is initialized.
-//		 */
-//		reqc->errcode = EPERM;
-//		linebuf_printf(reqc, "LDMSD is started. "
-//				"Adding a listening endpoint is prohibited.");
-//		goto send_reply;
-//	}
-//
-//	attr_name = "xprt";
-//	xprt = ldmsd_req_attr_str_value_get_by_id(reqc, LDMSD_ATTR_XPRT);
-//	if (!xprt)
-//		goto einval;
-//	port = ldmsd_req_attr_str_value_get_by_id(reqc, LDMSD_ATTR_PORT);
-//	if (port) {
-//		port_no = atoi(port);
-//		if (port_no < 1 || port_no > USHRT_MAX) {
-//			reqc->errcode = EINVAL;
-//			(void) snprintf(reqc->recv_buf, reqc->recv_len,
-//					"'%s' transport with invalid port '%s'",
-//					xprt, port);
-//			goto send_reply;
-//		}
-//	}
-//	host =ldmsd_req_attr_str_value_get_by_id(reqc, LDMSD_ATTR_HOST);
-//	auth = ldmsd_req_attr_str_value_get_by_id(reqc, LDMSD_ATTR_AUTH);
-//	auth_args = ldmsd_req_attr_str_value_get_by_id(reqc, LDMSD_ATTR_STRING);
-//
-//	/* Parse the authentication options */
-//	if (auth_args) {
-//		auth_opts = av_new(LDMSD_AUTH_OPT_MAX);
-//		if (!auth_opts)
-//			goto enomem;
-//		str = strtok_r(auth_args, " ", &ptr1);
-//		while (str) {
-//			lval = strtok_r(str, "=", &ptr2);
-//			rval = strtok_r(NULL, "", &ptr2);
-//			rc = ldmsd_auth_opt_add(auth_opts, lval, rval);
-//			if (rc) {
-//				(void) snprintf(reqc->recv_buf, reqc->recv_len,
-//					"Failed to process the authentication options");
-//				goto send_reply;
-//			}
-//			str = strtok_r(NULL, " ", &ptr1);
-//		}
-//	}
-//
-//	listen = ldmsd_listen_new(xprt, port, host, auth, auth_opts);
-//	if (!listen) {
-//		if (errno == EEXIST)
-//			goto eexist;
-//		else
-//			goto enomem;
-//	}
-//	goto send_reply;
-//
-//eexist:
-//	reqc->errcode = EEXIST;
-//	(void) snprintf(reqc->recv_buf, reqc->recv_len,
-//			"The listening endpoint %s:%s is already exists",
-//			xprt, port);
-//	goto send_reply;
-//enomem:
-//	reqc->errcode = ENOMEM;
-//	(void) snprintf(reqc->recv_buf, reqc->recv_len, "Out of memory");
-//	goto send_reply;
-//einval:
-//	reqc->errcode = EINVAL;
-//	(void) snprintf(reqc->recv_buf, reqc->recv_len,
-//			"The attribute '%s' is required.", attr_name);
-//send_reply:
-//	ldmsd_send_req_response(reqc, reqc->recv_buf);
-//	if (xprt)
-//		free(xprt);
-//	if (port)
-//		free(port);
-//	if (host)
-//		free(host);
-//	if (auth)
-//		free(auth);
-//	if (auth_args)
-//		free(auth_args);
-//	if (auth_opts)
-//		av_free(auth_opts);
-//	return 0;
-//}
+static int listen_handler(ldmsd_req_ctxt_t reqc)
+{
+	ldmsd_listen_t listen;
+	int rc = 0;
+	json_entity_t xprt, port, host, auth, spec;
+	char *xprt_s, *host_s, *port_s, *auth_s;
+	unsigned short port_no = -1;
+	xprt_s = port_s = host_s = auth_s = NULL;
+
+	if (ldmsd_is_initialized()) {
+		/*
+		 * Adding a new listening endpoint is prohibited
+		 * after LDMSD is initialized.
+		 */
+		rc = ldmsd_send_error(reqc, EPERM, "LDMSD has been started. "
+				"Adding a listening endpoint is prohibited.");
+		goto out;
+	}
+
+	spec = json_value_find(reqc->json, "spec");
+
+	xprt = json_value_find(spec, "xprt");
+	if (!xprt) {
+		rc = ldmsd_send_missing_attr_err(reqc, "listen", "xprt");
+		goto out;
+	}
+	if (JSON_STRING_VALUE != json_entity_type(xprt)) {
+		rc = ldmsd_send_error(reqc, EINVAL, "listen:xprt must be a string.");
+		goto out;
+	}
+	xprt_s = json_value_str(xprt)->str;
+
+	port = json_value_find(spec, "port");
+	if (port) {
+		if (JSON_STRING_VALUE == json_entity_type(port)) {
+			port_s = json_value_str(port)->str;
+			port_no = atoi(port_s);
+		} else if (JSON_INT_VALUE == json_entity_type(port)) {
+			port_no = (int)json_value_int(port);
+		} else {
+			rc = ldmsd_send_error(reqc, EINVAL,
+				"listen:port must be either 'init' or 'string'.");
+			goto out;
+		}
+
+		if (port_no < 1 || port_no > USHRT_MAX) {
+			rc = ldmsd_send_error(reqc, EINVAL,
+					"'%s' transport with invalid port '%s'",
+					xprt, port);
+			goto out;
+		}
+	}
+	host = json_value_find(spec, "host");
+	if (host) {
+		if (JSON_STRING_VALUE != json_entity_type(host)) {
+			rc = ldmsd_send_error(reqc, EINVAL, "listen:host must be a string.");
+			goto out;
+		}
+		host_s = json_value_str(host)->str;
+	}
+	auth = json_value_find(spec, "auth");
+	if (auth) {
+		if (JSON_STRING_VALUE != json_entity_type(auth)) {
+			rc = ldmsd_send_error(reqc, EINVAL, "listen:auth must be a string.");
+			goto out;
+		}
+		auth_s = json_value_str(auth)->str;
+	}
+
+	listen = ldmsd_listen_new(xprt_s, port_no, host_s, auth_s);
+	if (!listen) {
+		if (errno == EEXIST) {
+			rc = ldmsd_send_error(reqc, EEXIST,
+					"The listening endpoint %s:%s is already exists",
+					xprt_s, port_s);
+		} else if (errno == ENOENT) {
+			rc = ldmsd_send_error(reqc, ENOENT,
+					"The given 'auth' (%s) "
+					"does not exist.", auth_s);
+		} else {
+			ldmsd_log(LDMSD_LCRITICAL, "Out of memory\n");
+		}
+	}
+out:
+	return rc;
+}
 //
 //struct envvar_name {
 //	const char *env;
@@ -6728,82 +6717,69 @@ out:
 //	return 0;
 //}
 //
-//static int auth_add_handler(ldmsd_req_ctxt_t reqc)
-//{
-//	int rc = 0;
-//	const char *attr_name;
-//	char *name = NULL, *plugin = NULL, *auth_args = NULL;
-//	char *str, *ptr1, *ptr2, *lval, *rval;
-//	struct attr_value_list *auth_opts = NULL;
-//	ldmsd_auth_t auth_dom;
-//
-//	name = ldmsd_req_attr_str_value_get_by_id(reqc, LDMSD_ATTR_NAME);
-//	if (!name) {
-//		attr_name = "name";
-//		goto attr_required;
-//	}
-//
-//	plugin = ldmsd_req_attr_str_value_get_by_id(reqc, LDMSD_ATTR_PLUGIN);
-//	if (!plugin) {
-//		plugin = strdup(name);
-//		if (!plugin)
-//			goto enomem;
-//	}
-//
-//	auth_args = ldmsd_req_attr_str_value_get_by_id(reqc, LDMSD_ATTR_STRING);
-//	if (auth_args) {
-//		auth_opts = av_new(LDMSD_AUTH_OPT_MAX);
-//		if (!auth_opts)
-//			goto enomem;
-//		str = strtok_r(auth_args, " ", &ptr1);
-//		while (str) {
-//			lval = strtok_r(str, "=", &ptr2);
-//			rval = strtok_r(NULL, "", &ptr2);
-//			rc = ldmsd_auth_opt_add(auth_opts, lval, rval);
-//			if (rc) {
-//				(void) snprintf(reqc->line_buf, reqc->line_len,
-//					"Failed to process the authentication options");
-//				goto send_reply;
-//			}
-//			str = strtok_r(NULL, " ", &ptr1);
-//		}
-//	}
-//
-//	auth_dom = ldmsd_auth_new_with_auth(name, plugin, auth_opts,
-//					    geteuid(), getegid(), 0600);
-//	if (!auth_dom) {
-//		reqc->errcode = errno;
-//		(void) snprintf(reqc->line_buf, reqc->line_len,
-//				"Authentication domain creation failed, "
-//				"errno: %d", errno);
-//		goto send_reply;
-//	}
-//
-//	goto send_reply;
-//
-//enomem:
-//	reqc->errcode = ENOMEM;
-//	(void) snprintf(reqc->line_buf, reqc->line_len, "Out of memory");
-//	goto send_reply;
-//attr_required:
-//	reqc->errcode = EINVAL;
-//	(void) snprintf(reqc->line_buf, reqc->line_len,
-//			"Attribute '%s' is required", attr_name);
-//	goto send_reply;
-//send_reply:
-//	ldmsd_send_req_response(reqc, reqc->line_buf);
-//	/* cleanup */
-//	if (name)
-//		free(name);
-//	if (plugin)
-//		free(plugin);
-//	if (auth_args)
-//		free(auth_args);
-//	if (auth_opts)
-//		av_free(auth_opts);
-//	return 0;
-//}
-//
+static int auth_handler(ldmsd_req_ctxt_t reqc)
+{
+	int rc = 0;
+	struct attr_value_list *avl = NULL;
+	json_entity_t name, plugin, args, arg, spec;
+	json_str_t an, av;
+	char *name_s = NULL, *plugin_s = NULL;
+	ldmsd_auth_t auth_dom = NULL;
+
+	spec = json_value_find(reqc->json, "spec");
+	name = json_value_find(spec, "name");
+	if (!name) {
+		rc = ldmsd_send_missing_attr_err(reqc, "auth", "name");
+		goto out;
+	}
+	if (JSON_STRING_VALUE != json_entity_type(name)) {
+		rc = ldmsd_send_error(reqc, EINVAL, "auth:name must be a string.");
+		goto out;
+	}
+	name_s = json_value_str(name)->str;
+
+	plugin = json_value_find(spec, "plugin");
+	if (!plugin) {
+		rc = ldmsd_send_missing_attr_err(reqc, "auth", "plugin");
+		goto out;
+	}
+	if (JSON_STRING_VALUE != json_entity_type(plugin)) {
+		rc = ldmsd_send_error(reqc, EINVAL, "auth:plugin must be a string.");
+		goto out;
+	}
+	plugin_s = json_value_str(plugin)->str;
+
+	args = json_value_find(spec, "args");
+	if (!args)
+		goto new_auth;
+
+	avl = av_new(json_attr_count(args));
+	if (!avl) {
+		ldmsd_log(LDMSD_LCRITICAL, "Out of memory\n");
+		rc = ENOMEM;
+		goto out;
+	}
+	for (arg = json_attr_first(args); arg; arg = json_attr_next(arg)) {
+		an = json_attr_name(arg);
+		av = json_value_str(json_attr_value(arg));
+		rc = av_add(avl, an->str, av->str);
+		if (rc)
+			goto out;
+	}
+
+new_auth:
+	auth_dom = ldmsd_auth_new_with_auth(name_s, plugin_s, avl,
+					    geteuid(), getegid(), 0600);
+	if (!auth_dom) {
+		rc = ldmsd_send_error(reqc, errno,
+				"Authentication domain creation failed, "
+				"errno: %d", errno);
+	}
+
+out:
+	return rc;
+}
+
 //static int auth_del_handler(ldmsd_req_ctxt_t reqc)
 //{
 //	const char *attr_name;

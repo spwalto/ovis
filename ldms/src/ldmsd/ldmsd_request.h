@@ -91,7 +91,7 @@ extern int ldmsd_req_debug;
  * Examples
  * { "type": "cfg_obj",
  *   "cfg_obj" : "prdcr",
- *   "sepc"    : { "xprt": "sock",
+ *   "spec"    : { "xprt": "sock",
  *                 "port": 10001,
  *                 "reconnect_interval": "30min"
  *               },

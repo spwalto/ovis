@@ -285,8 +285,7 @@ typedef struct ldmsd_listen {
 	char *xprt;
 	unsigned short port_no;
 	char *host;
-	char *auth_name;
-	struct attr_value_list *auth_attrs;
+	char *auth_name; /* Name of an authentication configuration object */
 	ldms_t x;
 } *ldmsd_listen_t;
 
@@ -1480,7 +1479,7 @@ struct attr_value_list *ldmsd_auth_opts_str2avl(const char *auth_args_s);
  *
  * \return a listen cfgobj
  */
-ldmsd_listen_t ldmsd_listen_new(char *xprt, char *port, char *host, char *auth);
+ldmsd_listen_t ldmsd_listen_new(char *xprt, unsigned short port, char *host, char *auth);
 
 
 /**

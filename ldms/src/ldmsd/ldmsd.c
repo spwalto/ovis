@@ -294,20 +294,6 @@ const char *ldmsd_myname_get()
 	return cmd_line_args.daemon_name;
 }
 
-const char *ldmsd_auth_name_get(ldmsd_listen_t listen)
-{
-	if (!listen->auth_name)
-		return ldmsd_default_auth_get();
-	return listen->auth_name;
-}
-
-struct attr_value_list *ldmsd_auth_attr_get(ldmsd_listen_t listen)
-{
-	if (!listen->auth_name)
-		return ldmsd_default_auth_attr_get();
-	return listen->auth_attrs;
-}
-
 const char *ldmsd_default_auth_get()
 {
 	ldmsd_auth_t d = ldmsd_auth_default_get();
@@ -1042,26 +1028,21 @@ void ldmsd_listen___del(ldmsd_cfgobj_t obj)
 		free(listen->host);
 	if (listen->auth_name)
 		free(listen->auth_name);
-	if (listen->auth_attrs)
-		av_free(listen->auth_attrs);
 	ldmsd_cfgobj___del(obj);
 }
 
-ldmsd_listen_t ldmsd_listen_new(char *xprt, char *port, char *host, char *auth)
+ldmsd_listen_t ldmsd_listen_new(char *xprt, unsigned short port, char *host, char *auth)
 {
 	char *name;
 	size_t len;
 	struct ldmsd_listen *listen = NULL;
 	ldmsd_auth_t auth_dom = NULL;
 
-	if (!port)
-		port = TOSTRING(LDMS_DEFAULT_PORT);
-
-	len = strlen(xprt) + strlen(port) + 2; /* +1 for ':' and +1 for \0 */
+	len = strlen(xprt) + 8; /* +6 for max port number and +2 for ':' and '\0' */
 	name = malloc(len);
 	if (!name)
 		return NULL;
-	(void) snprintf(name, len, "%s:%s", xprt, port);
+	(void) snprintf(name, len, "%s:%d", xprt, port);
 	listen = (struct ldmsd_listen *)
 		ldmsd_cfgobj_new_with_auth(name, LDMSD_CFGOBJ_LISTEN,
 				sizeof *listen, ldmsd_listen___del,
@@ -1072,7 +1053,7 @@ ldmsd_listen_t ldmsd_listen_new(char *xprt, char *port, char *host, char *auth)
 	listen->xprt = strdup(xprt);
 	if (!listen->xprt)
 		goto err;
-	listen->port_no = atoi(port);
+	listen->port_no = port;
 	if (host) {
 		listen->host = strdup(host);
 		if (!listen->host)
@@ -1084,24 +1065,18 @@ ldmsd_listen_t ldmsd_listen_new(char *xprt, char *port, char *host, char *auth)
 			errno = ENOENT;
 			goto err;
 		}
-		listen->auth_name = strdup(auth_dom->plugin);
+		/*
+		 * The reference taken when found the auth is
+		 * used as the reference for the listen object.
+		 */
+		listen->auth_name = strdup(auth);
 		if (!listen->auth_name)
 			goto err;
-		if (auth_dom->attrs) {
-			listen->auth_attrs = av_copy(auth_dom->attrs);
-			if (!listen->auth_attrs) {
-				errno = ENOMEM;
-				goto err;
-			}
-		}
-		ldmsd_cfgobj_put(&auth_dom->obj);
 	}
 
 	ldmsd_cfgobj_unlock(&listen->obj);
 	return listen;
 err:
-	if (auth_dom)
-		ldmsd_cfgobj_put(&auth_dom->obj);
 	ldmsd_cfgobj_unlock(&listen->obj);
 	ldmsd_cfgobj_put(&listen->obj);
 	return NULL;
@@ -1489,22 +1464,22 @@ void ldmsd_init()
 
 int create_listening_ldms_xprt(ldmsd_listen_t listen)
 {
+	ldmsd_auth_t auth_dom;
 	if (!listen->auth_name) {
-		listen->auth_name = strdup(ldmsd_auth_name_get(listen));
-		if (!listen->auth_name) {
-			ldmsd_log(LDMSD_LCRITICAL, "Out of memory\n");
+		listen->auth_name = strdup(DEFAULT_AUTH);
+		if (!listen->auth_name)
 			return ENOMEM;
-		}
-		if (ldmsd_auth_attr_get(listen)) {
-			listen->auth_attrs = av_copy(ldmsd_auth_attr_get(listen));
-			if (!listen->auth_attrs) {
-				ldmsd_log(LDMSD_LCRITICAL, "Out of memory\n");
-				return ENOMEM;
-			}
-		}
 	}
+	auth_dom = ldmsd_auth_find(listen->auth_name);
+	if (!auth_dom) {
+		ldmsd_log(LDMSD_LERROR, "Failed creating listening endpoint %s:%d "
+				"because the auth '%s' not found.", listen->xprt,
+						listen->port_no, listen->auth_name);
+		return EINTR;
+	}
+
 	listen->x = ldms_xprt_new_with_auth(listen->xprt, ldmsd_linfo,
-				listen->auth_name, listen->auth_attrs);
+					auth_dom->plugin, auth_dom->attrs);
 	if (!listen->x) {
 		ldmsd_log(LDMSD_LERROR,
 			  "'%s' transport creation with auth '%s' "
@@ -1512,11 +1487,12 @@ int create_listening_ldms_xprt(ldmsd_listen_t listen)
 			  "configuration, authentication configuration, "
 			  "ZAP_LIBPATH (env var), and LD_LIBRARY_PATH.\n",
 			  listen->xprt,
-			  ldmsd_auth_name_get(listen),
+			  listen->auth_name,
 			  ovis_errno_abbvr(errno),
 			  errno);
 		return 6; /* legacy error code */
 	}
+	ldmsd_cfgobj_put(&auth_dom->obj); /* Put back the 'find' reference */
 	return 0;
 }
 
@@ -1706,7 +1682,7 @@ int main(int argc, char *argv[])
 			rval[0] = '\0';
 			rval = rval+1;
 			/* Use the default auth domain */
-			ldmsd_listen_t listen = ldmsd_listen_new(optarg, rval, NULL, NULL);
+			ldmsd_listen_t listen = ldmsd_listen_new(optarg, atoi(rval), NULL, NULL);
 			if (!listen) {
 				printf( "Error %d: failed to add listening "
 					"endpoint: %s:%s\n",
