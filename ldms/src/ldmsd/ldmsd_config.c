@@ -304,41 +304,71 @@ out:
 	return rc;
 }
 
-//static uint32_t __config_file_msgno_get(uint16_t file_no, uint16_t lineno)
-//{
-//	return (file_no << 16) | lineno;
-//}
+static void __config_file_msgno_get(uint64_t file_no, uint32_t obj_cnt,
+						struct ldmsd_msg_key *key_)
+{
+	key_->msg_no = obj_cnt;
+	key_->conn_id = file_no;
+}
 
 static uint16_t __config_file_msgno2lineno(uint32_t msgno)
 {
 	return msgno & 0xFFFF;
 }
 
-//static int log_response_fn(ldmsd_cfg_xprt_t xprt, char *data, size_t data_len)
-//{
-//	uint16_t lineno;
-//	ldmsd_req_attr_t attr;
-//	ldmsd_rec_hdr_t req_reply = (ldmsd_rec_hdr_t)data;
-//	ldmsd_ntoh_req_msg(req_reply);
-//
-//	lineno = __config_file_msgno2lineno(req_reply->msg_no);
-//
-//	attr = ldmsd_first_attr(req_reply);
-//
-//	/* We don't dump attributes to the log */
-//	ldmsd_log(LDMSD_LDEBUG, "msg_no %d flags %x rec_len %d rsp_err %d\n",
-//		  req_reply->msg_no, req_reply->flags, req_reply->rec_len,
-//		  req_reply->rsp_err);
-//
-//	if (req_reply->rsp_err && (attr->attr_id == LDMSD_ATTR_STRING)) {
-//		/* Print the error message to the log */
-//		ldmsd_log(LDMSD_LERROR, "At line %d (%s): error %d: %s\n",
-//				lineno, xprt->file.filename,
-//				req_reply->rsp_err, attr->attr_value);
-//	}
-//	xprt->rsp_err = req_reply->rsp_err;
-//	return 0;
-//}
+static int log_response_fn(ldmsd_cfg_xprt_t xprt, char *data, size_t data_len)
+{
+	json_entity_t rsp = NULL, type, errcode, msg;
+	json_parser_t parser = NULL;
+	char *type_s;
+	int rc;
+	ldmsd_rec_hdr_t req_reply = (ldmsd_rec_hdr_t)data;
+	ldmsd_ntoh_rec_hdr(req_reply);
+
+	parser = json_parser_new(0);
+	if (!parser) {
+		ldmsd_log(LDMSD_LCRITICAL, "Out of memory\n");
+		return ENOMEM;
+	}
+
+	rc = json_parse_buffer(parser, (char *)(req_reply + 1),
+					req_reply->rec_len, &rsp);
+	if (rc) {
+		ldmsd_log(LDMSD_LERROR, "Failed to parse a response object\n");
+		goto out;
+	}
+	type = json_value_find(rsp, "type");
+	type_s = json_value_str(type)->str;
+
+	if (0 == strncmp("err", type_s, 3)) {
+		errcode = json_value_find(rsp, "errcode");
+		if (0 != json_value_int(errcode)) {
+			msg = json_value_find(rsp, "msg");
+			xprt->file.errcode = json_value_int(errcode);
+			ldmsd_log(LDMSD_LERROR, "%s: Error %" PRIu64 ": %s\n",
+					xprt->file.filename,
+					json_value_int(errcode),
+					json_value_str(msg)->str);
+		}
+	} else if (0 == strncmp("info", type_s, 4)) {
+		/* for debugging */
+		jbuf_t jb = json_entity_dump(NULL, rsp);
+		if (!jb) {
+			ldmsd_log(LDMSD_LCRITICAL, "Out of memory\n");
+			return ENOMEM;
+		}
+		ldmsd_log(LDMSD_LDEBUG, "%s\n", jb->buf);
+	} else {
+		ldmsd_log(LDMSD_LERROR, "Unexpected response '%s'\n", type_s);
+	}
+
+out:
+	if (parser)
+		json_parser_free(parser);
+	if (rsp)
+		json_entity_free(rsp);
+	return 0;
+}
 
 /* find # standing alone in a line, indicating rest of line is comment.
  * e.g. ^# rest is comment
@@ -391,73 +421,124 @@ int __req_filter(ldmsd_req_ctxt_t reqc, void *ctxt)
 	return rc;
 }
 
-//int new_process_json_config_file(const char *path, int *lno, int trust)
-//{
-//	static uint32_t msg_no = 0;
-//	int rc = 0;
-//	long fsize;
-//	char *buffer;
-//
-//	FILE *f = fopen(path, "r");
-//	rc = fseek(f, 0, SEEK_END);
-//	if (rc) {
-//		ldmsd_log(LDMSD_LERROR, "fseek end fails %d\n", rc);
-//		return rc;
-//	}
-//	fsize = ftell(f);
-//	rc = fseek(f, 0, SEEK_SET);
-//	if (rc) {
-//		ldmsd_log(LDMSD_LERROR, "fseek set fails %d.\n", rc);
-//		return rc;
-//	}
-//	buffer = malloc(fsize + 1);
-//	rc = fread(buffer, 1, fsize, f);
-//	if (rc) {
-//		ldmsd_log(LDMSD_LERROR, "fread fails rc\n", rc);
-//		return rc;
-//	}
-//	fclose(f);
-//
-//	buffer[fsize] = 0;
-//
-//	json_parser_t parser;
-//	json_entity_t json;
-//
-//	parser = json_parser_new(0);
-//	if (!parser) {
-//		ldmsd_log(LDMSD_LERROR, "Out of memory\n");
-//		return ENOMEM;
-//	}
-//	rc = json_parse_buffer(parser, buffer, fsize + 1, &json);
-//	if (rc) {
-//		ldmsd_log(LDMSD_LERROR, "Failed to parse '%s'\n", path);
-//		json_parser_free(parser);
-//		return rc;
-//	}
-//	free(buffer);
-//	json_parser_free(parser);
-//
-//	json_entity_t e;
-//	jbuf_t jbuf;
-//	size_t hdr_len;
-//	struct ldmsd_rec_hdr_s request = {
-//			.type = LDMSD_MSG_TYPE_REQ,
-//			.flags = LDMSD_REC_SOM_F | LDMSD_REC_EOM_F,
-//	};
-//	hdr_len = sizeof(request);
-//	for (e = json_item_first(json); e; e = json_item_next(e)) {
-//		request.msg_no = msg_no++;
-//		jbuf = json_entity_dump(NULL, e);
-//		if (!jbuf) {
-//			ldmsd_log(LDMSD_LERROR, "Failed to dump a JSON entity\n");
-//			goto out;
-//		}
-//		request.rec_len = hdr_len + jbuf->cursor;
-//	}
-//out:
-//	json_entity_free(json);
-//	return rc;
-//}
+int process_config_file(const char *path, int trust)
+{
+	static uint64_t file_no = 1; /* Config File ID */
+	int rc = 0;
+	long fsize;
+	char *buffer;
+	ldmsd_cfg_xprt_t xprt = NULL;
+	json_parser_t parser;
+	json_entity_t json = NULL, e;
+	jbuf_t jbuf = NULL;
+	size_t hdr_len;
+	uint32_t cnt = 0;
+	struct ldmsd_rec_hdr_s *request;
+
+	FILE *f = fopen(path, "r");
+	if (!f) {
+		ldmsd_log(LDMSD_LERROR, "Failed to open config file '%s'\n", path);
+		return errno;
+	}
+	rc = fseek(f, 0, SEEK_END);
+	if (rc) {
+		ldmsd_log(LDMSD_LERROR, "fseek failed with error %d\n", rc);
+		fclose(f);
+		return rc;
+	}
+	fsize = ftell(f);
+
+	rc = fseek(f, 0, SEEK_SET);
+	if (rc) {
+		ldmsd_log(LDMSD_LERROR, "fseek failed with error %d\n", rc);
+		fclose(f);
+		return rc;
+	}
+
+	buffer = malloc(fsize + 1);
+	if (!buffer) {
+		ldmsd_log(LDMSD_LCRITICAL, "Out of memory\n");
+		goto out;
+	}
+	rc = fread(buffer, 1, fsize, f);
+	if (rc < fsize) {
+		rc = ferror(f);
+		ldmsd_log(LDMSD_LERROR, "fread failed with error %d\n", rc);
+		clearerr(f);
+		fclose(f);
+		return rc;
+	}
+	fclose(f);
+
+	buffer[fsize] = 0;
+
+	parser = json_parser_new(0);
+	if (!parser) {
+		ldmsd_log(LDMSD_LERROR, "Out of memory\n");
+		return ENOMEM;
+	}
+	rc = json_parse_buffer(parser, buffer, fsize + 1, &json);
+	if (rc) {
+		ldmsd_log(LDMSD_LERROR, "Failed to parse '%s'\n", path);
+		json_parser_free(parser);
+		return rc;
+	}
+	free(buffer);
+	json_parser_free(parser);
+
+	xprt = ldmsd_cfg_xprt_new();
+	if (!xprt) {
+		ldmsd_log(LDMSD_LCRITICAL, "Out of memory\n");
+		return ENOMEM;
+	}
+
+	xprt->type = LDMSD_CFG_XPRT_CONFIG_FILE;
+	xprt->file.filename = path;
+	xprt->file.errcode = 0;
+	xprt->send_fn = log_response_fn;
+	xprt->max_msg = LDMSD_CFG_FILE_XPRT_MAX_REC;
+	xprt->trust = trust;
+	ref_init(&xprt->ref, "create", (ref_free_fn_t)ldmsd_cfg_xprt_cleanup, xprt);
+
+	hdr_len = sizeof(*request);
+	jbuf = jbuf_new();
+	if (!jbuf) {
+		ldmsd_log(LDMSD_LCRITICAL, "Out of memory\n");
+		rc = ENOMEM;
+		goto out;
+	}
+	request = (ldmsd_rec_hdr_t)jbuf->buf;
+	jbuf->cursor = hdr_len;
+	for (e = json_item_first(json); e; e = json_item_next(e)) {
+		cnt++;
+		jbuf = json_entity_dump(jbuf, e);
+		if (!jbuf) {
+			ldmsd_log(LDMSD_LERROR, "Failed to dump a JSON entity\n");
+			rc = errno;
+			goto out;
+		}
+		request->rec_len = jbuf->cursor;
+		request->flags = LDMSD_REC_SOM_F | LDMSD_REC_EOM_F;
+		request->type = LDMSD_MSG_TYPE_REQ;
+		__config_file_msgno_get(file_no, cnt, &request->key);
+		rc = ldmsd_process_msg_request(request, xprt);
+		/* stop processing the config file if there is a config error */
+		if (xprt->file.errcode)
+			rc = (int)xprt->file.errcode;
+		if (rc)
+			goto out;
+		/* reset jbuf to contain only the record header */
+		jbuf->cursor = hdr_len;
+	}
+out:
+	if (json)
+		json_entity_free(json);
+	if (jbuf)
+		jbuf_free(jbuf);
+	if (xprt)
+		ldmsd_cfg_xprt_ref_put(xprt, "create");
+	return rc;
+}
 
 //int process_config_file(const char *path, int *lno, int trust)
 //{

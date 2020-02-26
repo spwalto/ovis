@@ -197,6 +197,7 @@ typedef struct ldmsd_cfg_sock_s {
 
 typedef struct ldmsd_cfg_file_s {
 	const char *filename; /* Config file name */
+	uint64_t errcode; /* Set if there is a configuration error */
 } *ldmsd_cfg_file_t;
 
 struct ldmsd_cfg_xprt_s;

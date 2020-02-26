@@ -1723,11 +1723,10 @@ int main(int argc, char *argv[])
 	optind = 0;
 	while ((op = getopt(argc, argv, FMT)) != -1) {
 		char *dup_arg;
-		int lln = -1;
 		switch (op) {
 		case 'c':
 			dup_arg = strdup(optarg);
-			ret = process_config_file(dup_arg, &lln, 1);
+			ret = process_config_file(dup_arg, 1);
 			free(dup_arg);
 			if (ret && !ldmsd_is_check_syntax()) {
 				char errstr[128];
