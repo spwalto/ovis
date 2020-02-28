@@ -142,17 +142,17 @@ pthread_mutex_t rsp_msg_tree_lock = PTHREAD_MUTEX_INITIALIZER;
 //	}
 //}
 
-typedef int (*ldmsd_request_handler_t)(ldmsd_req_ctxt_t req_ctxt);
+typedef int (*ldmsd_obj_handler_t)(ldmsd_req_ctxt_t reqc);
 struct request_handler_entry {
 	int req_id;
-	ldmsd_request_handler_t handler;
+	ldmsd_obj_handler_t handler;
 	int flag; /* Lower 12 bit (mask 0777) for request permisson.
 		   * The rest is reserved for ldmsd_request use. */
 };
 
 struct obj_handler_entry {
 	const char *name;
-	ldmsd_request_handler_t handler;
+	ldmsd_obj_handler_t handler;
 	int flag; /* Lower 12 bit (mask 0777) for request permission.
 	   * The rest is reserved for ldmsd_request use. */
 };
@@ -267,7 +267,7 @@ static int handler_entry_comp(const void *a, const void *b)
 /*
  * TODO: Fill in the flag field of all obj_handler_entry in all tables.
  */
-//static struct obj_handler_entry cfg_obj_handler_tbl[] = {
+static struct obj_handler_entry cfg_obj_handler_tbl[] = {
 //		{ "env",	env_handler    },
 //		{ "daemon",	daemon_handler },
 //		{ "listen",	listen_handler },
@@ -278,7 +278,7 @@ static int handler_entry_comp(const void *a, const void *b)
 //		{ "strgp",	strgp_add_handler },
 //		{ "setgroup",	setgroup_add_handler },
 //		{ "failover",	failover_config_handler }
-//};
+};
 
 static struct obj_handler_entry cmd_obj_handler_tbl[] = {
 		{ "example", 	example_handler, 	XALL },
@@ -929,6 +929,58 @@ int process_unexpected_info_obj(ldmsd_req_ctxt_t reqc)
 	return 0;
 }
 
+int ldmsd_process_cfg_obj(ldmsd_req_ctxt_t reqc)
+{
+	int rc;
+	json_entity_t cfg_obj, spec, op;
+	struct obj_handler_entry *handler;
+	char *cfg_obj_s, *op_s;
+
+	cfg_obj = json_value_find(reqc->json, "cfg_obj");
+	if (!cfg_obj) {
+		rc = __ldmsd_send_missing_mandatory_attr(reqc, "cfg_obj", "cfg_obj");
+		return rc;
+	}
+
+	if (JSON_STRING_VALUE != json_entity_type(cfg_obj)) {
+		rc = ldmsd_send_error(reqc, EINVAL, "cfg_obj:cfg_obj must be a JSON string.");
+		return rc;
+	}
+
+	cfg_obj_s = json_value_str(cfg_obj)->str;
+	spec = json_value_find(reqc->json, "spec");
+	if (!spec) {
+		rc = __ldmsd_send_missing_mandatory_attr(reqc, "cfg_obj", "spec");
+		return rc;
+	}
+	op = json_value_find(reqc->json, "op");
+	if (op) {
+		if (JSON_STRING_VALUE != json_entity_type(op)) {
+			rc = ldmsd_send_error(reqc, EINVAL, "cfg_obj:op must be a string.");
+			return rc;
+		}
+		op_s = json_value_str(op)->str;
+		if ((0 != strncmp("create", op_s, 6)) && (0 != strncmp("update", op_s, 6))) {
+			rc = ldmsd_send_error(reqc, EINVAL, "cfg_obj:op invalid value (%s)", op_s);
+			return rc;
+		}
+	}
+
+	handler = bsearch(&cfg_obj_s, cfg_obj_handler_tbl,
+			ARRAY_SIZE(cfg_obj_handler_tbl),
+			sizeof(*handler), handler_entry_comp);
+	if (!handler) {
+		ldmsd_log(LDMSD_LERROR, "Received an unrecognized "
+				"configuration object '%s'\n", cfg_obj_s);
+		rc = ldmsd_send_error(reqc, ENOTSUP, "Received an unrecognized "
+				"configuration object '%s'\n", cfg_obj_s);
+		return rc;
+	}
+
+	rc = handler->handler(reqc);
+	return rc;
+}
+
 int ldmsd_process_cmd_obj(ldmsd_req_ctxt_t reqc)
 {
 	int rc;
@@ -939,6 +991,10 @@ int ldmsd_process_cmd_obj(ldmsd_req_ctxt_t reqc)
 	cmd = json_value_find(reqc->json, "cmd");
 	if (!cmd) {
 		rc = __ldmsd_send_missing_mandatory_attr(reqc, "cmd_obj", "cmd");
+		return rc;
+	}
+	if (JSON_STRING_VALUE != json_entity_type(cmd)) {
+		rc = ldmsd_send_error(reqc, EINVAL, "cmd_obj:cmd must be a JSON string.");
 		return rc;
 	}
 	cmd_s = json_value_str(cmd)->str;
@@ -953,9 +1009,9 @@ int ldmsd_process_cmd_obj(ldmsd_req_ctxt_t reqc)
 			sizeof(*handler), handler_entry_comp);
 	if (!handler) {
 		ldmsd_log(LDMSD_LERROR, "Received an unrecognized "
-				"command object '%s'\n", json_value_str(cmd)->str);
+				"command object '%s'\n", cmd_s);
 		rc = ldmsd_send_error(reqc, ENOTSUP, "Received an unrecognized "
-				"command object '%s'\n", json_value_str(cmd)->str);
+				"command object '%s'\n", cmd_s);
 		return rc;
 	}
 
@@ -992,7 +1048,7 @@ int ldmsd_process_json_obj(ldmsd_req_ctxt_t reqc)
 	}
 	type_s = json_value_str(type)->str;
 	if (0 == strncmp("cfg_obj", json_value_str(type)->str, 7)) {
-
+		rc = ldmsd_process_cfg_obj(reqc);
 	} else if (0 == strncmp("act_obj", json_value_str(type)->str, 7)) {
 
 	} else if (0 == strncmp("cmd_obj", json_value_str(type)->str, 7)) {
