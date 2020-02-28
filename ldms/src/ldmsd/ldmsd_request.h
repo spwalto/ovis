@@ -84,7 +84,7 @@ extern int ldmsd_req_debug;
  * Configuration objects (CFG_OBJ)
  * { "type": "cfg_obj",
  *   "cfg_obj" : <a string, e.g., "env", "daemon", "prdcr">,
- *   "op"      : <one of "create", "update" or "delete">
+ *   "op"      : <one of "create", "update">
  *   "spec"    : <cfg_obj type-specific attribute-value pairs>,
  *   "instances": [ list of instances that will use the same spec ]
  * }
@@ -116,15 +116,15 @@ extern int ldmsd_req_debug;
  *
  * Action objects (ACT_OBJ)
  *
- * { "type"  : "act_obj",
- *   "name"  : <one of "start", "stop">,
+ * { "type"  : "cfg_act",
+ *   "name"  : <one of "start", "stop", "delete">,
  *   "objs"  : [ { "type": <cfg obj type string, e.g., "prdcr", "smplr">,
  *                 "instances": <list of instance name strings>
  *               }, ....
  *             ]
  * }
  * Example
- * { "type" : "act_obj",
+ * { "type" : "cfg_act",
  *   "name": "start",
  *   "objs" : [ { "type": "prdcr",
  *                "instances": [ "nid01", "nid02"]
