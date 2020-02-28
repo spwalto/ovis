@@ -210,7 +210,7 @@ static int set_route_handler(ldmsd_req_ctxt_t req_ctxt);
 //static int daemon_status_handler(ldmsd_req_ctxt_t reqc);
 //static int version_handler(ldmsd_req_ctxt_t reqc);
 //static int env_handler(ldmsd_req_ctxt_t req_ctxt);
-//static int include_handler(ldmsd_req_ctxt_t req_ctxt);
+static int include_handler(ldmsd_req_ctxt_t req_ctxt);
 //static int oneshot_handler(ldmsd_req_ctxt_t req_ctxt);
 //static int logrotate_handler(ldmsd_req_ctxt_t req_ctxt);
 //static int exit_daemon_handler(ldmsd_req_ctxt_t req_ctxt);
@@ -284,6 +284,7 @@ static struct obj_handler_entry cfg_obj_handler_tbl[] = {
 static struct obj_handler_entry cmd_obj_handler_tbl[] = {
 		{ "example", 	example_handler, 	XALL },
 		{ "greeting",	greeting_handler,	XALL },
+		{ "include",	include_handler,	XUG },
 		{ "set_route",	set_route_handler, 	XUG },
 };
 
@@ -1080,13 +1081,6 @@ int ldmsd_process_json_obj(ldmsd_req_ctxt_t reqc)
 	}
 out:
 	return rc;
-}
-
-int __ldmsd_is_req_from_config_file(ldmsd_cfg_xprt_t xprt)
-{
-	if (NULL == xprt->xprt)
-		return 1;
-	return 0;
 }
 
 int ldmsd_append_info_obj_hdr(ldmsd_req_ctxt_t reqc, const char *info_name)
@@ -4809,54 +4803,38 @@ out:
 //	return rc;
 //}
 //
-//static int include_handler(ldmsd_req_ctxt_t reqc)
-//{
-//	char *path = NULL;
-//	int rc = 0;
-//
-//	path = ldmsd_req_attr_str_value_get_by_id(reqc, LDMSD_ATTR_PATH);
-//	if (!path) {
-//		reqc->errcode = EINVAL;
-//		linebuf_printf(reqc,
-//				"The attribute 'path' is required by include.");
-//		goto out;
-//	}
-//	int lineno = -1;
-//	reqc->errcode = process_config_file(path, &lineno, reqc->xprt->trust);
-//	if (reqc->errcode) {
-//		if (lineno == 0) {
-//			/*
-//			 * There is an error before parsing any lines.
-//			 */
-//			linebuf_printf(reqc,
-//				"Failed to open or read the config file '%s': %s",
-//				path, strerror(reqc->errcode));
-//		} else {
-//			/*
-//			 * The actual error is always reported to the log file
-//			 * with the line number of the config file path.
-//			 */
-//			if (!__ldmsd_is_req_from_config_file(reqc->xprt)) {
-//				linebuf_printf(reqc,
-//					"There is an error in the included file. "
-//					"Please see the detail in the log file.");
-//			} else {
-//				/* Do nothing */
-//				/*
-//				 * If the request is from a config file,
-//				 * printing the above message to log file is not
-//				 * useful.
-//				 */
-//			}
-//		}
-//	}
-//
-//out:
-//	if (path)
-//		free(path);
-//	ldmsd_send_req_response(reqc, reqc->recv_buf);
-//	return rc;
-//}
+static int include_handler(ldmsd_req_ctxt_t reqc)
+{
+	json_entity_t path, spec;
+	char *path_s = NULL;
+	int rc = 0;
+
+	spec = json_value_find(reqc->json, "spec");
+	path = json_value_find(spec, "path");
+	if (!path)
+		return ldmsd_send_missing_attr_err(reqc, "cmd:include", "path");
+	if (JSON_STRING_VALUE != json_entity_type(path))
+		return ldmsd_send_type_error(reqc, "cmd:include:path", "a string");
+	path_s = json_value_str(path)->str;
+	rc = process_config_file(path_s, reqc->xprt->trust);
+	if (rc) {
+		/*
+		 * The actual error is always reported to the log file
+		 * with the line number of the config file path.
+		 */
+		if (LDMSD_CFG_XPRT_CONFIG_FILE != reqc->xprt->type) {
+			rc = ldmsd_send_error(reqc, rc,
+				"An error occurs when including the config file %s. "
+				"Please see the detail in the log file.",
+				path_s);
+		} else {
+			rc = ldmsd_send_error(reqc, rc, "Failed to include "
+						"the config file '%s'", path_s);
+		}
+	}
+
+	return rc;
+}
 //
 //static int oneshot_handler(ldmsd_req_ctxt_t reqc)
 //{
@@ -4930,81 +4908,6 @@ out:
 //	Snprintf(&reqc->recv_buf, &reqc->recv_len,
 //				"exit daemon request received");
 //	ldmsd_send_req_response(reqc, reqc->recv_buf);
-//	return 0;
-//}
-//
-//
-//static int __greeting_path_resp_handler(ldmsd_req_cmd_t rcmd)
-//{
-//	struct ldmsd_req_attr_s my_attr;
-//	ldmsd_req_attr_t server_attr;
-//	char *path;
-//	server_attr = ldmsd_first_attr((ldmsd_rec_hdr_t)rcmd->reqc->req_buf);
-//	my_attr.discrim = 1;
-//	my_attr.attr_id = LDMSD_ATTR_STRING;
-//	/* +1 for : */
-//	my_attr.attr_len = server_attr->attr_len + strlen((char *)rcmd->ctxt) + 1;
-//	path = malloc(my_attr.attr_len);
-//	if (!path) {
-//		rcmd->org_reqc->errcode = ENOMEM;
-//		ldmsd_send_req_response(rcmd->org_reqc, "Out of memory");
-//		return 0;
-//	}
-//	ldmsd_hton_req_attr(&my_attr);
-//	ldmsd_append_reply(rcmd->org_reqc, (char *)&my_attr, sizeof(my_attr), LDMSD_REC_SOM_F);
-//	memcpy(path, server_attr->attr_value, server_attr->attr_len);
-//	path[server_attr->attr_len] = ':';
-//	strcpy(&path[server_attr->attr_len + 1], rcmd->ctxt);
-//	ldmsd_append_reply(rcmd->org_reqc, path, ntohl(my_attr.attr_len), 0);
-//	my_attr.discrim = 0;
-//	ldmsd_append_reply(rcmd->org_reqc, (char *)&my_attr.discrim,
-//				sizeof(my_attr.discrim), LDMSD_REC_EOM_F);
-//	free(path);
-//	free(rcmd->ctxt);
-//	return 0;
-//}
-
-//static int __greeting_path_req_handler(ldmsd_req_ctxt_t reqc)
-//{
-//	ldmsd_prdcr_t prdcr;
-//	ldmsd_req_cmd_t rcmd;
-//	struct ldmsd_req_attr_s attr;
-//	ldmsd_cfg_lock(LDMSD_CFGOBJ_PRDCR);
-//	prdcr = ldmsd_prdcr_first();
-//	ldmsd_cfg_unlock(LDMSD_CFGOBJ_PRDCR);;
-//	char *myself = strdup(ldmsd_myhostname_get());
-//	if (!prdcr) {
-//		attr.discrim = 1;
-//		attr.attr_id = LDMSD_ATTR_STRING;
-//		attr.attr_len = strlen(myself);
-//		ldmsd_hton_req_attr(&attr);
-//		ldmsd_append_reply(reqc, (char *)&attr, sizeof(attr), LDMSD_REC_SOM_F);
-//		ldmsd_append_reply(reqc, myself, strlen(myself), 0);
-//		attr.discrim = 0;
-//		ldmsd_append_reply(reqc, (char *)&attr.discrim, sizeof(attr.discrim), LDMSD_REC_EOM_F);
-//	} else {
-//		ldmsd_prdcr_lock(prdcr);
-//		rcmd = alloc_req_cmd_ctxt(prdcr->xprt, ldms_xprt_msg_max(prdcr->xprt),
-//						LDMSD_GREETING_REQ, reqc,
-//						__greeting_path_resp_handler, myself);
-//		ldmsd_prdcr_unlock(prdcr);
-//		ldmsd_prdcr_put(prdcr);
-//		if (!rcmd) {
-//			reqc->errcode = ENOMEM;
-//			ldmsd_send_req_response(reqc, "Out of Memory");
-//			return 0;
-//		}
-//		attr.attr_id = LDMSD_ATTR_PATH;
-//		attr.attr_len = 0;
-//		attr.discrim = 1;
-//		ldmsd_hton_req_attr(&attr);
-//		__ldmsd_append_buffer(rcmd->reqc, (char *)&attr, sizeof(attr),
-//					LDMSD_REC_SOM_F, LDMSD_REQ_TYPE_REQUEST);
-//		attr.discrim = 0;
-//		__ldmsd_append_buffer(rcmd->reqc, (char *)&attr.discrim,
-//					sizeof(attr.discrim), LDMSD_REC_EOM_F,
-//						LDMSD_REQ_TYPE_REQUEST);
-//	}
 //	return 0;
 //}
 
@@ -5919,7 +5822,9 @@ char __get_opt(char *name)
 static inline int __daemon_type_error(ldmsd_req_ctxt_t reqc,
 					const char *name, const char *type)
 {
-	return ldmsd_send_error(reqc, EINVAL, "daemon:%s must be %s.", name, type);
+	char n[512];
+	snprintf(n, 512, "daemon:%s", name);
+	return ldmsd_send_type_error(reqc, n, type);
 }
 
 static inline int __daemon_proc_error(ldmsd_req_ctxt_t reqc,
