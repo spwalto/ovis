@@ -217,7 +217,7 @@ static int set_route_handler(ldmsd_req_ctxt_t req_ctxt);
 //static int unimplemented_handler(ldmsd_req_ctxt_t req_ctxt);
 //static int eperm_handler(ldmsd_req_ctxt_t req_ctxt);
 //static int ebusy_handler(ldmsd_req_ctxt_t reqc);
-//static int daemon_handler(ldmsd_req_ctxt_t reqc);
+static int daemon_handler(ldmsd_req_ctxt_t reqc);
 static int listen_handler(ldmsd_req_ctxt_t reqc);
 //static int export_config_handler(ldmsd_req_ctxt_t reqc);
 //
@@ -270,7 +270,7 @@ static int handler_entry_comp(const void *a, const void *b)
 static struct obj_handler_entry cfg_obj_handler_tbl[] = {
 		{ "auth",	auth_handler,		XUG },
 //		{ "env",	env_handler    },
-//		{ "daemon",	daemon_handler },
+		{ "daemon",	daemon_handler,		XUG },
 		{ "listen",	listen_handler,		XUG },
 //		{ "plugin_instance", /* TODO: fill this */ },
 //		{ "smplr",	smplr_add_handler },
@@ -5884,144 +5884,309 @@ out:
 //	return 0;
 //}
 //
-//struct cmd_line_opts {
-//	const char *l;
-//};
-//struct cmd_line_opts opts[] = {
-//		['a'] = { "default-auth"   },
-//		['B'] = { "banner"         },
-//		['H'] = { "hostname"       },
-//		['k'] = { "publish-kernel" },
-//		['l'] = { "logfile"        },
-//		['m'] = { "mem"            },
-//		['n'] = { "daemon-name"    },
-//		['P'] = { "num-threads"    },
-//		['r'] = { "pidfile"        },
-//		['s'] = { "kernel-file"    },
-//		['v'] = { "loglevel"       },
-//		['x'] = { "xprt"           },
-//};
-//
-//static int daemon_handler(ldmsd_req_ctxt_t reqc)
-//{
-//	char *s, *token, *ptr1, *lval, *rval, *auth_attrs;
-//	int rc = 0;
-//	char opt;
-//	s = ldmsd_req_attr_str_value_get_by_id(reqc, LDMSD_ATTR_STRING);
-//
-//	if (ldmsd_is_initialized()) {
-//		/*
-//		 * No changes to command-line options are allowed
-//		 * after LDMSD is initialized.
-//		 *
-//		 * The only exception is loglevel which can be changed
-//		 * using loglevel command.
-//		 *
-//		 */
-//		reqc->errcode = EPERM;
-//		linebuf_printf(reqc, "LDMSD is already initialized."
-//				"The command-line options cannot be altered.");
-//		goto send_reply;
-//	}
-//
-//	for (token = strtok_r(s, " \t\n", &ptr1); token;
-//			token = strtok_r(NULL, " \t\n", &ptr1)) {
-//		char *ptr2;
-//		lval = strtok_r(token, "=", &ptr2);
-//		rval = strtok_r(NULL, "=", &ptr2);
-//
-//		if ((strcmp(lval, "B") == 0) || (strcasecmp(lval, opts['B'].l) == 0))
-//			opt = 'B';
-//		else if ((strcmp(lval, "m") == 0) || (strcasecmp(lval, opts['m'].l) == 0))
-//			opt = 'm';
-//		else if ((strcmp(lval, "n") == 0) || (strcasecmp(lval, opts['n'].l) == 0))
-//			opt = 'n';
-//		else if ((strcmp(lval, "l") == 0) || (strcasecmp(lval, opts['l'].l) == 0))
-//			opt = 'l';
-//		else if ((strcmp(lval, "v") == 0) || (strcasecmp(lval, opts['v'].l) == 0))
-//			opt = 'v';
-//		else if ((strcmp(lval, "x") == 0) || (strcasecmp(lval, opts['x'].l) == 0))
-//			opt = 'x';
-//		else if ((strcmp(lval, "P") == 0) || (strcasecmp(lval, opts['P'].l) == 0))
-//			opt = 'P';
-//		else if ((strcmp(lval, "k") == 0) || (strcasecmp(lval, opts['k'].l) == 0))
-//			opt = 'k';
-//		else if ((strcmp(lval, "s") == 0) || (strcasecmp(lval, opts['s'].l) == 0))
-//			opt = 's';
-//		else if ((strcmp(lval, "H") == 0) || (strcasecmp(lval, opts['H'].l) == 0))
-//			opt = 'H';
-//		else if ((strcmp(lval, "r") == 0) || (strcasecmp(lval, opts['r'].l) == 0))
-//			opt = 'r';
-//		else if ((strcmp(lval, "a") == 0) || (strcasecmp(lval, opts['a'].l) == 0)) {
-//			/*
-//			 * This is a special case. The authentication plugin and
-//			 * its arguments need to be processed at the same time.
-//			 * Any attributes following the auth attribute will be
-//			 * interpret as authentication arguments.
-//			 * E.g.
-//			 * set default-auth=ovis path=/path/to/secretword
-//			 */
-//			goto auth;
-//		} else {
-//			/* Unknown cmd-line arguments */
-//			reqc->errcode = EINVAL;
-//			snprintf(reqc->recv_buf, reqc->recv_len,
-//					"Unknown cmd-line option or it must be "
-//					"given at the command line: %s", lval);
-//			goto send_reply;
-//		}
-//
-//		rc = ldmsd_process_cmd_line_arg(opt, rval);
-//		if (rc)
-//			goto proc_err;
-//
-//	}
-//	goto send_reply;
-//auth:
-//	/* auth plugin name */
-//	rc = ldmsd_process_cmd_line_arg('a', rval);
-//	if (rc)
-//		goto proc_err;
-//	for (auth_attrs = strtok_r(NULL, " \t\n", &ptr1); auth_attrs;
-//			auth_attrs = strtok_r(NULL, " \t\n", &ptr1)) {
-//		/* auth plugin attributes */
-//		rc = ldmsd_process_cmd_line_arg('A', auth_attrs);
-//		if (rc)
-//			goto proc_err;
-//	}
-//	goto send_reply;
-//
-//proc_err:
-//	if (rc == EPERM)
-//		goto cmdline_eperm;
-//	else if (rc == ENOTSUP)
-//		goto cmdline_enotsup;
-//	else
-//		goto cmdline_einval;
-//cmdline_einval:
-//	/* reset to 0 because the error caused by users */
-//	rc = 0;
-//	reqc->errcode = EINVAL;
-//	snprintf(reqc->recv_buf, reqc->recv_len,
-//			"Invalid cmd-line value: %s=%s.", lval, rval);
-//	goto send_reply;
-//cmdline_eperm:
-//	/* reset to 0 because the error caused by users */
-//	rc = 0;
-//	reqc->errcode = EPERM;
-//	snprintf(reqc->recv_buf, reqc->recv_len,
-//			"The value of '%s' has already been set.", lval);
-//	goto send_reply;
-//cmdline_enotsup:
-//	rc = 0;
-//	reqc->errcode = ENOTSUP;
-//	snprintf(reqc->recv_buf, reqc->recv_len,
-//			"The option -%s must be given at the command line.", lval);
-//send_reply:
-//	ldmsd_send_req_response(reqc, reqc->recv_buf);
-//	return rc;
-//}
-//
+
+char __get_opt(char *name)
+{
+	if (0 == strncmp("banner", name, strlen(name)))
+		return 'B';
+	else if (0 == strncmp("daemon-name", name, strlen(name)))
+		return 'n';
+	else if (0 == strncmp("default-auth:plugin", name, strlen(name)))
+		return 'a';
+	else if (0 == strncmp("default-auth:args", name, strlen(name)))
+		return 'A';
+	else if (0 == strncmp("hostname", name, strlen(name)))
+		return 'H';
+	else if (0 == strncmp("log:dst", name, strlen(name)))
+		return 'l';
+	else if (0 ==strncmp("log:level", name, strlen(name)))
+		return 'v';
+	else if (0 == strncmp("pidfile", name, strlen(name)))
+		return 'r';
+	else if (0 == strncmp("kernel:publish", name, strlen(name)))
+		return 'k';
+	else if (0 == strncmp("kernel:file", name, strlen(name)))
+		return 's';
+	else if (0 == strncmp("mem", name, strlen(name)))
+		return 'm';
+	else if (0 == strncmp("workers", name, strlen(name)))
+		return 'P';
+	else {
+		return '-';
+	}
+}
+
+static inline int __daemon_type_error(ldmsd_req_ctxt_t reqc,
+					const char *name, const char *type)
+{
+	return ldmsd_send_error(reqc, EINVAL, "daemon:%s must be %s.", name, type);
+}
+
+static inline int __daemon_proc_error(ldmsd_req_ctxt_t reqc,
+					const char *name, int errcode)
+{
+	return ldmsd_send_error(reqc, errcode, "daemon:%s caused an error.", name);
+}
+
+static int __daemon_default_auth(ldmsd_req_ctxt_t reqc, json_entity_t auth)
+{
+	char *name;
+	json_entity_t value, attr;
+	json_str_t n, av;
+	char *v;
+	char tmp[512];
+	int rc;
+
+	if (JSON_DICT_VALUE != json_entity_type(auth))
+		return __daemon_type_error(reqc, "default-auth", "a dictionary");
+
+	/* default-auth:plugin */
+	name = "default-auth:plugin";
+	value = json_value_find(auth, "plugin");
+	if (value) {
+		if (JSON_STRING_VALUE != json_entity_type(value))
+			return __daemon_type_error(reqc, name, "a string");
+		v = json_value_str(value)->str;
+		rc = ldmsd_process_cmd_line_arg(__get_opt(name), v);
+		if (rc)
+			return __daemon_proc_error(reqc, name, rc);
+
+		/* default-auth:args */
+		name = "default-auth:args";
+		value = json_value_find(auth, "args");
+		if (!value)
+			goto out;
+
+		if (JSON_DICT_VALUE != json_entity_type(value))
+			return __daemon_type_error(reqc, name, "a dictionary");
+		for (attr = json_attr_first(value); attr; attr = json_attr_next(attr)) {
+			n = json_attr_name(attr);
+			value = json_attr_value(attr);
+			if (JSON_STRING_VALUE != json_entity_type(value)) {
+				snprintf(tmp, 512, "%s:%s", name, n->str);
+				return __daemon_type_error(reqc, tmp, "a string");
+			}
+			av = json_value_str(value);
+
+			snprintf(tmp, 512, "%s=%s", n->str, av->str);
+			rc = ldmsd_process_cmd_line_arg(__get_opt(name), tmp);
+			if (rc) {
+				snprintf(tmp, 512, "%s:%s=%s", name, n->str, av->str);
+				return __daemon_proc_error(reqc, tmp, rc);
+			}
+		}
+	}
+out:
+	return 0;
+}
+
+static int __daemon_log(ldmsd_req_ctxt_t reqc, json_entity_t dict)
+{
+	json_entity_t value;
+	char *name, *v;
+	int rc;
+
+	if (JSON_DICT_VALUE != json_entity_type(dict))
+		return __daemon_type_error(reqc, "log", "a dictionary");
+
+	/* log:dst */
+	name = "log:dst";
+	value = json_value_find(dict, "dst");
+	if (value) {
+		if (JSON_STRING_VALUE != json_entity_type(value))
+			return __daemon_type_error(reqc, name, "a string");
+
+		v = json_value_str(value)->str;
+		rc = ldmsd_process_cmd_line_arg(__get_opt(name), v);
+		if (rc)
+			return __daemon_proc_error(reqc, name, rc);
+	}
+
+	/* log:level */
+	name = "log:level";
+	value = json_value_find(dict, "level");
+	if (value) {
+		if (JSON_STRING_VALUE != json_entity_type(value))
+			return __daemon_type_error(reqc, name, "a string");
+		v = json_value_str(value)->str;
+		rc = ldmsd_process_cmd_line_arg(__get_opt(name), v);
+		if (rc)
+			return __daemon_proc_error(reqc, name, rc);
+	}
+	return 0;
+}
+
+static int __daemon_kernel(ldmsd_req_ctxt_t reqc, json_entity_t kernel)
+{
+	json_entity_t value;
+	char *v, *name;
+	int rc;
+
+	if (JSON_DICT_VALUE != json_entity_type(kernel))
+		return __daemon_type_error(reqc, "kernel", "a dictionary");
+
+	/* kernel:publish */
+	name = "kernek:publish";
+	value = json_value_find(kernel, name);
+	if (value) {
+		if (JSON_BOOL_VALUE != json_entity_type(value))
+			return __daemon_type_error(reqc, name, "true/false");
+		if (!json_value_bool(value))
+			goto out;
+
+		rc = ldmsd_process_cmd_line_arg(__get_opt(name), "true");
+		if (rc)
+			return __daemon_proc_error(reqc, name, rc);
+		/* kernel:file */
+		name = "kernel:file";
+		value = json_value_find(kernel, "file");
+		if (value) {
+			if (JSON_STRING_VALUE != json_entity_type(value))
+				return __daemon_type_error(reqc, name, "a string");
+			v = json_value_str(value)->str;
+			rc = ldmsd_process_cmd_line_arg(__get_opt(name), v);
+			if (rc)
+				return __daemon_proc_error(reqc, name, rc);
+		}
+	}
+out:
+	return 0;
+}
+
+static int daemon_handler(ldmsd_req_ctxt_t reqc)
+{
+	json_entity_t spec, value;
+	char *v, *name, *type;
+	char buf[512];
+	int rc = 0;
+
+	if (ldmsd_is_initialized()) {
+		/*
+		 * No changes to command-line options are allowed
+		 * after LDMSD is initialized.
+		 *
+		 * The only exception is loglevel which can be changed
+		 * using loglevel command.
+		 *
+		 */
+		rc = ldmsd_send_error(reqc, EPERM, "LDMSD is already initialized."
+				"The daemon configuration cannot be altered.");
+		return rc;
+	}
+
+	spec = json_value_find(reqc->json, "spec");
+
+	/* log */
+	name = "log";
+	value = json_value_find(spec, name);
+	if (value) {
+		rc = __daemon_log(reqc, value);
+		if (rc)
+			return rc;
+	}
+
+	/* Default authentication */
+	name = "default-auth";
+	value = json_value_find(spec, name);
+	if (value) {
+		rc = __daemon_default_auth(reqc, value);
+		if (rc)
+			return rc;
+	}
+
+	/* memory */
+	name = "mem";
+	value = json_value_find(spec, name);
+	if (value) {
+		if (JSON_STRING_VALUE != json_entity_type(value))
+			return __daemon_type_error(reqc, name, "a string");
+		v = json_value_str(value)->str;
+		rc = ldmsd_process_cmd_line_arg(__get_opt(name), v);
+		if (rc)
+			return __daemon_proc_error(reqc, name, rc);
+	}
+
+	/* workers */
+	name = "workers";
+	value = json_value_find(spec, name);
+	if (value) {
+		if (JSON_INT_VALUE == json_entity_type(value)) {
+			snprintf(buf, 512, "%" PRIu64, json_value_int(value));
+			v = buf;
+		} else if (JSON_STRING_VALUE != json_entity_type(value)) {
+			type = "a string or an integer";
+			return __daemon_type_error(reqc, name, type);
+		} else {
+			v = json_value_str(value)->str;
+		}
+		rc = ldmsd_process_cmd_line_arg(__get_opt(name), v);
+		if (rc)
+			return __daemon_proc_error(reqc, name, rc);
+	}
+
+	/* pidfile */
+	name = "pidfile";
+	value = json_value_find(spec, name);
+	if (value) {
+		if (JSON_STRING_VALUE != json_entity_type(value))
+			return __daemon_type_error(reqc, name, "a string");
+		v = json_value_str(value)->str;
+		rc = ldmsd_process_cmd_line_arg(__get_opt(name), v);
+		if (rc)
+			return __daemon_proc_error(reqc, name, rc);
+	}
+
+	/* banner */
+	name = "banner";
+	value = json_value_find(spec, name);
+	if (value) {
+		if (JSON_BOOL_VALUE == json_entity_type(value)) {
+			v = json_value_bool(value)?"1":"0";
+		} else if (JSON_INT_VALUE == json_entity_type(value)) {
+			v = json_value_int(value)?"1":"0";
+		} else {
+			return __daemon_type_error(reqc, name, "true/false or 0/1");
+		}
+		rc = ldmsd_process_cmd_line_arg(__get_opt(name), v);
+		if (rc)
+			return __daemon_proc_error(reqc, name, rc);
+	}
+
+	/* hostname */
+	name = "hostname";
+	value = json_value_find(spec, name);
+	if (value) {
+		if (JSON_STRING_VALUE != json_entity_type(value))
+			return __daemon_type_error(reqc, name, "a string");
+		v = json_value_str(value)->str;
+		rc = ldmsd_process_cmd_line_arg(__get_opt(name), v);
+		if (rc)
+			return __daemon_proc_error(reqc, name, rc);
+	}
+
+	/* daemon-name */
+	name = "daemon-name";
+	value = json_value_find(spec, name);
+	if (value) {
+		if (JSON_STRING_VALUE != json_entity_type(value))
+			return __daemon_type_error(reqc, name, "a string");
+		v = json_value_str(value)->str;
+		rc = ldmsd_process_cmd_line_arg(__get_opt(name), v);
+		if (rc)
+			return __daemon_proc_error(reqc, name, rc);
+	}
+
+	/* kernel */
+	value = json_value_find(spec, "kernel");
+	if (value) {
+		rc = __daemon_kernel(reqc, value);
+		if (rc)
+			return rc;
+	}
+
+	return 0;
+}
+
 static int listen_handler(ldmsd_req_ctxt_t reqc)
 {
 	ldmsd_listen_t listen;
