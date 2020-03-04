@@ -63,6 +63,7 @@ import re
 from ldmsd import ldmsd_config, ldmsd_util, ldmsd_request
 from ldmsd.ldmsd_request import LDMSD_Request, LDMSD_Req_Attr
 from ldmsd.ldmsd_request import LDMSD_Req_Attr
+from ldmsd.ldmsd_msg import LDMSD_Message
 import errno
 
 LDMSD_REQ_SOM_F=1
@@ -259,6 +260,13 @@ class LdmsdCmdParser(cmd.Cmd):
     def read_none_tty(self, fin):
         for cmd in fin:
             self.onecmd(cmd)
+
+    def do_json(self, arg):
+        req = LDMSD_Message(self.ctrl)
+        req.send(LDMSD_Message.LDMSD_MSG_TYPE_REQ, None, arg)
+        rsp = LDMSD_Message(self.ctrl)
+        rsp.receive()
+        print(rsp.json_ent) 
 
     def do_source(self, arg):
         """
