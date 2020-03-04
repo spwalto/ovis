@@ -163,6 +163,7 @@ struct obj_handler_entry {
 static int example_handler(ldmsd_req_ctxt_t req_ctxt);
 static int greeting_handler(ldmsd_req_ctxt_t req_ctxt);
 static int include_handler(ldmsd_req_ctxt_t req_ctxt);
+static int plugin_status_handler(ldmsd_req_ctxt_t reqc);
 static int set_route_handler(ldmsd_req_ctxt_t req_ctxt);
 
 /*
@@ -205,7 +206,6 @@ static int plugin_instance_handler(ldmsd_req_ctxt_t reqc);
 //static int updtr_start_handler(ldmsd_req_ctxt_t req_ctxt);
 //static int updtr_stop_handler(ldmsd_req_ctxt_t req_ctxt);
 //static int updtr_status_handler(ldmsd_req_ctxt_t req_ctxt);
-//static int plugn_status_handler(ldmsd_req_ctxt_t req_ctxt);
 //static int plugn_list_handler(ldmsd_req_ctxt_t req_ctxt);
 //static int plugn_sets_handler(ldmsd_req_ctxt_t req_ctxt);
 //static int plugn_usage_handler(ldmsd_req_ctxt_t req_ctxt);
@@ -288,6 +288,7 @@ static struct obj_handler_entry cmd_obj_handler_tbl[] = {
 		{ "example", 	example_handler, 	XALL },
 		{ "greeting",	greeting_handler,	XALL },
 		{ "include",	include_handler,	XUG },
+		{ "plugin_status",	plugin_status_handler,	XALL },
 		{ "set_route",	set_route_handler, 	XUG },
 };
 
@@ -3830,87 +3831,65 @@ out:
 //	return rc;
 //}
 //
-//int __plugn_status_json_obj(ldmsd_req_ctxt_t reqc)
-//{
-//	int rc, count;
-//	ldmsd_plugin_inst_t inst;
-//	json_entity_t qr = NULL;
-//	json_entity_t val;
-//	jbuf_t jb = NULL;
-//	reqc->errcode = 0;
-//
-//	rc = linebuf_printf(reqc, "[");
-//	if (rc)
-//		goto out;
-//	count = 0;
-//	LDMSD_PLUGIN_INST_FOREACH(inst) {
-//		if (count) {
-//			rc = linebuf_printf(reqc, ",\n");
-//			if (rc)
-//				goto out;
-//		}
-//		count++;
-//		qr = inst->base->query(inst, "status");
-//		if (!qr) {
-//			rc = ENOMEM;
-//			goto out;
-//		}
-//		val = json_value_find(qr, "rc");
-//		if (!val) {
-//			ldmsd_log(LDMSD_LERROR, "The status JSON dict of "
-//					"plugin instance '%s' does not contain "
-//					"the attribute 'rc'.\n", inst->inst_name);
-//			rc = EINTR;
-//			goto out;
-//		}
-//		rc = json_value_int(val);
-//		if (rc)
-//			goto out;
-//		jb = json_entity_dump(NULL, json_value_find(qr, "status"));
-//		if (!jb) {
-//			rc = ENOMEM;
-//			goto out;
-//		}
-//		rc = linebuf_printf(reqc, "%s", jb->buf);
-//		if (rc)
-//			goto out;
-//	}
-//	rc = linebuf_printf(reqc, "]");
-//out:
-//	if (qr)
-//		json_entity_free(qr);
-//	if (jb)
-//		jbuf_free(jb);
-//	reqc->errcode = rc;
-//	return rc;
-//}
-//
-//
-//static int plugn_status_handler(ldmsd_req_ctxt_t reqc)
-//{
-//	int rc;
-//	struct ldmsd_req_attr_s attr;
-//
-//	rc = __plugn_status_json_obj(reqc);
-//	if (rc)
-//		return rc;
-//
-//	attr.discrim = 1;
-//	attr.attr_len = reqc->recv_off;
-//	attr.attr_id = LDMSD_ATTR_JSON;
-//	ldmsd_hton_req_attr(&attr);
-//	rc = ldmsd_append_reply(reqc, (char *)&attr, sizeof(attr), LDMSD_REC_SOM_F);
-//	if (rc)
-//		return rc;
-//	rc = ldmsd_append_reply(reqc, reqc->recv_buf, reqc->recv_off, 0);
-//	if (rc)
-//		return rc;
-//
-//	attr.discrim = 0;
-//	rc = ldmsd_append_reply(reqc, (char *)&attr.discrim,
-//				sizeof(uint32_t), LDMSD_REC_EOM_F);
-//	return rc;
-//}
+static int plugin_status_handler(ldmsd_req_ctxt_t reqc)
+{
+	int rc, count;
+	ldmsd_plugin_inst_t inst;
+	json_entity_t qr = NULL;
+	json_entity_t val;
+	jbuf_t jb = NULL;
+
+	rc = ldmsd_append_response(reqc, LDMSD_REC_SOM_F, "[", 1);
+	if (rc)
+		goto out;
+	count = 0;
+	LDMSD_PLUGIN_INST_FOREACH(inst) {
+		if (count) {
+			rc = ldmsd_append_response(reqc, 0, ",\n", 1);
+			if (rc)
+				goto out;
+		}
+		count++;
+		qr = inst->base->query(inst, "status");
+		if (!qr) {
+			rc = ENOMEM;
+			goto out;
+		}
+		val = json_value_find(qr, "rc");
+		if (!val) {
+			ldmsd_log(LDMSD_LERROR, "The status JSON dict of "
+					"plugin instance '%s' does not contain "
+					"the attribute 'rc'.\n", inst->inst_name);
+			rc = ldmsd_send_error(reqc, EINTR,
+					"Failed to get the status of '%s'",
+					inst->inst_name);
+			goto out;
+		}
+		rc = json_value_int(val);
+		if (rc) {
+			rc = ldmsd_send_error(reqc, rc,
+					"Failed to get the status of '%s'",
+					inst->inst_name);
+			goto out;
+		}
+
+		jb = json_entity_dump(NULL, json_value_find(qr, "status"));
+		if (!jb) {
+			rc = ENOMEM;
+			goto out;
+		}
+		rc = ldmsd_append_response_va(reqc, 0, "%s", jb->buf);
+		if (rc)
+			goto out;
+	}
+	rc = ldmsd_append_response(reqc, LDMSD_REC_EOM_F, "]", 1);
+out:
+	if (qr)
+		json_entity_free(qr);
+	if (jb)
+		jbuf_free(jb);
+	return rc;
+}
 //
 //
 //static int __query_inst(ldmsd_req_ctxt_t reqc, const char *query,
@@ -4170,6 +4149,7 @@ static int plugin_instance_handler(ldmsd_req_ctxt_t reqc)
 		}
 
 	}
+	rc = ldmsd_send_error(reqc, 0, "");
 	return rc;
 }
 
