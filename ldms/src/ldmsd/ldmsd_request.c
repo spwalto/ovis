@@ -129,18 +129,18 @@ struct rbt rsp_msg_tree = RBT_INITIALIZER(msg_comparator);
 pthread_mutex_t req_msg_tree_lock = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t rsp_msg_tree_lock = PTHREAD_MUTEX_INITIALIZER;
 
-//static
-//void ldmsd_req_ctxt_sec_get(ldmsd_req_ctxt_t rctxt, ldmsd_sec_ctxt_t sctxt)
-//{
-//	switch (rctxt->xprt->type) {
-//	case LDMSD_CFG_XPRT_CONFIG_FILE:
-//		ldmsd_sec_ctxt_get(sctxt);
-//		break;
-//	case LDMSD_CFG_XPRT_LDMS:
-//		ldms_xprt_cred_get(rctxt->xprt->xprt, NULL, &sctxt->crd);
-//		break;
-//	}
-//}
+static
+void ldmsd_req_ctxt_sec_get(ldmsd_req_ctxt_t rctxt, ldmsd_sec_ctxt_t sctxt)
+{
+	switch (rctxt->xprt->type) {
+	case LDMSD_CFG_XPRT_CONFIG_FILE:
+		ldmsd_sec_ctxt_get(sctxt);
+		break;
+	case LDMSD_CFG_XPRT_LDMS:
+		ldms_xprt_cred_get(rctxt->xprt->xprt, NULL, &sctxt->crd);
+		break;
+	}
+}
 
 typedef int (*ldmsd_obj_handler_t)(ldmsd_req_ctxt_t reqc);
 struct request_handler_entry {
@@ -173,8 +173,9 @@ static int auth_handler(ldmsd_req_ctxt_t reqc);
 static int daemon_handler(ldmsd_req_ctxt_t reqc);
 static int listen_handler(ldmsd_req_ctxt_t reqc);
 static int plugin_instance_handler(ldmsd_req_ctxt_t reqc);
+static int smplr_handler(ldmsd_req_ctxt_t req_ctxt);
 
-//static int smplr_add_handler(ldmsd_req_ctxt_t req_ctxt);
+
 //static int smplr_del_handler(ldmsd_req_ctxt_t req_ctxt);
 //static int smplr_start_handler(ldmsd_req_ctxt_t req_ctxt);
 //static int smplr_stop_handler(ldmsd_req_ctxt_t req_ctxt);
@@ -276,7 +277,7 @@ static struct obj_handler_entry cfg_obj_handler_tbl[] = {
 		{ "daemon",		daemon_handler,			XUG },
 		{ "listen",		listen_handler,			XUG },
 		{ "plugin_instance",	plugin_instance_handler,	XUG },
-//		{ "smplr",	smplr_add_handler },
+		{ "smplr",		smplr_handler,			XUG },
 //		{ "prdcr",	prdcr_add_handler },
 //		{ "updtr",	updtr_add_handler },
 //		{ "strgp",	strgp_add_handler },
@@ -1093,6 +1094,21 @@ int ldmsd_append_info_obj_hdr(ldmsd_req_ctxt_t reqc, const char *info_name)
 					"{\"type\":\"info\","
 					" \"name\":\"%s\","
 					" \"info\":", info_name);
+}
+
+int __find_perm(ldmsd_req_ctxt_t reqc, json_entity_t spec, int *perm_value)
+{
+	int rc;
+	json_entity_t perm;
+	perm = json_value_find(spec, "perm");
+	if (perm) {
+		if (JSON_STRING_VALUE != json_entity_type(perm)) {
+			rc = ldmsd_send_type_error(reqc, "smplr:perm", "a string");
+			return rc;
+		}
+		*perm_value = strtol(json_value_str(perm)->str, NULL, 0);
+	}
+	return 0;
 }
 
 /*
@@ -1998,100 +2014,148 @@ out:
 //	return 0;
 //}
 //
-//static int smplr_add_handler(ldmsd_req_ctxt_t reqc)
-//{
-//	char *attr_name, *name, *inst, *interval_us, *offset_us;
-//	name = inst = NULL;
-//	long interval, offset;
-//	uid_t uid;
-//	gid_t gid;
-//	int perm;
-//	char *perm_s = NULL;
-//
-//	reqc->errcode = 0;
-//
-//	attr_name = "name";
-//	name = ldmsd_req_attr_str_value_get_by_id(reqc, LDMSD_ATTR_NAME);
-//	if (!name)
-//		goto einval;
-//
-//	attr_name = "instance";
-//	inst = ldmsd_req_attr_str_value_get_by_id(reqc, LDMSD_ATTR_INSTANCE);
-//	if (!inst)
-//		goto einval;
-//
-//	attr_name = "interval";
-//	interval_us = ldmsd_req_attr_str_value_get_by_id(reqc, LDMSD_ATTR_INTERVAL);
-//	if (!interval_us)
-//		goto einval;
-//	interval = strtol(interval_us, NULL, 0);
-//	offset_us = ldmsd_req_attr_str_value_get_by_id(reqc, LDMSD_ATTR_OFFSET);
-//	if (offset_us)
-//		offset = strtol(offset_us, NULL, 0);
-//	else
-//		offset = LDMSD_UPDT_HINT_OFFSET_NONE;
-//
-//	ldmsd_plugin_inst_t pi = ldmsd_plugin_inst_find(inst);
-//	if (!pi) {
-//		reqc->errcode = ENOENT;
-//		Snprintf(&reqc->recv_buf, &reqc->recv_len,
-//			       "Plugin instance `%s` not found\n", inst);
-//		goto send_reply;
-//	}
-//	if (!LDMSD_INST_IS_SAMPLER(pi)) {
-//		reqc->errcode = EINVAL;
-//		Snprintf(&reqc->recv_buf, &reqc->recv_len,
-//				"The plugin instance `%s` is not a sampler.\n",
-//				inst);
-//		goto send_reply;
-//	}
-//
-//	struct ldmsd_sec_ctxt sctxt;
-//	ldmsd_req_ctxt_sec_get(reqc, &sctxt);
-//	uid = sctxt.crd.uid;
-//	gid = sctxt.crd.gid;
-//
-//	perm = 0770;
-//	perm_s = ldmsd_req_attr_str_value_get_by_name(reqc, "perm");
-//	if (perm_s)
-//		perm = strtol(perm_s, NULL, 0);
-//
-//	ldmsd_smplr_t smplr = ldmsd_smplr_new_with_auth(name, pi,
-//							interval, offset,
-//							uid, gid, perm);
-//	if (!smplr) {
-//		if (errno == EEXIST)
-//			goto eexist;
-//		else
-//			goto enomem;
-//	}
-//	goto send_reply;
-//
-//enomem:
-//	reqc->errcode = ENOMEM;
-//	Snprintf(&reqc->recv_buf, &reqc->recv_len,
-//				"Memory allocation failure.");
-//	goto send_reply;
-//eexist:
-//	reqc->errcode = EEXIST;
-//	Snprintf(&reqc->recv_buf, &reqc->recv_len,
-//				"The smplr %s already exists.", name);
-//	goto send_reply;
-//einval:
-//	reqc->errcode = EINVAL;
-//	Snprintf(&reqc->recv_buf, &reqc->recv_len,
-//			"The '%s' attribute is required by smplr_add.",
-//		       	attr_name);
-//send_reply:
-//	ldmsd_send_req_response(reqc, reqc->recv_buf);
-//	if (name)
-//		free(name);
-//	if (perm_s)
-//		free(perm_s);
-//	if (inst)
-//		free(inst);
-//	return 0;
-//}
+
+static int __smplr_handler(ldmsd_req_ctxt_t reqc, json_entity_t d,
+				unsigned long int_v, unsigned long offset_v,
+				int perm_value, uid_t uid, gid_t gid)
+{
+	int rc;
+	json_entity_t name, pi_inst;
+	char *name_s, *inst_s;
+	char obj_name[128];
+
+	name = json_value_find(d, "name");
+	if (!name) {
+		rc = ldmsd_send_missing_attr_err(reqc, "cfg_obj:smplr", "name");
+		return rc;
+	}
+	if (JSON_STRING_VALUE != json_entity_type(name)) {
+		rc = ldmsd_send_type_error(reqc, "smplr:name", "a string");
+		return rc;
+	}
+	name_s = json_value_str(name)->str;
+	snprintf(obj_name, 128, "smplr(%s)", name_s);
+	pi_inst = json_value_find(d, "plugin_instance");
+	if (!pi_inst) {
+		rc = ldmsd_send_missing_attr_err(reqc,
+				obj_name, "plugin_instance");
+		return rc;
+	}
+	if (JSON_STRING_VALUE != json_entity_type(pi_inst)) {
+		rc = ldmsd_send_type_error(reqc, obj_name, "a string");
+		return rc;
+	}
+	inst_s = json_value_str(pi_inst)->str;
+
+	ldmsd_plugin_inst_t pi = ldmsd_plugin_inst_find(inst_s);
+	if (!pi) {
+		rc = ldmsd_send_error(reqc, ENOENT,
+				"%s: Plugin instance `%s` not found\n",
+				obj_name, inst_s);
+		return rc;
+	}
+	if (!LDMSD_INST_IS_SAMPLER(pi)) {
+		rc = ldmsd_send_error(reqc, EINVAL,
+				"%s: The plugin instance `%s` is not a sampler.\n",
+				obj_name, inst_s);
+		return rc;
+	}
+
+	ldmsd_smplr_t smplr = ldmsd_smplr_new_with_auth(name_s, pi,
+							int_v, offset_v,
+							uid, gid, perm_value);
+	if (!smplr) {
+		if (errno == EEXIST) {
+			rc = ldmsd_send_error(reqc, EEXIST,
+					"%s: The smplr %s already exists.",
+					obj_name, name_s);
+			return rc;
+		} else {
+			ldmsd_log(LDMSD_LCRITICAL, "Out of memory\n");
+			return ENOMEM;
+		}
+	}
+	return 0;
+}
+
+static int smplr_handler(ldmsd_req_ctxt_t reqc)
+{
+	unsigned long int_v, offset_v;
+	uid_t uid;
+	gid_t gid;
+	int perm_value;
+	int rc;
+	json_entity_t spec, instances, interval, offset, item;
+	struct ldmsd_sec_ctxt sctxt;
+
+	ldmsd_req_ctxt_sec_get(reqc, &sctxt);
+	uid = sctxt.crd.uid;
+	gid = sctxt.crd.gid;
+
+	spec = json_value_find(reqc->json, "spec");
+
+	/* sample interval */
+	interval = json_value_find(spec, "interval");
+	if (!interval) {
+		rc = ldmsd_send_missing_attr_err(reqc, "cfg_obj:smplr", "interval");
+		return rc;
+	}
+	if (JSON_STRING_VALUE == json_entity_type(interval)) {
+		int_v = ldmsd_time_str2us(json_value_str(interval)->str);
+	} else if (JSON_INT_VALUE == json_entity_type(interval)) {
+		int_v = json_value_int(interval);
+	} else {
+		rc = ldmsd_send_type_error(reqc, "smplr:interval",
+				"a string or an integer");
+		return rc;
+	}
+
+	offset = json_value_find(spec, "offset");
+	if (offset) {
+		if (JSON_STRING_VALUE == json_entity_type(offset)) {
+			offset_v = ldmsd_time_str2us(json_value_str(offset)->str);
+		} else if (JSON_INT_VALUE == json_entity_type(offset)) {
+			offset_v = json_value_int(offset);
+		} else {
+			rc = ldmsd_send_type_error(reqc, "smplr:offset",
+					"a string or an integer");
+			return rc;
+		}
+	} else {
+		offset_v = LDMSD_UPDT_HINT_OFFSET_NONE;
+	}
+
+	/* Permission */
+	perm_value = 0770;
+	rc = __find_perm(reqc, spec, &perm_value);
+	if (rc)
+		return rc;
+
+	instances = json_value_find(reqc->json, "instances");
+	if (!instances) {
+		rc = __smplr_handler(reqc, spec, int_v, offset_v,
+						perm_value, uid, gid);
+		if (rc)
+			return rc;
+	} else {
+		for (item = json_item_first(instances); item;
+				item = json_item_next(item)) {
+			if (JSON_DICT_VALUE != json_entity_type(item)) {
+				rc = ldmsd_send_type_error(reqc,
+							"smplr:instances[]",
+							"a dictionary");
+				return rc;
+			}
+			rc = __smplr_handler(reqc, item, int_v, offset_v,
+						perm_value, uid, gid);
+			if (rc)
+				return rc;
+		}
+	}
+
+	rc = ldmsd_send_error(reqc, 0, "");
+	return rc;
+}
 //
 //static int smplr_del_handler(ldmsd_req_ctxt_t reqc)
 //{
@@ -4075,6 +4139,11 @@ static int plugin_instance_handler(ldmsd_req_ctxt_t reqc)
 		rc = ldmsd_send_error(reqc, errno, "%s", reqc->recv_buf->buf);
 		return rc;
 	}
+
+	/*
+	 * TODO: process 'perm' attribute
+	 */
+
 
 	/* Add the config dictionary */
 	/*
