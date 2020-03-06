@@ -165,6 +165,7 @@ static int greeting_handler(ldmsd_req_ctxt_t req_ctxt);
 static int include_handler(ldmsd_req_ctxt_t req_ctxt);
 static int plugin_status_handler(ldmsd_req_ctxt_t reqc);
 static int set_route_handler(ldmsd_req_ctxt_t req_ctxt);
+static int smplr_status_handler(ldmsd_req_ctxt_t reqc);
 
 /*
  * Configuration object handlers
@@ -179,7 +180,6 @@ static int smplr_handler(ldmsd_req_ctxt_t req_ctxt);
 //static int smplr_del_handler(ldmsd_req_ctxt_t req_ctxt);
 //static int smplr_start_handler(ldmsd_req_ctxt_t req_ctxt);
 //static int smplr_stop_handler(ldmsd_req_ctxt_t req_ctxt);
-//static int smplr_status_handler(ldmsd_req_ctxt_t req_ctxt);
 //static int prdcr_add_handler(ldmsd_req_ctxt_t req_ctxt);
 //static int prdcr_del_handler(ldmsd_req_ctxt_t req_ctxt);
 //static int prdcr_start_handler(ldmsd_req_ctxt_t req_ctxt);
@@ -291,6 +291,7 @@ static struct obj_handler_entry cmd_obj_handler_tbl[] = {
 		{ "include",	include_handler,	XUG },
 		{ "plugin_status",	plugin_status_handler,	XALL },
 		{ "set_route",	set_route_handler, 	XUG },
+		{ "smplr_status",	smplr_status_handler,	XALL },
 };
 
 /*
@@ -3778,123 +3779,116 @@ static int smplr_handler(ldmsd_req_ctxt_t reqc)
 //	return 0;
 //}
 //
-///* smplr_status */
-//
-//int __smplr_status_json_obj(ldmsd_req_ctxt_t reqc, ldmsd_smplr_t smplr)
-//{
-//	extern const char *smplr_state_str(enum ldmsd_smplr_state state);
-//	int rc;
-//	ldmsd_set_entry_t sent;
-//	ldmsd_sampler_type_t samp;
-//	int first = 1;
-//
-//	ldmsd_smplr_lock(smplr);
-//	rc = linebuf_printf(reqc,
-//		       "{ \"name\":\"%s\","
-//		       "\"plugin\":\"%s\","
-//		       "\"instance\":\"%s\","
-//		       "\"interval_us\":\"%ld\","
-//		       "\"offset_us\":\"%ld\","
-//		       "\"synchronous\":\"%d\","
-//		       "\"state\":\"%s\","
-//		       "\"sets\": [ ",
-//		       smplr->obj.name,
-//		       smplr->pi->plugin_name,
-//		       smplr->pi->inst_name,
-//		       smplr->interval_us,
-//		       smplr->offset_us,
-//		       smplr->synchronous,
-//		       smplr_state_str(smplr->state)
-//		       );
-//	if (rc)
-//		goto out;
-//	samp = LDMSD_SAMPLER(smplr->pi);
-//	first = 1;
-//	LIST_FOREACH(sent, &samp->set_list, entry) {
-//		const char *name = ldms_set_instance_name_get(sent->set);
-//		rc = linebuf_printf(reqc, "%s\"%s\"", first?"":",", name);
-//		if (rc)
-//			goto out;
-//		first = 0;
-//	}
-//	rc = linebuf_printf(reqc, "] }");
-// out:
-//	ldmsd_smplr_unlock(smplr);
-//	return rc;
-//}
-//
-//static int smplr_status_handler(ldmsd_req_ctxt_t reqc)
-//{
-//	int rc;
-//	ldmsd_smplr_t smplr = NULL;
-//	struct ldmsd_req_attr_s attr;
-//	char *name;
-//	int count;
-//
-//	name = ldmsd_req_attr_str_value_get_by_id(reqc, LDMSD_ATTR_NAME);
-//	if (name) {
-//		smplr = ldmsd_smplr_find(name);
-//		if (!smplr) {
-//			/* Do not report any status */
-//			snprintf(reqc->recv_buf, reqc->recv_len,
-//					"smplr '%s' doesn't exist.", name);
-//			reqc->errcode = ENOENT;
-//			ldmsd_send_req_response(reqc, reqc->recv_buf);
-//			return 0;
-//		}
-//	}
-//	ldmsd_cfg_lock(LDMSD_CFGOBJ_SMPLR);
-//	/* Determine the attribute value length */
-//	rc = linebuf_printf(reqc, "[");
-//	if (rc)
-//		goto out;
-//	if (smplr) {
-//		rc = __smplr_status_json_obj(reqc, smplr);
-//		if (rc)
-//			goto out;
-//	} else {
-//		count = 0;
-//		for (smplr = ldmsd_smplr_first(); smplr;
-//		     smplr = ldmsd_smplr_next(smplr)) {
-//			if (count) {
-//				rc = linebuf_printf(reqc, ",\n");
-//				if (rc)
-//					goto out;
-//			}
-//			rc = __smplr_status_json_obj(reqc, smplr);
-//			if (rc)
-//				goto out;
-//			count++;
-//		}
-//	}
-//	rc = linebuf_printf(reqc, "]");
-//	if (rc)
-//		goto out;
-//
-//	attr.discrim = 1;
-//	attr.attr_len = reqc->recv_off;
-//	attr.attr_id = LDMSD_ATTR_JSON;
-//	ldmsd_hton_req_attr(&attr);
-//	rc = ldmsd_append_reply(reqc, (char *)&attr, sizeof(attr), LDMSD_REC_SOM_F);
-//	if (rc)
-//		goto out;
-//	rc = ldmsd_append_reply(reqc, reqc->recv_buf, reqc->recv_off, 0);
-//	if (rc)
-//		goto out;
-//
-//	attr.discrim = 0;
-//	rc = ldmsd_append_reply(reqc, (char *)&attr.discrim,
-//				sizeof(uint32_t), LDMSD_REC_EOM_F);
-//
-// out:
-//	if (name)
-//		free(name);
-//	if (smplr)
-//		ldmsd_smplr_put(smplr);
-//	ldmsd_cfg_unlock(LDMSD_CFGOBJ_SMPLR);
-//	return rc;
-//}
-//
+/* smplr_status */
+
+int __smplr_status_json_obj(ldmsd_req_ctxt_t reqc, ldmsd_smplr_t smplr)
+{
+	extern const char *smplr_state_str(enum ldmsd_smplr_state state);
+	int rc;
+	ldmsd_set_entry_t sent;
+	ldmsd_sampler_type_t samp;
+	int first = 1;
+
+	ldmsd_smplr_lock(smplr);
+	rc = ldmsd_append_response_va(reqc, 0,
+		       "{ \"name\":\"%s\","
+		       "\"plugin\":\"%s\","
+		       "\"instance\":\"%s\","
+		       "\"interval_us\":\"%ld\","
+		       "\"offset_us\":\"%ld\","
+		       "\"synchronous\":\"%d\","
+		       "\"state\":\"%s\","
+		       "\"sets\": [ ",
+		       smplr->obj.name,
+		       smplr->pi->plugin_name,
+		       smplr->pi->inst_name,
+		       smplr->interval_us,
+		       smplr->offset_us,
+		       smplr->synchronous,
+		       smplr_state_str(smplr->state)
+		       );
+	if (rc)
+		goto out;
+	samp = LDMSD_SAMPLER(smplr->pi);
+	first = 1;
+	LIST_FOREACH(sent, &samp->set_list, entry) {
+		const char *name = ldms_set_instance_name_get(sent->set);
+		rc = ldmsd_append_response_va(reqc, 0, "%s\"%s\"", first?"":",", name);
+		if (rc)
+			goto out;
+		first = 0;
+	}
+	rc = ldmsd_append_response_va(reqc, 0, "]}");
+ out:
+	ldmsd_smplr_unlock(smplr);
+	return rc;
+}
+
+static int smplr_status_handler(ldmsd_req_ctxt_t reqc)
+{
+	int rc;
+	ldmsd_smplr_t smplr = NULL;
+	char *name_s;
+	int count;
+	json_entity_t spec, name;
+
+	spec = json_value_find(reqc->json, "spec");
+	if (spec) {
+		name = json_value_find(spec, "name");
+		if (JSON_STRING_VALUE != json_entity_type(name)) {
+			rc = ldmsd_send_type_error(reqc, "smplr_status:name", "a string");
+			return rc;
+		}
+		name_s = json_value_str(name)->str;
+		smplr = ldmsd_smplr_find(name_s);
+		if (!smplr) {
+			/* Do not report any status */
+			rc = ldmsd_send_error(reqc, ENOENT,
+					"smplr '%s' doesn't exist.", name_s);
+			return rc;
+		}
+	}
+	rc = ldmsd_append_info_obj_hdr(reqc, "smplr_status");
+	if (rc)
+		goto out;
+	rc = ldmsd_append_response(reqc, 0, "[", 1);
+	if (rc)
+		goto out;
+	if (smplr) {
+		rc = __smplr_status_json_obj(reqc, smplr);
+		if (rc)
+			goto out;
+		ldmsd_smplr_put(smplr);
+	} else {
+		ldmsd_cfg_lock(LDMSD_CFGOBJ_SMPLR);
+		/* Determine the attribute value length */
+		count = 0;
+		for (smplr = ldmsd_smplr_first(); smplr;
+				smplr = ldmsd_smplr_next(smplr)) {
+			if (count) {
+				rc = ldmsd_append_response(reqc, 0, ",", 1);
+				if (rc)
+					goto unlock_out;
+			}
+			rc = __smplr_status_json_obj(reqc, smplr);
+			if (rc)
+				goto unlock_out;
+			count++;
+		}
+		ldmsd_cfg_unlock(LDMSD_CFGOBJ_SMPLR);
+	}
+
+
+	return ldmsd_append_response(reqc, LDMSD_REC_EOM_F, "]}", 2);
+
+unlock_out:
+	ldmsd_cfg_unlock(LDMSD_CFGOBJ_SMPLR);
+out:
+	if (smplr)
+		ldmsd_smplr_put(smplr);
+	return rc;
+}
+
 static int plugin_status_handler(ldmsd_req_ctxt_t reqc)
 {
 	int rc, count;
