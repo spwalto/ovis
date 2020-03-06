@@ -116,25 +116,24 @@ extern int ldmsd_req_debug;
  *
  * Action objects (ACT_OBJ)
  *
- * { "type"  : "cfg_act",
- *   "name"  : <one of "start", "stop", "delete">,
- *   "objs"  : [ { "type": <cfg obj type string, e.g., "prdcr", "smplr">,
- *                 "instances": <list of instance name strings>
- *               }, ....
- *             ]
+ * { "type"   : "act_obj",
+ *   "action" : <one of "start", "stop", "delete">,\
+ *   "cfg_obj": <a cfgobj type, e.g., prdcr, smplr, updtr>
+ *   "names"  : <list of cfgobj names>,
+ *   "regex"  : <list of cfgobj name regex>
  * }
  * Example
- * { "type" : "cfg_act",
- *   "name": "start",
- *   "objs" : [ { "type": "prdcr",
- *                "instances": [ "nid01", "nid02"]
- *              },
- *              { "type": "updtr",
- *                "instances": [ "generic_updtr", "appinfo_updtr" ]
- *              }
- *            ]
+ * { "type" : "act_obj",
+ *   "action": "start",
+ *   "cfg_obj": "prdcr",
+ *   "names": [ "nid01", "nid02" ],
+ *   "regex": [ "nid00*" ]
  * }
- *
+ */
+#define LDMSD_ACT_OBJ_START  1
+#define LDMSD_ACT_OBJ_STOP   2
+#define LDMSD_ACT_OBJ_DELETE 3
+/**
  * Command objects (CMD_OBJ)
  *
  * { "type": "cmd_obj",

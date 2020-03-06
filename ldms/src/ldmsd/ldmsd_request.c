@@ -176,7 +176,6 @@ static int listen_handler(ldmsd_req_ctxt_t reqc);
 static int plugin_instance_handler(ldmsd_req_ctxt_t reqc);
 static int smplr_handler(ldmsd_req_ctxt_t req_ctxt);
 
-
 //static int smplr_del_handler(ldmsd_req_ctxt_t req_ctxt);
 //static int smplr_start_handler(ldmsd_req_ctxt_t req_ctxt);
 //static int smplr_stop_handler(ldmsd_req_ctxt_t req_ctxt);
@@ -292,6 +291,9 @@ static struct obj_handler_entry cmd_obj_handler_tbl[] = {
 		{ "plugin_status",	plugin_status_handler,	XALL },
 		{ "set_route",	set_route_handler, 	XUG },
 		{ "smplr_status",	smplr_status_handler,	XALL },
+};
+
+static struct obj_handler_entry act_obj_handler_tbl[] = {
 };
 
 /*
@@ -1040,6 +1042,90 @@ int ldmsd_process_cmd_obj(ldmsd_req_ctxt_t reqc)
 	return rc;
 }
 
+int ldmsd_process_act_obj(ldmsd_req_ctxt_t reqc)
+{
+	int rc;
+	json_entity_t value, names, regex;
+	char *action_s, *cfgobj_s;
+	struct obj_handler_entry *handler;
+	size_t len;
+
+	/* cfg_obj */
+	value = json_value_find(reqc->json, "cfg_obj");
+	if (!value) {
+		rc = __ldmsd_send_missing_mandatory_attr(reqc,
+				"act_obj", "cfg_obj");
+		return rc;
+	}
+	if (JSON_STRING_VALUE != json_entity_type(value)) {
+		rc = ldmsd_send_type_error(reqc,
+				"act_obj:cfg_obj", "a string");
+		return rc;
+	}
+	cfgobj_s = json_value_str(value)->str;
+
+	/* names */
+	names = json_value_find(reqc->json, "names");
+	if (names && (JSON_LIST_VALUE != json_entity_type(names))) {
+		rc = ldmsd_send_type_error(reqc, "act_obj:names", "a list");
+		return rc;
+	}
+
+	/* regex */
+	regex = json_value_find(reqc->json, "regex");
+	if (regex && (JSON_LIST_VALUE != json_entity_type(regex))) {
+		rc = ldmsd_send_type_error(reqc, "act_obj:regex", "a list");
+		return rc;
+	}
+	if (!names && !regex) {
+		rc = ldmsd_send_error(reqc, EINVAL,
+			"act_obj: Either 'names' or 'regex' must be given.");
+		return rc;
+	}
+
+	/* action */
+	value = json_value_find(reqc->json, "action");
+	if (!value) {
+		rc = __ldmsd_send_missing_mandatory_attr(reqc, "act_obj", "action");
+		return rc;
+	}
+	if (JSON_STRING_VALUE != json_entity_type(value)) {
+		rc = ldmsd_send_type_error(reqc, "act_obj:action", "a string");
+		return rc;
+	}
+	action_s = json_value_str(value)->str;
+	len = strlen(action_s);
+
+	if ((0 != strncmp(action_s, "start", len)) &&
+			(0 != strncmp(action_s, "stop", len)) &&
+			(0 != strncmp(action_s, "delete", len))) {
+		rc = ldmsd_send_error(reqc, EINVAL,
+				"Unrecognized act_obj:action '%s'", action_s);
+		return rc;
+	}
+
+	handler = bsearch(&cfgobj_s, act_obj_handler_tbl,
+			ARRAY_SIZE(act_obj_handler_tbl),
+			sizeof(*handler), handler_entry_comp);
+	if (!handler) {
+		ldmsd_log(LDMSD_LERROR, "Received an unsupported "
+					"configuration object "
+					"by action objects'%s'\n",
+					cfgobj_s);
+		rc = ldmsd_send_error(reqc, ENOTSUP,
+				"Received an unsupported "
+				"configuration object "
+				"by action objects'%s'\n",
+				cfgobj_s);
+		return rc;
+	}
+
+	rc = handler->handler(reqc);
+	ldmsd_req_ctxt_free(reqc);
+	return rc;
+
+}
+
 int ldmsd_process_json_obj(ldmsd_req_ctxt_t reqc)
 {
 	json_entity_t type;
@@ -1070,7 +1156,14 @@ int ldmsd_process_json_obj(ldmsd_req_ctxt_t reqc)
 	if (0 == strncmp("cfg_obj", json_value_str(type)->str, 7)) {
 		rc = ldmsd_process_cfg_obj(reqc);
 	} else if (0 == strncmp("act_obj", json_value_str(type)->str, 7)) {
-
+		if (!ldmsd_is_initialized()) {
+			/*
+			 * Do not process any action objects
+			 * before LDMSD is initialized.
+			 */
+			goto out;
+		}
+		rc = ldmsd_process_act_obj(reqc);
 	} else if (0 == strncmp("cmd_obj", json_value_str(type)->str, 7)) {
 		rc = ldmsd_process_cmd_obj(reqc);
 	} else if (0 == strncmp("err_obj", json_value_str(type)->str, 7)) {
