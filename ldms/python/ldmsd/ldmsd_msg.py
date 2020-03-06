@@ -75,7 +75,8 @@ class LDMSD_Message(object):
         self.MESSAGE_NO += 1
         
         self.type = type
-        self.json_str += json_str
+        if json_str:
+            self.json_str += json_str
         if self.json_ent is not None:
             self.json_str = json.dumps(json_ent)
         self.json_str_len = len(self.json_str)
@@ -118,7 +119,7 @@ class LDMSD_Message(object):
             self.num_rec += 1
             if (flags & self.LDMSD_REC_F_EOM):
                 break
-
+        import pdb; pdb.set_trace()
         self.json_ent = json.loads(json_str)
         return self
         
