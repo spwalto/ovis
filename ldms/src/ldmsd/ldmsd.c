@@ -284,6 +284,44 @@ const char *ldmsd_loglevel_to_str(enum ldmsd_loglevel level)
 	return "LDMSD_LNONE";
 }
 
+/*
+ * microseconds:	us, microsecond(s)
+ * milliseconnds:	ms, millisecond(s)
+ * seconds:		s, sec, second(s)
+ * minutes:		min, minutes(s)
+ * hours:		h, hr(s), hour(s)
+ * days:		day(s)
+ */
+unsigned long ldmsd_time_str2us(const char *s)
+{
+	int rc;
+	char unit[16];
+	unsigned long x;
+	rc = sscanf(s, "%lu %s", &x, unit);
+
+	if ((rc == EOF) || (0 == strcmp(unit, "us")) || (0 == strncmp(unit, "micro", 5))) {
+		/* microseconds */
+		return x;
+	} else if ((0 == strcmp(unit, "ms")) || (0 == strncmp(unit, "milli", 5))) {
+		/* milliseconds */
+		return x * 1000;
+	} else if ((0 == strcmp(unit, "s")) || (0 == strncmp(unit, "sec", 3))) {
+		/* seconds */
+		return x * 1000000;
+	} else if (0 == strncmp(unit, "min", 3)) {
+		/* minutes */
+		return x * 1000000 * 60;
+	} else if (unit[0] == 'h') {
+		/* hours */
+		return x * 1000000 * 60 * 60;
+	} else if (0 == strncmp(unit, "day", 3)) {
+		/* days */
+		return x * 1000000 * 60 * 60 * 24;
+	} else {
+		return 0;
+	}
+}
+
 const char *ldmsd_myhostname_get()
 {
 	return cmd_line_args.myhostname;

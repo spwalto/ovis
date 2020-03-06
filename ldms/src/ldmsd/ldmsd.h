@@ -124,6 +124,8 @@ enum ldmsd_loglevel {
 	LOGLEVELS(LDMSD_LWRAP)
 };
 
+unsigned long ldmsd_time_str2us(const char *s);
+
 /*
  * struct ldmsd_cmd_line_args contains cmd-line values given in configuration files
  * and/or at cmd-line.
