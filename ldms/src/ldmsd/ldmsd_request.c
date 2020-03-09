@@ -453,6 +453,15 @@ ldmsd_req_ctxt_alloc(struct ldmsd_msg_key *key, ldmsd_cfg_xprt_t xprt)
 	return __req_ctxt_alloc(key, xprt, LDMSD_REQ_CTXT_RSP);
 }
 
+int __ldmsd_req_ctxt_free_nolock(ldmsd_req_ctxt_t reqc)
+{
+	if (LDMSD_REQ_CTXT_REQ == reqc->type)
+		rbt_del(&req_msg_tree, &reqc->rbn);
+	else
+		rbt_del(&rsp_msg_tree, &reqc->rbn);
+	return ev_post(cfg, cfg, reqc->free_ev, NULL);
+}
+
 int ldmsd_req_ctxt_free(ldmsd_req_ctxt_t reqc)
 {
 	ldmsd_req_ctxt_tree_lock(reqc->type);
@@ -1104,6 +1113,14 @@ int ldmsd_process_act_obj(ldmsd_req_ctxt_t reqc)
 		return rc;
 	}
 
+	if (!ldmsd_is_initialized()) {
+		/*
+		 * Do not process the action object
+		 * before LDMSD is initialized.
+		 */
+		return 0;
+	}
+
 	handler = bsearch(&cfgobj_s, act_obj_handler_tbl,
 			ARRAY_SIZE(act_obj_handler_tbl),
 			sizeof(*handler), handler_entry_comp);
@@ -1130,7 +1147,7 @@ int ldmsd_process_json_obj(ldmsd_req_ctxt_t reqc)
 {
 	json_entity_t type;
 	char *type_s;
-	int rc;
+	int rc = 0;
 
 	type = json_value_find(reqc->json, "type");
 	if (!type) {
@@ -1156,13 +1173,6 @@ int ldmsd_process_json_obj(ldmsd_req_ctxt_t reqc)
 	if (0 == strncmp("cfg_obj", json_value_str(type)->str, 7)) {
 		rc = ldmsd_process_cfg_obj(reqc);
 	} else if (0 == strncmp("act_obj", json_value_str(type)->str, 7)) {
-		if (!ldmsd_is_initialized()) {
-			/*
-			 * Do not process any action objects
-			 * before LDMSD is initialized.
-			 */
-			goto out;
-		}
 		rc = ldmsd_process_act_obj(reqc);
 	} else if (0 == strncmp("cmd_obj", json_value_str(type)->str, 7)) {
 		rc = ldmsd_process_cmd_obj(reqc);

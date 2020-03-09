@@ -814,93 +814,25 @@ out:
 //	return 0;
 //}
 
+extern int __ldmsd_req_ctxt_free_nolock(ldmsd_req_ctxt_t reqc);
+
 /*
- * Start all cfgobjs for aggregators that `filter(obj) == 0`.
+ * Process all outstanding request contexts in the request tree.
  */
-int ldmsd_cfgobjs_start(int (*filter)(ldmsd_cfgobj_t))
+int ldmsd_process_deferred_act_objs(int (*filter)(ldmsd_cfgobj_t))
 {
 	int rc = 0;
-	ldmsd_cfgobj_t obj;
-	struct ldmsd_sec_ctxt sctxt;
+	ldmsd_req_ctxt_t reqc;
 
-	ldmsd_sec_ctxt_get(&sctxt);
-
-	ldmsd_cfg_lock(LDMSD_CFGOBJ_SMPLR);
-	LDMSD_CFGOBJ_FOREACH(obj, LDMSD_CFGOBJ_SMPLR) {
-		if (filter && filter(obj))
-			continue;
-		rc = __ldmsd_smplr_start((ldmsd_smplr_t)obj, 0);
-		if (rc) {
-			ldmsd_log(LDMSD_LERROR,
-				"smplr_start failed, name %s, rc: %d\n",
-				obj->name, rc);
-			ldmsd_cfg_unlock(LDMSD_CFGOBJ_SMPLR);
+	ldmsd_req_ctxt_tree_lock(LDMSD_REQ_CTXT_REQ);
+	while ((reqc = ldmsd_req_ctxt_first(LDMSD_REQ_CTXT_REQ))) {
+		rc = ldmsd_process_json_obj(reqc);
+		if (rc)
 			goto out;
-		}
+		(void)__ldmsd_req_ctxt_free_nolock(reqc);
 	}
-	ldmsd_cfg_unlock(LDMSD_CFGOBJ_SMPLR);
-
-	ldmsd_cfg_lock(LDMSD_CFGOBJ_PRDCR);
-	LDMSD_CFGOBJ_FOREACH(obj, LDMSD_CFGOBJ_PRDCR) {
-		if (filter && filter(obj))
-			continue;
-		rc = __ldmsd_prdcr_start((ldmsd_prdcr_t)obj, &sctxt);
-		if (rc) {
-			ldmsd_log(LDMSD_LERROR,
-				  "prdcr_start failed, name: %s, rc: %d\n",
-				  obj->name, rc);
-			ldmsd_cfg_unlock(LDMSD_CFGOBJ_PRDCR);
-			goto out;
-		}
-	}
-	ldmsd_cfg_unlock(LDMSD_CFGOBJ_PRDCR);
-
-	ldmsd_cfg_lock(LDMSD_CFGOBJ_UPDTR);
-	LDMSD_CFGOBJ_FOREACH(obj, LDMSD_CFGOBJ_UPDTR) {
-		if (filter && filter(obj))
-			continue;
-		rc = __ldmsd_updtr_start((ldmsd_updtr_t)obj, &sctxt);
-		if (rc) {
-			ldmsd_log(LDMSD_LERROR,
-				  "updtr_start failed, name: %s, rc: %d\n",
-				  obj->name, rc);
-			ldmsd_cfg_unlock(LDMSD_CFGOBJ_UPDTR);
-			goto out;
-		}
-	}
-	ldmsd_cfg_unlock(LDMSD_CFGOBJ_UPDTR);
-
-	ldmsd_cfg_lock(LDMSD_CFGOBJ_STRGP);
-	LDMSD_CFGOBJ_FOREACH(obj, LDMSD_CFGOBJ_STRGP) {
-		if (filter && filter(obj))
-			continue;
-		rc = __ldmsd_strgp_start((ldmsd_strgp_t)obj, &sctxt);
-		if (rc) {
-			ldmsd_log(LDMSD_LERROR,
-				  "strgp_start failed, name: %s, rc: %d\n",
-				  obj->name, rc);
-			ldmsd_cfg_unlock(LDMSD_CFGOBJ_STRGP);
-			goto out;
-		}
-	}
-	ldmsd_cfg_unlock(LDMSD_CFGOBJ_STRGP);
-
-	ldmsd_cfg_lock(LDMSD_CFGOBJ_SETGRP);
-	LDMSD_CFGOBJ_FOREACH(obj, LDMSD_CFGOBJ_SETGRP) {
-		if (filter && filter(obj))
-			continue;
-		rc = __ldmsd_setgrp_start((ldmsd_setgrp_t)obj);
-		if (rc) {
-			ldmsd_log(LDMSD_LERROR,
-				"Failed to create LDMS set group '%s', rc: %d\n",
-				obj->name, rc);
-			ldmsd_cfg_unlock(LDMSD_CFGOBJ_SETGRP);
-			goto out;
-		}
-	}
-	ldmsd_cfg_unlock(LDMSD_CFGOBJ_SETGRP);
-
 out:
+	ldmsd_req_ctxt_tree_unlock(LDMSD_REQ_CTXT_REQ);
 	return rc;
 }
 
@@ -923,7 +855,7 @@ int __our_cfgobj_filter(ldmsd_cfgobj_t obj)
 int ldmsd_ourcfg_start_proc()
 {
 	int rc;
-	rc = ldmsd_cfgobjs_start(__our_cfgobj_filter);
+	rc = ldmsd_process_deferred_act_objs(__our_cfgobj_filter);
 	if (rc) {
 		exit(100);
 	}

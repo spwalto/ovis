@@ -1109,7 +1109,7 @@ int ldmsd_failover_config(const char *host, const char *port, const char *xprt,
 			  int auto_switch, uint64_t interval_us);
 int ldmsd_failover_start();
 int cfgobj_is_failover(ldmsd_cfgobj_t obj);
-int ldmsd_cfgobjs_start(int (*filter)(ldmsd_cfgobj_t));
+int ldmsd_process_deferred_act_objs(int (*filter)(ldmsd_cfgobj_t));
 
 int ldmsd_ourcfg_start_proc();
 
