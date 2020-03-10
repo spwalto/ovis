@@ -175,6 +175,7 @@ static int daemon_handler(ldmsd_req_ctxt_t reqc);
 static int env_handler(ldmsd_req_ctxt_t reqc);
 static int listen_handler(ldmsd_req_ctxt_t reqc);
 static int plugin_instance_handler(ldmsd_req_ctxt_t reqc);
+static int prdcr_handler(ldmsd_req_ctxt_t reqc);
 static int smplr_handler(ldmsd_req_ctxt_t req_ctxt);
 
 /*
@@ -182,7 +183,6 @@ static int smplr_handler(ldmsd_req_ctxt_t req_ctxt);
  */
 static int smplr_action_handler(ldmsd_req_ctxt_t reqc);
 
-//static int prdcr_add_handler(ldmsd_req_ctxt_t req_ctxt);
 //static int prdcr_del_handler(ldmsd_req_ctxt_t req_ctxt);
 //static int prdcr_start_handler(ldmsd_req_ctxt_t req_ctxt);
 //static int prdcr_stop_handler(ldmsd_req_ctxt_t req_ctxt);
@@ -279,6 +279,7 @@ static struct obj_handler_entry cfg_obj_handler_tbl[] = {
 		{ "env",		env_handler,			XUG },
 		{ "listen",		listen_handler,			XUG },
 		{ "plugin_instance",	plugin_instance_handler,	XUG },
+		{ "prdcr",		prdcr_handler,			XUG },
 		{ "smplr",		smplr_handler,			XUG },
 //		{ "prdcr",	prdcr_add_handler },
 //		{ "updtr",	updtr_add_handler },
@@ -1285,150 +1286,240 @@ out:
 	return rc;
 }
 
-//static int prdcr_add_handler(ldmsd_req_ctxt_t reqc)
-//{
-//	ldmsd_prdcr_t prdcr;
-//	char *name, *host, *xprt, *attr_name, *type_s, *port_s, *interval_s;
-//	char *auth, *auth_args;
-//	name = host = xprt = type_s = port_s = interval_s = auth = auth_args = NULL;
-//	enum ldmsd_prdcr_type type = -1;
-//	unsigned short port_no = 0;
-//	int interval_us = -1;
-//	uid_t uid;
-//	gid_t gid;
-//	int perm;
-//	char *perm_s = NULL;
-//	reqc->errcode = 0;
-//
-//	attr_name = "name";
-//	name = ldmsd_req_attr_str_value_get_by_id(reqc, LDMSD_ATTR_NAME);
-//	if (!name)
-//		goto einval;
-//
-//	attr_name = "type";
-//	type_s = ldmsd_req_attr_str_value_get_by_id(reqc, LDMSD_ATTR_TYPE);
-//	if (!type_s) {
-//		goto einval;
-//	} else {
-//		type = ldmsd_prdcr_str2type(type_s);
-//		if ((int)type < 0) {
-//			Snprintf(&reqc->recv_buf, &reqc->recv_len,
-//					"The attribute type '%s' is invalid.",
-//					type_s);
-//			reqc->errcode = EINVAL;
-//			goto send_reply;
-//		}
-//		if (type == LDMSD_PRDCR_TYPE_LOCAL) {
-//			Snprintf(&reqc->recv_buf, &reqc->recv_len,
-//					"Producer with type 'local' is "
-//					"not supported.");
-//			reqc->errcode = EINVAL;
-//			goto send_reply;
-//		}
-//	}
-//
-//	attr_name = "xprt";
-//	xprt = ldmsd_req_attr_str_value_get_by_id(reqc, LDMSD_ATTR_XPRT);
-//	if (!xprt)
-//		goto einval;
-//
-//	attr_name = "host";
-//	host = ldmsd_req_attr_str_value_get_by_id(reqc, LDMSD_ATTR_HOST);
-//	if (!host)
-//		goto einval;
-//
-//	attr_name = "port";
-//	port_s = ldmsd_req_attr_str_value_get_by_id(reqc, LDMSD_ATTR_PORT);
-//	if (!port_s) {
-//		goto einval;
-//	} else {
-//		long ptmp = 0;
-//		ptmp = strtol(port_s, NULL, 0);
-//		if (ptmp < 1 || ptmp > USHRT_MAX) {
-//			goto einval;
-//		}
-//		port_no = (unsigned)ptmp;
-//	}
-//
-//	attr_name = "interval";
-//	interval_s = ldmsd_req_attr_str_value_get_by_id(reqc, LDMSD_ATTR_INTERVAL);
-//	if (!interval_s) {
-//		goto einval;
-//	} else {
-//		 interval_us = strtol(interval_s, NULL, 0);
-//	}
-//
-//	auth = ldmsd_req_attr_str_value_get_by_id(reqc, LDMSD_ATTR_AUTH);
-//	if (auth)
-//		auth_args = ldmsd_req_attr_str_value_get_by_id(reqc, LDMSD_ATTR_STRING);
-//
-//	struct ldmsd_sec_ctxt sctxt;
-//	ldmsd_req_ctxt_sec_get(reqc, &sctxt);
-//	uid = sctxt.crd.uid;
-//	gid = sctxt.crd.gid;
-//
-//	perm = 0770;
-//	perm_s = ldmsd_req_attr_str_value_get_by_name(reqc, "perm");
-//	if (perm_s)
-//		perm = strtol(perm_s, NULL, 0);
-//
-//	prdcr = ldmsd_prdcr_new_with_auth(name, xprt, host, port_no, type,
-//					  interval_us, auth, auth_args,
-//					  uid, gid, perm);
-//	if (!prdcr) {
-//		if (errno == EEXIST)
-//			goto eexist;
-//		else if (errno == EAFNOSUPPORT)
-//			goto eafnosupport;
-//		else if (errno == EINVAL)
-//			goto auth_args_inval;
-//		else
-//			goto enomem;
-//	}
-//
-//	goto send_reply;
-//auth_args_inval:
-//	reqc->errcode = EINVAL;
-//	snprintf(reqc->recv_buf, reqc->recv_len,
-//			"Invalid auth options");
-//	goto send_reply;
-//enomem:
-//	reqc->errcode = ENOMEM;
-//	Snprintf(&reqc->recv_buf, &reqc->recv_len,
-//			"Memory allocation failed.");
-//	goto send_reply;
-//eexist:
-//	reqc->errcode = EEXIST;
-//	Snprintf(&reqc->recv_buf, &reqc->recv_len,
-//			"The prdcr %s already exists.", name);
-//	goto send_reply;
-//eafnosupport:
-//	reqc->errcode = EAFNOSUPPORT;
-//	Snprintf(&reqc->recv_buf, &reqc->recv_len,
-//			"Error resolving hostname '%s'\n", host);
-//	goto send_reply;
-//einval:
-//	reqc->errcode = EINVAL;
-//	Snprintf(&reqc->recv_buf, &reqc->recv_len,
-//			"The attribute '%s' is required.", attr_name);
-//send_reply:
-//	ldmsd_send_req_response(reqc, reqc->recv_buf);
-//	if (name)
-//		free(name);
-//	if (type_s)
-//		free(type_s);
-//	if (port_s)
-//		free(port_s);
-//	if (interval_s)
-//		free(interval_s);
-//	if (host)
-//		free(host);
-//	if (xprt)
-//		free(xprt);
-//	if (perm_s)
-//		free(perm_s);
-//	return 0;
-//}
+static int
+__prdcr_handler(ldmsd_req_ctxt_t reqc, json_entity_t spec, json_entity_t inst_ele,
+		enum ldmsd_prdcr_type type, char *xprt, char *auth,
+		unsigned long interval_us, json_entity_t streams, int perm)
+{
+	int rc;
+	json_entity_t value;
+	char *name, *host;
+	unsigned short port_no;
+	ldmsd_prdcr_t prdcr;
+	char *port_s;
+
+	/* host */
+	value = json_value_find(spec, "host");
+	if (!value) {
+		if (inst_ele) {
+			/*
+			 * Not found in spec look at the instance element.
+			 */
+			value = json_value_find(inst_ele, "host");
+		}
+		if (!value) {
+			rc = ldmsd_send_missing_attr_err(reqc,
+					"prdcr:spec/instances[]", "host");
+			return rc;
+		}
+	}
+	host = json_value_str(value)->str;
+
+	/* port */
+	value = json_value_find(spec, "port");
+	if (!value) {
+		if (inst_ele)
+			value = json_value_find(inst_ele, "port");
+		if (!value) {
+			rc = ldmsd_send_missing_attr_err(reqc,
+					"prdcr:spec/instances[]", "port");
+			return rc;
+		}
+	}
+	if (JSON_STRING_VALUE == json_entity_type(value)) {
+		port_s = json_value_str(value)->str;
+		port_no = atoi(port_s);
+	} else if (JSON_INT_VALUE == json_entity_type(value)) {
+		port_no = (int)json_value_int(value);
+	} else {
+		rc = ldmsd_send_type_error(reqc, "prdcr:spec/instances[0]:port",
+				"a string or an integer");
+		return rc;
+	}
+
+	if (port_no < 1 || port_no > USHRT_MAX) {
+		rc = ldmsd_send_error(reqc, EINVAL,
+				"'%s' transport with invalid port '%s'",
+				xprt, port_s);
+		return rc;
+	}
+
+	/* name */
+	/*
+	 * 'name' must be in either 'spec' or an instances element.
+	 */
+	if (!inst_ele)
+		inst_ele = spec;
+	value = json_value_find(inst_ele, "name");
+	if (!value) {
+		rc = ldmsd_send_missing_attr_err(reqc,
+				"prdcr:spec/instances[]", "name");
+		return rc;
+	}
+	name = json_value_str(value)->str;
+
+	struct ldmsd_sec_ctxt sctxt;
+	ldmsd_req_ctxt_sec_get(reqc, &sctxt);
+	uid_t uid = sctxt.crd.uid;
+	gid_t gid = sctxt.crd.gid;
+
+	prdcr = ldmsd_prdcr_new_with_auth(name, xprt, host, port_no, type,
+					  interval_us, auth, uid, gid, perm);
+	if (!prdcr) {
+		if (errno == EEXIST) {
+			rc = ldmsd_send_error(reqc, EEXIST,
+					"Producer '%s' already exists.", name);
+			return rc;
+		} else if (errno == EAFNOSUPPORT) {
+			rc = ldmsd_send_error(reqc, EAFNOSUPPORT,
+					"Error resolving hostname '%s'", host);
+			return rc;
+		} else if (errno == ENOENT) {
+			rc = ldmsd_send_error(reqc, ENOENT,
+					"prdcr '%s': unrecognized "
+					"authentication '%s'", auth);
+			return rc;
+		} else if (errno == ENOMEM){
+			ldmsd_log(LDMSD_LCRITICAL, "Out of memory\n");
+			return ENOMEM;
+		} else {
+			rc = ldmsd_send_error(reqc, errno,
+					"Failed to create producer '%s', error %d",
+					name, errno);
+			return rc;
+
+		}
+	}
+
+	if (streams) {
+		for (value = json_item_first(streams); value; value = json_item_next(value)) {
+			if (JSON_STRING_VALUE != json_entity_type(value)) {
+				rc = ldmsd_send_type_error(reqc,
+					"cfg_obj:prdcr:spec:streams[]", "a string");
+				ldmsd_prdcr_put(prdcr); /* Put 'create' ref */
+				return rc;
+			}
+			rc = ldmsd_prdcr_subscribe(prdcr, json_value_str(value)->str);
+			if (rc) {
+				rc = ldmsd_send_error(reqc, rc, "cfg_obj:prdcr - "
+						"Producer '%s' failed to subscribe "
+						"stream '%s'.", name,
+						json_value_str(value)->str);
+				ldmsd_prdcr_put(prdcr);
+				return rc;
+			}
+		}
+	}
+
+	return 0;
+
+}
+
+static int prdcr_handler(ldmsd_req_ctxt_t reqc)
+{
+	int rc;
+	json_entity_t spec, value, inst, ele, streams;
+	char *type_s, *xprt, *auth;
+	enum ldmsd_prdcr_type type;
+	unsigned long interval_us;
+	int perm;
+
+	spec = json_value_find(reqc->json, "spec");
+
+	/* type */
+	value = json_value_find(spec, "type");
+	if (!value) {
+		type = LDMSD_PRDCR_TYPE_ACTIVE;
+	} else {
+		if (JSON_STRING_VALUE != json_entity_type(value)) {
+			rc = ldmsd_send_type_error(reqc, "prdcr:spec:type", "a string");
+			return rc;
+		}
+		type_s = json_value_str(value)->str;
+		type = ldmsd_prdcr_str2type(type_s);
+		if ((int)type < 0) {
+			rc = ldmsd_send_error(reqc, EINVAL,
+					"prdcr: type '%s' is invalid.",
+					type_s);
+			return rc;
+		}
+		if (type == LDMSD_PRDCR_TYPE_LOCAL) {
+			rc = ldmsd_send_error(reqc, ENOTSUP,
+					"prdcr: type 'local' is "
+					"not supported.");
+			return rc;
+		}
+	}
+
+	/* xprt */
+	value = json_value_find(spec, "xprt");
+	if (!value) {
+		rc = ldmsd_send_missing_attr_err(reqc, "prdcr:spec", "xprt");
+		return rc;
+	}
+	xprt = json_value_str(value)->str;
+
+	/* re-connect interval */
+	value = json_value_find(spec, "interval");
+	if (!value) {
+		rc = ldmsd_send_missing_attr_err(reqc, "prdcr:spec", "interval");
+		return rc;
+	}
+	if (JSON_STRING_VALUE == json_entity_type(value)) {
+		interval_us = ldmsd_time_str2us(json_value_str(value)->str);
+	} else if (JSON_INT_VALUE == json_entity_type(value)) {
+		interval_us = json_value_int(value);
+	} else {
+		rc = ldmsd_send_type_error(reqc, "prdcr:spec:interval",
+				"a string or an integer");
+		return rc;
+	}
+
+	/* authentication */
+	value = json_value_find(spec, "auth");
+	if (!value) {
+		auth = DEFAULT_AUTH;
+	} else {
+		if (JSON_STRING_VALUE != json_entity_type(value)) {
+			rc = ldmsd_send_type_error(reqc, "prdcr;spec:auth", "a string");
+			return rc;
+		}
+		auth = json_value_str(value)->str;
+	}
+
+	/* streams */
+	streams = json_value_find(spec, "streams");
+
+	/* Permission */
+	perm = 0770;
+	rc = __find_perm(reqc, spec, &perm);
+	if (rc)
+		return rc;
+
+	/* instance list */
+	inst = json_value_find(reqc->json, "instances");
+	if (!inst) {
+		rc = __prdcr_handler(reqc, spec, NULL, type, xprt, auth,
+				interval_us, streams, perm);
+		if (rc)
+			return rc;
+	} else {
+		for (ele = json_item_first(inst); ele; ele = json_item_next(ele)) {
+			if (JSON_DICT_VALUE != json_entity_type(ele)) {
+				rc = ldmsd_send_type_error(reqc,
+						"prdcr:instances[]", "a dictionary");
+				return rc;
+			}
+			rc = __prdcr_handler(reqc, spec, ele, type, xprt,
+					auth, interval_us, streams, perm);
+			if (rc)
+				return rc;
+		}
+	}
+
+	rc = ldmsd_send_error(reqc, 0, NULL);
+	return rc;
+}
 //
 //static int prdcr_del_handler(ldmsd_req_ctxt_t reqc)
 //{
