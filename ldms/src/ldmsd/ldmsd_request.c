@@ -172,6 +172,7 @@ static int smplr_status_handler(ldmsd_req_ctxt_t reqc);
  */
 static int auth_handler(ldmsd_req_ctxt_t reqc);
 static int daemon_handler(ldmsd_req_ctxt_t reqc);
+static int env_handler(ldmsd_req_ctxt_t reqc);
 static int listen_handler(ldmsd_req_ctxt_t reqc);
 static int plugin_instance_handler(ldmsd_req_ctxt_t reqc);
 static int smplr_handler(ldmsd_req_ctxt_t req_ctxt);
@@ -274,8 +275,8 @@ static int handler_entry_comp(const void *a, const void *b)
  */
 static struct obj_handler_entry cfg_obj_handler_tbl[] = {
 		{ "auth",		auth_handler,			XUG },
-//		{ "env",	env_handler    },
 		{ "daemon",		daemon_handler,			XUG },
+		{ "env",		env_handler,			XUG },
 		{ "listen",		listen_handler,			XUG },
 		{ "plugin_instance",	plugin_instance_handler,	XUG },
 		{ "smplr",		smplr_handler,			XUG },
@@ -4841,144 +4842,145 @@ static int plugin_instance_handler(ldmsd_req_ctxt_t reqc)
 //
 //
 //}
-//
-///*
-// * The tree contains environment variables given in
-// * configuration files or via ldmsd_controller/ldmsctl.
-// */
-//int env_cmp(void *a, const void *b)
-//{
-//	return strcmp(a, b);
-//}
-//struct rbt env_tree = RBT_INITIALIZER(env_cmp);
-//pthread_mutex_t env_tree_lock  = PTHREAD_MUTEX_INITIALIZER;
-//
-//struct env_node {
-//	char *name;
-//	struct rbn rbn;
-//};
-//
-//static int env_node_new(const char *name, struct rbt *tree, pthread_mutex_t *lock)
-//{
-//	struct env_node *env_node;
-//	struct rbn *rbn;
-//
-//	rbn = rbt_find(tree, name);
-//	if (rbn) {
-//		/* The environment variable is already recorded.
-//		 * Its value will be retrieved by calling getenv().
-//		 */
-//		return EEXIST;
-//	}
-//
-//	env_node = malloc(sizeof(*env_node));
-//	if (!env_node)
-//		return ENOMEM;
-//	env_node->name = strdup(name);
-//	if (!env_node->name)
-//		return ENOMEM;
-//	rbn_init(&env_node->rbn, env_node->name);
-//	if (lock) {
-//		pthread_mutex_lock(lock);
-//		rbt_ins(tree, &env_node->rbn);
-//		pthread_mutex_unlock(lock);
-//	} else {
-//		rbt_ins(tree, &env_node->rbn);
-//	}
-//
-//	return 0;
-//}
-//
+
+/*
+ * The tree contains environment variables given in
+ * configuration files or via ldmsd_controller/ldmsctl.
+ */
+int env_cmp(void *a, const void *b)
+{
+	return strcmp(a, b);
+}
+struct rbt env_tree = RBT_INITIALIZER(env_cmp);
+pthread_mutex_t env_tree_lock  = PTHREAD_MUTEX_INITIALIZER;
+
+struct env_node {
+	char *name;
+	struct rbn rbn;
+};
+
+static int env_node_new(const char *name, struct rbt *tree, pthread_mutex_t *lock)
+{
+	struct env_node *env_node;
+	struct rbn *rbn;
+
+	rbn = rbt_find(tree, name);
+	if (rbn) {
+		/* The environment variable is already recorded.
+		 * Its value will be retrieved by calling getenv().
+		 */
+		return EEXIST;
+	}
+
+	env_node = malloc(sizeof(*env_node));
+	if (!env_node)
+		return ENOMEM;
+	env_node->name = strdup(name);
+	if (!env_node->name)
+		return ENOMEM;
+	rbn_init(&env_node->rbn, env_node->name);
+	if (lock) {
+		pthread_mutex_lock(lock);
+		rbt_ins(tree, &env_node->rbn);
+		pthread_mutex_unlock(lock);
+	} else {
+		rbt_ins(tree, &env_node->rbn);
+	}
+
+	return 0;
+}
+
 //static void env_node_del(struct env_node *node)
 //{
 //	free(node->name);
 //	free(node);
 //}
-//
-///*
-// * { "obj" : "env",
-// *   "spec": { "name": <env name string>,
-// *             "value": <env value string>
-// *           }
-// * }
-// */
-//
-//static int env_handler(ldmsd_req_ctxt_t reqc)
-//{
-//	int rc = 0;
-//	json_entity_t spec;
-//	json_entity_t name;
-//	json_entity_t value;
-//	char *name_s, *val_s;
-//	char *exp_val = NULL;
-//
-//	spec = json_value_find(reqc->json, "spec");
-//	if (!spec) {
-//		__missing_required_json_attr(reqc, "spec");
-//		return EINVAL;
-//	}
-//
-//	name = json_value_find(spec, "name");
-//	if (!name) {
-//		__missing_required_spec_attr(reqc, "env", "name");
-//		return EINVAL;
-//	}
-//	name_s = json_value_str(name)->str;
-//
-//	value = json_value_find(spec, "value");
-//	if (!value) {
-//		__missing_required_spec_attr(reqc, "env", "value");
-//		return EINVAL;
-//	}
-//	val_s = json_value_str(value)->str;
-//
-//	if (reqc->xprt->trust) { /* TODO: why we check this */
-//		exp_val = str_repl_cmd(val_s);
-//		if (!exp_val) {
-//			rc = errno;
-//			(void)snprintf(reqc->recv_buf, reqc->recv_len,
-//				"Failed to replace the string '%s'",
-//				json_value_str(value)->str);
-//			goto out;
-//		}
-//
-//		rc = setenv(name_s, exp_val, 1);
-//		if (rc) {
-//			rc = errno;
-//			(void)snprintf(reqc->recv_buf, reqc->recv_len,
-//				"Failed to set the env: %s=%s",
-//				json_value_str(name)->str,
-//				exp_val);
-//			goto out;
-//		}
-//
-//		/*
-//		 * Record the set environment variable for exporting purpose
-//		 */
-//		rc = env_node_new(name_s, &env_tree, &env_tree_lock);
-//		if (rc == ENOMEM) {
-//			ldmsd_log(LDMSD_LERROR, "Out of memory. "
-//					"Failed to record a given env: %s=%s\n",
-//					name_s, exp_val);
-//			/* Keep setting the remaining give environment variables */
-//			goto out;
-//		} else if (rc == EEXIST) {
-//			ldmsd_log(LDMSD_LINFO, "Reset the env: %s=%s\n",
-//					name_s, val_s);
-//			rc = 0;
-//		} else if (rc == 0) {
-//			ldmsd_log(LDMSD_LINFO, "Set the env: %s=%s",
-//					name_s, val_s);
-//		}
-//	}
-//
-//out:
-//	ldmsd_send_req_response(reqc, reqc->recv_buf);
-//	if (exp_val)
-//		free(exp_val);
-//	return rc;
-//}
-//
+
+/*
+ * { "obj" : "env",
+ *   "spec": { "name": <env name string>,
+ *             "value": <env value string>
+ *           }
+ * }
+ */
+
+static int env_handler(ldmsd_req_ctxt_t reqc)
+{
+	int rc = 0;
+	json_entity_t spec;
+	json_entity_t name;
+	json_entity_t value;
+	char *name_s, *val_s;
+	char *exp_val = NULL;
+
+	spec = json_value_find(reqc->json, "spec");
+	name = json_value_find(spec, "name");
+	if (!name) {
+		rc = ldmsd_send_missing_attr_err(reqc, "env", "name");
+		return rc;
+	}
+	if (JSON_STRING_VALUE != json_entity_type(name)) {
+		rc = ldmsd_send_type_error(reqc, "env:spec:name", "a string");
+		return rc;
+	}
+	name_s = json_value_str(name)->str;
+
+	value = json_value_find(spec, "value");
+	if (!value) {
+		rc = ldmsd_send_missing_attr_err(reqc, "env", "value");
+		return rc;
+	}
+	if (JSON_STRING_VALUE != json_entity_type(value)) {
+		rc = ldmsd_send_type_error(reqc, "env:spec:value", "a string");
+		return rc;
+	}
+	val_s = json_value_str(value)->str;
+
+	if (reqc->xprt->trust) {
+		/*
+		 * We trust to expand the commands.
+		 */
+		exp_val = str_repl_cmd(val_s);
+		if (!exp_val) {
+			rc = errno;
+			rc = ldmsd_send_error(reqc, rc,
+				"Failed to expand the string '%s'", val_s);
+			return rc;
+		}
+		val_s = exp_val;
+	}
+
+	rc = setenv(name_s, val_s, 1);
+	if (rc) {
+		rc = errno;
+		rc = ldmsd_send_error(reqc, rc,
+			"Failed to set the env: %s=%s", name_s, exp_val);
+		free(exp_val);
+		return rc;
+	}
+
+	/*
+	 * Record the set environment variable for exporting purpose
+	 */
+	rc = env_node_new(name_s, &env_tree, &env_tree_lock);
+	if (rc == ENOMEM) {
+		ldmsd_log(LDMSD_LCRITICAL, "Out of memory.\n");
+		return ENOMEM;
+	} else if (rc == EEXIST) {
+		ldmsd_log(LDMSD_LINFO, "Reset the env: %s=%s\n",
+				name_s, val_s);
+		rc = 0;
+	} else if (rc == 0) {
+		ldmsd_log(LDMSD_LINFO, "Set the env: %s=%s",
+				name_s, val_s);
+	}
+
+	rc = ldmsd_send_error(reqc, 0, NULL);
+	if (exp_val)
+		free(exp_val);
+	return 0;
+}
+
 static int include_handler(ldmsd_req_ctxt_t reqc)
 {
 	json_entity_t path, spec;
