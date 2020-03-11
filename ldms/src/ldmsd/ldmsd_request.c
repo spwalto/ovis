@@ -181,13 +181,9 @@ static int smplr_handler(ldmsd_req_ctxt_t req_ctxt);
 /*
  * Action object handlers
  */
+static int prdcr_action_handler(ldmsd_req_ctxt_t reqc);
 static int smplr_action_handler(ldmsd_req_ctxt_t reqc);
 
-//static int prdcr_del_handler(ldmsd_req_ctxt_t req_ctxt);
-//static int prdcr_start_handler(ldmsd_req_ctxt_t req_ctxt);
-//static int prdcr_stop_handler(ldmsd_req_ctxt_t req_ctxt);
-//static int prdcr_start_regex_handler(ldmsd_req_ctxt_t req_ctxt);
-//static int prdcr_stop_regex_handler(ldmsd_req_ctxt_t req_ctxt);
 //static int prdcr_set_status_handler(ldmsd_req_ctxt_t req_ctxt);
 //static int prdcr_subscribe_regex_handler(ldmsd_req_ctxt_t req_ctxt);
 //static int strgp_add_handler(ldmsd_req_ctxt_t req_ctxt);
@@ -298,6 +294,7 @@ static struct obj_handler_entry cmd_obj_handler_tbl[] = {
 };
 
 static struct obj_handler_entry act_obj_handler_tbl[] = {
+		{ "prdcr",	prdcr_action_handler,	XUG },
 		{ "smplr", 	smplr_action_handler,	XUG },
 };
 
@@ -1520,215 +1517,142 @@ static int prdcr_handler(ldmsd_req_ctxt_t reqc)
 	rc = ldmsd_send_error(reqc, 0, NULL);
 	return rc;
 }
-//
-//static int prdcr_del_handler(ldmsd_req_ctxt_t reqc)
-//{
-//	char *name = NULL, *attr_name;
-//	struct ldmsd_sec_ctxt sctxt;
-//
-//	reqc->errcode = 0;
-//
-//	attr_name = "name";
-//	name = ldmsd_req_attr_str_value_get_by_id(reqc, LDMSD_ATTR_NAME);
-//	if (!name) {
-//		reqc->errcode = EINVAL;
-//		Snprintf(&reqc->recv_buf, &reqc->recv_len,
-//				"The attribute '%s' is required by prdcr_del.",
-//				attr_name);
-//		goto send_reply;
-//	}
-//
-//	ldmsd_req_ctxt_sec_get(reqc, &sctxt);
-//
-//	reqc->errcode = ldmsd_prdcr_del(name, &sctxt);
-//	switch (reqc->errcode) {
-//	case 0:
-//		break;
-//	case ENOENT:
-//		Snprintf(&reqc->recv_buf, &reqc->recv_len,
-//				"The producer specified does not exist.");
-//		break;
-//	case EBUSY:
-//		Snprintf(&reqc->recv_buf, &reqc->recv_len,
-//				"The producer is in use.");
-//		break;
-//	case EACCES:
-//		Snprintf(&reqc->recv_buf, &reqc->recv_len,
-//				"Permission denied.");
-//		break;
-//	default:
-//		Snprintf(&reqc->recv_buf, &reqc->recv_len,
-//				"Error: %d %s",
-//				reqc->errcode, ovis_errno_abbvr(reqc->errcode));
-//	}
-//
-//send_reply:
-//	ldmsd_send_req_response(reqc, reqc->recv_buf);
-//	if (name)
-//		free(name);
-//	return 0;
-//}
-//
-//static int prdcr_start_handler(ldmsd_req_ctxt_t reqc)
-//{
-//	char *name, *interval_str;
-//	name = interval_str = NULL;
-//	struct ldmsd_sec_ctxt sctxt;
-//	int flags = 0;
-//
-//	reqc->errcode = 0;
-//
-//	name = ldmsd_req_attr_str_value_get_by_id(reqc, LDMSD_ATTR_NAME);
-//	if (!name) {
-//		reqc->errcode = EINVAL;
-//		Snprintf(&reqc->recv_buf, &reqc->recv_len,
-//				"The attribute 'name' is required by prdcr_start.");
-//		goto send_reply;
-//	}
-//
-//	ldmsd_req_ctxt_sec_get(reqc, &sctxt);
-//	interval_str = ldmsd_req_attr_str_value_get_by_id(reqc,
-//							LDMSD_ATTR_INTERVAL);
-//	if (reqc->flags & LDMSD_REQ_DEFER_FLAG)
-//		flags = LDMSD_PERM_DSTART;
-//	reqc->errcode = ldmsd_prdcr_start(name, interval_str, &sctxt, flags);
-//	switch (reqc->errcode) {
-//	case 0:
-//		break;
-//	case EBUSY:
-//		Snprintf(&reqc->recv_buf, &reqc->recv_len,
-//				"The producer is already running.");
-//		break;
-//	case ENOENT:
-//		Snprintf(&reqc->recv_buf, &reqc->recv_len,
-//				"The producer specified does not exist.");
-//		break;
-//	case EACCES:
-//		Snprintf(&reqc->recv_buf, &reqc->recv_len,
-//				"Permission denied.");
-//		break;
-//	default:
-//		Snprintf(&reqc->recv_buf, &reqc->recv_len,
-//				"Error: %d %s",
-//				reqc->errcode, ovis_errno_abbvr(reqc->errcode));
-//	}
-//
-//send_reply:
-//	ldmsd_send_req_response(reqc, reqc->recv_buf);
-//	if (name)
-//		free(name);
-//	if (interval_str)
-//		free(interval_str);
-//	return 0;
-//}
-//
-//static int prdcr_stop_handler(ldmsd_req_ctxt_t reqc)
-//{
-//	char *name = NULL;
-//	struct ldmsd_sec_ctxt sctxt;
-//
-//	reqc->errcode = 0;
-//
-//	name = ldmsd_req_attr_str_value_get_by_id(reqc, LDMSD_ATTR_NAME);
-//	if (!name) {
-//		reqc->errcode = EINVAL;
-//		Snprintf(&reqc->recv_buf, &reqc->recv_len,
-//				"The attribute 'name' is required by prdcr_stop.");
-//		goto send_reply;
-//	}
-//
-//	ldmsd_req_ctxt_sec_get(reqc, &sctxt);
-//
-//	reqc->errcode = ldmsd_prdcr_stop(name, &sctxt);
-//	switch (reqc->errcode) {
-//	case 0:
-//		break;
-//	case EBUSY:
-//		Snprintf(&reqc->recv_buf, &reqc->recv_len,
-//				"The producer is already stopped.");
-//		break;
-//	case ENOENT:
-//		Snprintf(&reqc->recv_buf, &reqc->recv_len,
-//				"The producer specified does not exist.");
-//		break;
-//	case EACCES:
-//		Snprintf(&reqc->recv_buf, &reqc->recv_len,
-//				"Permission denied.");
-//		break;
-//	default:
-//		Snprintf(&reqc->recv_buf, &reqc->recv_len,
-//				"Error: %d %s",
-//				reqc->errcode, ovis_errno_abbvr(reqc->errcode));
-//	}
-//
-//send_reply:
-//	ldmsd_send_req_response(reqc, reqc->recv_buf);
-//	if (name)
-//		free(name);
-//	return 0;
-//}
-//
-//static int prdcr_start_regex_handler(ldmsd_req_ctxt_t reqc)
-//{
-//	char *prdcr_regex, *interval_str;
-//	prdcr_regex = interval_str = NULL;
-//	struct ldmsd_sec_ctxt sctxt;
-//	int flags = 0;
-//	reqc->errcode = 0;
-//
-//	prdcr_regex = ldmsd_req_attr_str_value_get_by_id(reqc, LDMSD_ATTR_REGEX);
-//	if (!prdcr_regex) {
-//		reqc->errcode = EINVAL;
-//		Snprintf(&reqc->recv_buf, &reqc->recv_len,
-//				"The attribute 'regex' is required by prdcr_start_regex.");
-//		goto send_reply;
-//	}
-//
-//	interval_str = ldmsd_req_attr_str_value_get_by_id(reqc, LDMSD_ATTR_INTERVAL);
-//
-//	ldmsd_req_ctxt_sec_get(reqc, &sctxt);
-//	flags = (reqc->flags & LDMSD_REQ_DEFER_FLAG)?(LDMSD_PERM_DSTART):0;
-//	reqc->errcode = ldmsd_prdcr_start_regex(prdcr_regex, interval_str,
-//					reqc->recv_buf, reqc->recv_len,
-//					&sctxt, flags);
-//	/* on error, reqc->line_buf will be filled */
-//
-//send_reply:
-//	ldmsd_send_req_response(reqc, reqc->recv_buf);
-//	if (prdcr_regex)
-//		free(prdcr_regex);
-//	if (interval_str)
-//		free(interval_str);
-//	return 0;
-//}
-//
-//static int prdcr_stop_regex_handler(ldmsd_req_ctxt_t reqc)
-//{
-//	char *prdcr_regex = NULL;
-//	struct ldmsd_sec_ctxt sctxt;
-//
-//	reqc->errcode = 0;
-//
-//	prdcr_regex = ldmsd_req_attr_str_value_get_by_id(reqc, LDMSD_ATTR_REGEX);
-//	if (!prdcr_regex) {
-//		reqc->errcode = EINVAL;
-//		Snprintf(&reqc->recv_buf, &reqc->recv_len,
-//				"The attribute 'regex' is required by prdcr_stop_regex.");
-//		goto send_reply;
-//	}
-//
-//	ldmsd_req_ctxt_sec_get(reqc, &sctxt);
-//	reqc->errcode = ldmsd_prdcr_stop_regex(prdcr_regex,
-//				reqc->recv_buf, reqc->recv_len, &sctxt);
-//	/* on error, reqc->line_buf will be filled */
-//
-//send_reply:
-//	ldmsd_send_req_response(reqc, reqc->recv_buf);
-//	if (prdcr_regex)
-//		free(prdcr_regex);
-//	return 0;
-//}
-//
+
+static int prdcr_action_handler(ldmsd_req_ctxt_t reqc)
+{
+	int rc;
+	json_entity_t action, names, name, regex;
+	char *action_s, *name_s;
+	struct ldmsd_sec_ctxt sctxt;
+
+	ldmsd_req_ctxt_sec_get(reqc, &sctxt);
+
+	action = json_value_find(reqc->json, "action");
+	action_s = json_value_str(action)->str;
+	names = json_value_find(reqc->json, "names");
+	regex = json_value_find(reqc->json, "regex");
+
+	if (0 == strncmp(action_s, "start", 5)) {
+		if (!names)
+			goto start_regex;
+		for (name = json_item_first(names); name;
+				name = json_item_next(name)) {
+			name_s = json_value_str(name)->str;
+			rc = ldmsd_prdcr_start(name_s, NULL, &sctxt, 0);
+			switch (rc) {
+			case 0:
+				break;
+			case EBUSY:
+				return ldmsd_send_error(reqc, rc,
+					"The producer '%s' is already running.",
+									name_s);
+			case ENOENT:
+				return ldmsd_send_error(reqc, rc,
+					"The producer '%s' does not exist.", name_s);
+			case EACCES:
+				return ldmsd_send_error(reqc, rc,
+					"The producer '%s': permission denied", name_s);
+			default:
+				return ldmsd_send_error(reqc, rc,
+					"Failed to start the producer '%s': %s",
+					name_s, ovis_errno_abbvr(rc));
+			}
+		}
+	start_regex:
+		if (!regex)
+			goto out;
+		for (name = json_item_first(regex); name;
+				name = json_item_next(name)) {
+			name_s = json_value_str(name)->str;
+			ldmsd_req_buf_reset(reqc->recv_buf);
+			rc = ldmsd_prdcr_start_regex(name_s, 0, reqc->recv_buf->buf,
+					reqc->recv_buf->len, &sctxt, 0);
+			if (rc) {
+				return ldmsd_send_error(reqc, rc,
+					"Failed to start producers with regex '%s'. %s",
+					name_s, reqc->recv_buf->buf);
+
+			}
+		}
+	} else if (0 == strncmp(action_s, "stop", 4)) {
+		/* names */
+		if (!names)
+			goto stop_regex;
+		for (name = json_item_first(names); name;
+				name = json_item_next(name)) {
+			name_s = json_value_str(name)->str;
+			rc = ldmsd_prdcr_stop(name_s, &sctxt);
+			switch (rc) {
+			case 0:
+				break;
+			case EBUSY:
+				return ldmsd_send_error(reqc, rc,
+					"The producer '%s' is already stopped.",
+					name_s);
+			case ENOENT:
+				return ldmsd_send_error(reqc, rc,
+					"The producer '%s' does not exist.", name_s);
+			case EACCES:
+				return ldmsd_send_error(reqc, rc,
+					"Permission denied to access "
+					"the producer '%s'.", name_s);
+			default:
+				return ldmsd_send_error(reqc, rc,
+					"Failed to stop the producer '%s': %s",
+					name_s, ovis_errno_abbvr(rc));
+			}
+		}
+		/* regex */
+	stop_regex:
+		if (!regex)
+			goto out;
+		for (name = json_item_first(regex); name;
+				name = json_item_next(name)) {
+			name_s = json_value_str(name)->str;
+			ldmsd_req_buf_reset(reqc->recv_buf);
+			rc = ldmsd_prdcr_stop_regex(name_s, reqc->recv_buf->buf,
+					reqc->recv_buf->len, &sctxt);
+			if (rc) {
+				return ldmsd_send_error(reqc, rc,
+					"Failed to stop producers with regex '%s'. %s",
+					name_s, reqc->recv_buf->buf);
+
+			}
+		}
+	} else {
+		for (name = json_item_first(names); name;
+				name = json_item_next(name)) {
+			name_s = json_value_str(name)->str;
+			rc = ldmsd_prdcr_del(name_s, &sctxt);
+			switch (rc) {
+			case 0:
+				break;
+			case ENOENT:
+				return ldmsd_send_error(reqc, rc,
+					"The producer '%s' does not exist.", name_s);
+			case EBUSY:
+				return ldmsd_send_error(reqc, rc,
+					"The producer '%s' is in use.", name_s);
+			case EACCES:
+				return ldmsd_send_error(reqc, rc,
+					"Permission denied to access "
+					"the producer '%s'.", name_s);
+			default:
+				return ldmsd_send_error(reqc, rc,
+					"Failed to delete the producer '%s': %s",
+					name_s, ovis_errno_abbvr(rc));
+			}
+		}
+		if (regex) {
+			return ldmsd_send_error(reqc, ENOTSUP,
+					"act_obj:prdcr:delete not support 'regex'.");
+		}
+	}
+out:
+	rc = ldmsd_send_error(reqc, 0, NULL);
+	return rc;
+}
+
 //static int prdcr_subscribe_regex_handler(ldmsd_req_ctxt_t reqc)
 //{
 //	char *prdcr_regex;
