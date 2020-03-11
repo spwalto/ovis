@@ -164,9 +164,9 @@ static int example_handler(ldmsd_req_ctxt_t req_ctxt);
 static int greeting_handler(ldmsd_req_ctxt_t req_ctxt);
 static int include_handler(ldmsd_req_ctxt_t req_ctxt);
 static int plugin_status_handler(ldmsd_req_ctxt_t reqc);
+static int prdcr_status_handler(ldmsd_req_ctxt_t reqc);
 static int set_route_handler(ldmsd_req_ctxt_t req_ctxt);
 static int smplr_status_handler(ldmsd_req_ctxt_t reqc);
-
 /*
  * Configuration object handlers
  */
@@ -188,7 +188,6 @@ static int smplr_action_handler(ldmsd_req_ctxt_t reqc);
 //static int prdcr_stop_handler(ldmsd_req_ctxt_t req_ctxt);
 //static int prdcr_start_regex_handler(ldmsd_req_ctxt_t req_ctxt);
 //static int prdcr_stop_regex_handler(ldmsd_req_ctxt_t req_ctxt);
-//static int prdcr_status_handler(ldmsd_req_ctxt_t req_ctxt);
 //static int prdcr_set_status_handler(ldmsd_req_ctxt_t req_ctxt);
 //static int prdcr_subscribe_regex_handler(ldmsd_req_ctxt_t req_ctxt);
 //static int strgp_add_handler(ldmsd_req_ctxt_t req_ctxt);
@@ -293,6 +292,7 @@ static struct obj_handler_entry cmd_obj_handler_tbl[] = {
 		{ "greeting",	greeting_handler,	XALL },
 		{ "include",	include_handler,	XUG },
 		{ "plugin_status",	plugin_status_handler,	XALL },
+		{ "prdcr_status",	prdcr_status_handler,	XALL },
 		{ "set_route",	set_route_handler, 	XUG },
 		{ "smplr_status",	smplr_status_handler,	XALL },
 };
@@ -1767,141 +1767,124 @@ static int prdcr_handler(ldmsd_req_ctxt_t reqc)
 //	return 0;
 //}
 //
-//int __prdcr_status_json_obj(ldmsd_req_ctxt_t reqc, ldmsd_prdcr_t prdcr, int prdcr_cnt)
-//{
-//	extern const char *prdcr_state_str(enum ldmsd_prdcr_state state);
-//	ldmsd_prdcr_set_t prv_set;
-//	int set_count = 0;
-//	int rc = 0;
-//
-//	/* Append the string to line_buf */
-//	if (prdcr_cnt) {
-//		rc = linebuf_printf(reqc, ",\n");
-//		if (rc)
-//			return rc;
-//	}
-//
-//	ldmsd_prdcr_lock(prdcr);
-//	rc = linebuf_printf(reqc,
-//			"{ \"name\":\"%s\","
-//			"\"type\":\"%s\","
-//			"\"host\":\"%s\","
-//			"\"port\":%hu,"
-//			"\"transport\":\"%s\","
-//			"\"reconnect_us\":\"%ld\","
-//			"\"state\":\"%s\","
-//			"\"sets\": [",
-//			prdcr->obj.name, ldmsd_prdcr_type2str(prdcr->type),
-//			prdcr->host_name, prdcr->port_no, prdcr->xprt_name,
-//			prdcr->conn_intrvl_us,
-//			prdcr_state_str(prdcr->conn_state));
-//	if (rc)
-//		goto out;
-//
-//	set_count = 0;
-//	for (prv_set = ldmsd_prdcr_set_first(prdcr); prv_set;
-//	     prv_set = ldmsd_prdcr_set_next(prv_set)) {
-//		if (set_count) {
-//			rc = linebuf_printf(reqc, ",\n");
-//			if (rc)
-//				goto out;
-//		}
-//
-//		rc = linebuf_printf(reqc,
-//			"{ \"inst_name\":\"%s\","
-//			"\"schema_name\":\"%s\","
-//			"\"state\":\"%s\"}",
-//			prv_set->inst_name,
-//			(prv_set->schema_name ? prv_set->schema_name : ""),
-//			ldmsd_prdcr_set_state_str(prv_set->state));
-//		if (rc)
-//			goto out;
-//		set_count++;
-//	}
-//	rc = linebuf_printf(reqc, "]}");
-//out:
-//	ldmsd_prdcr_unlock(prdcr);
-//	return rc;
-//}
-//
-//static int prdcr_status_handler(ldmsd_req_ctxt_t reqc)
-//{
-//	int rc = 0;
-//	size_t cnt = 0;
-//	struct ldmsd_req_attr_s attr;
-//	ldmsd_prdcr_t prdcr = NULL;
-//	char *name;
-//	int count;
-//
-//	name = ldmsd_req_attr_str_value_get_by_id(reqc, LDMSD_ATTR_NAME);
-//	if (name) {
-//		prdcr = ldmsd_prdcr_find(name);
-//		if (!prdcr) {
-//			/* Do not report any status */
-//			cnt = snprintf(reqc->recv_buf, reqc->recv_len,
-//					"prdcr '%s' doesn't exist.", name);
-//			reqc->errcode = ENOENT;
-//			ldmsd_send_req_response(reqc, reqc->recv_buf);
-//			return 0;
-//		}
-//	}
-//
-//	/* Construct the json object of the producer(s) */
-//	if (prdcr) {
-//		rc = __prdcr_status_json_obj(reqc, prdcr, 0);
-//		if (rc)
-//			goto out;
-//	} else {
-//		count = 0;
-//		ldmsd_cfg_lock(LDMSD_CFGOBJ_PRDCR);
-//		for (prdcr = ldmsd_prdcr_first(); prdcr;
-//				prdcr = ldmsd_prdcr_next(prdcr)) {
-//			rc = __prdcr_status_json_obj(reqc, prdcr, count);
-//			if (rc) {
-//				ldmsd_cfg_unlock(LDMSD_CFGOBJ_PRDCR);
-//				goto out;
-//			}
-//			count++;
-//		}
-//		ldmsd_cfg_unlock(LDMSD_CFGOBJ_PRDCR);
-//	}
-//	cnt = reqc->recv_off + 2; /* +2 for '[' and ']' */
-//
-//	/* Send the json attribute header */
-//	attr.discrim = 1;
-//	attr.attr_len = cnt;
-//	attr.attr_id = LDMSD_ATTR_JSON;
-//	ldmsd_hton_req_attr(&attr);
-//	rc = ldmsd_append_reply(reqc, (char *)&attr, sizeof(attr), LDMSD_REC_SOM_F);
-//	if (rc)
-//		goto out;
-//
-//	/* Send the json object */
-//	rc = ldmsd_append_reply(reqc, "[", 1, 0);
-//	if (rc)
-//		goto out;
-//	if (reqc->recv_off) {
-//		rc = ldmsd_append_reply(reqc, reqc->recv_buf, reqc->recv_off, 0);
-//		if (rc)
-//			goto out;
-//	}
-//	rc = ldmsd_append_reply(reqc, "]", 1, 0);
-//	if (rc) {
-//		goto out;
-//	}
-//
-//	/* Send the terminating attribute */
-//	attr.discrim = 0;
-//	rc = ldmsd_append_reply(reqc, (char *)&attr.discrim,
-//			sizeof(uint32_t), LDMSD_REC_EOM_F);
-//out:
-//	if (name)
-//		free(name);
-//	if (prdcr)
-//		ldmsd_prdcr_put(prdcr);
-//	return rc;
-//}
-//
+int __prdcr_status_json_obj(ldmsd_req_ctxt_t reqc, ldmsd_prdcr_t prdcr)
+{
+	extern const char *prdcr_state_str(enum ldmsd_prdcr_state state);
+	ldmsd_prdcr_set_t prv_set;
+	int set_count = 0;
+	int rc = 0;
+
+	ldmsd_prdcr_lock(prdcr);
+	rc = ldmsd_append_response_va(reqc, 0,
+			"{ \"name\":\"%s\","
+			"\"type\":\"%s\","
+			"\"host\":\"%s\","
+			"\"port\":%hu,"
+			"\"transport\":\"%s\","
+			"\"reconnect_us\":\"%ld\","
+			"\"state\":\"%s\","
+			"\"sets\": [",
+			prdcr->obj.name, ldmsd_prdcr_type2str(prdcr->type),
+			prdcr->host_name, prdcr->port_no, prdcr->xprt_name,
+			prdcr->conn_intrvl_us,
+			prdcr_state_str(prdcr->conn_state));
+	if (rc)
+		goto out;
+
+	set_count = 0;
+	for (prv_set = ldmsd_prdcr_set_first(prdcr); prv_set;
+	     prv_set = ldmsd_prdcr_set_next(prv_set)) {
+		if (set_count) {
+			rc = ldmsd_append_response(reqc, 0, ",", 1);
+			if (rc)
+				goto out;
+		}
+
+		rc = ldmsd_append_response_va(reqc, 0,
+			"{ \"inst_name\":\"%s\","
+			"\"schema_name\":\"%s\","
+			"\"state\":\"%s\"}",
+			prv_set->inst_name,
+			(prv_set->schema_name ? prv_set->schema_name : ""),
+			ldmsd_prdcr_set_state_str(prv_set->state));
+		if (rc)
+			goto out;
+		set_count++;
+	}
+	rc = ldmsd_append_response(reqc, 0, "]}", 2);
+out:
+	ldmsd_prdcr_unlock(prdcr);
+	return rc;
+}
+
+static int prdcr_status_handler(ldmsd_req_ctxt_t reqc)
+{
+	int rc = 0;
+	ldmsd_prdcr_t prdcr = NULL;
+	char *name_s;
+	int count;
+	json_entity_t name, spec;
+
+	spec = json_value_find(reqc->json, "spec");
+	if (spec) {
+		name = json_value_find(spec, "name");
+		if (JSON_STRING_VALUE != json_entity_type(name)) {
+			rc = ldmsd_send_type_error(reqc,
+					"prdcr_status:spec:name", "a string");
+			return rc;
+		}
+		name_s = json_value_str(name)->str;
+		prdcr = ldmsd_prdcr_find(name_s);
+		if (!prdcr) {
+			rc = ldmsd_send_error(reqc, ENOENT,
+					"prdcr '%s' doesn't exist.", name_s);
+			return rc;
+		}
+	}
+
+	/* Construct the json object of the producer(s) */
+
+	rc = ldmsd_append_info_obj_hdr(reqc, "prdcr_status");
+	if (rc)
+		goto out;
+
+	rc = ldmsd_append_response(reqc, 0, "[", 1);
+	if (rc)
+		goto out;
+
+	if (prdcr) {
+		rc = __prdcr_status_json_obj(reqc, prdcr);
+		if (rc)
+			goto out;
+		ldmsd_prdcr_put(prdcr);
+	} else {
+		count = 0;
+		ldmsd_cfg_lock(LDMSD_CFGOBJ_PRDCR);
+		for (prdcr = ldmsd_prdcr_first(); prdcr;
+				prdcr = ldmsd_prdcr_next(prdcr)) {
+			if (count) {
+				rc = ldmsd_append_response(reqc, 0, ",", 1);
+				if (rc)
+					goto unlock_out;
+			}
+			rc = __prdcr_status_json_obj(reqc, prdcr);
+			if (rc)
+				goto unlock_out;
+			count++;
+		}
+		ldmsd_cfg_unlock(LDMSD_CFGOBJ_PRDCR);
+	}
+
+	return ldmsd_append_response(reqc, LDMSD_REC_EOM_F, "]}", 2);
+
+unlock_out:
+	ldmsd_cfg_unlock(LDMSD_CFGOBJ_PRDCR);
+out:
+	if (prdcr)
+		ldmsd_prdcr_put(prdcr);
+	return rc;
+}
+
 //size_t __prdcr_set_status(ldmsd_req_ctxt_t reqc, ldmsd_prdcr_set_t prd_set)
 //{
 //	struct ldms_timestamp ts = { 0, 0 }, dur = { 0, 0 };
