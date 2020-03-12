@@ -905,11 +905,11 @@ int __ldmsd_prdcr_stop(ldmsd_prdcr_t prdcr, ldmsd_sec_ctxt_t ctxt);
 
 /* updtr */
 ldmsd_updtr_t
-ldmsd_updtr_new(const char *name, char *interval_str,
-		char *offset_str, int push_flags,
-				int is_auto_interval);
+ldmsd_updtr_new(const char *name, long interval_us,
+		long offset_us, int push_flags,
+		int is_auto_interval);
 ldmsd_updtr_t
-ldmsd_updtr_new_with_auth(const char *name, char *interval_str, char *offset_str,
+ldmsd_updtr_new_with_auth(const char *name, long interval_us, long offset_us,
 					int push_flags, int is_auto_task,
 					uid_t uid, gid_t gid, int perm);
 int ldmsd_updtr_del(const char *updtr_name, ldmsd_sec_ctxt_t ctxt);
