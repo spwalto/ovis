@@ -186,6 +186,7 @@ static int updtr_handler(ldmsd_req_ctxt_t reqc);
  */
 static int prdcr_action_handler(ldmsd_req_ctxt_t reqc);
 static int smplr_action_handler(ldmsd_req_ctxt_t reqc);
+static int updtr_action_handler(ldmsd_req_ctxt_t reqc);
 
 //static int prdcr_set_status_handler(ldmsd_req_ctxt_t req_ctxt);
 //static int prdcr_subscribe_regex_handler(ldmsd_req_ctxt_t req_ctxt);
@@ -198,9 +199,6 @@ static int smplr_action_handler(ldmsd_req_ctxt_t reqc);
 //static int strgp_metric_add_handler(ldmsd_req_ctxt_t req_ctxt);
 //static int strgp_metric_del_handler(ldmsd_req_ctxt_t req_ctxt);
 //static int strgp_status_handler(ldmsd_req_ctxt_t req_ctxt);
-//static int updtr_del_handler(ldmsd_req_ctxt_t req_ctxt);
-//static int updtr_start_handler(ldmsd_req_ctxt_t req_ctxt);
-//static int updtr_stop_handler(ldmsd_req_ctxt_t req_ctxt);
 //static int plugn_list_handler(ldmsd_req_ctxt_t req_ctxt);
 //static int plugn_sets_handler(ldmsd_req_ctxt_t req_ctxt);
 //static int plugn_usage_handler(ldmsd_req_ctxt_t req_ctxt);
@@ -295,6 +293,7 @@ static struct obj_handler_entry cmd_obj_handler_tbl[] = {
 static struct obj_handler_entry act_obj_handler_tbl[] = {
 		{ "prdcr",	prdcr_action_handler,	XUG },
 		{ "smplr", 	smplr_action_handler,	XUG },
+		{ "updtr",	updtr_action_handler,	XUG },
 };
 
 /*
@@ -3032,153 +3031,106 @@ static int updtr_handler(ldmsd_req_ctxt_t reqc)
 	}
 	return ldmsd_send_error(reqc, 0, NULL);
 }
-//
-//static int updtr_del_handler(ldmsd_req_ctxt_t reqc)
-//{
-//	char *name = NULL;
-//	struct ldmsd_sec_ctxt sctxt;
-//
-//	reqc->errcode = 0;
-//
-//	name = ldmsd_req_attr_str_value_get_by_id(reqc, LDMSD_ATTR_NAME);
-//	if (!name)
-//		goto einval;
-//
-//	ldmsd_req_ctxt_sec_get(reqc, &sctxt);
-//	reqc->errcode = ldmsd_updtr_del(name, &sctxt);
-//	switch (reqc->errcode) {
-//	case 0:
-//		break;
-//	case ENOENT:
-//		Snprintf(&reqc->recv_buf, &reqc->recv_len,
-//				"The updater specified does not exist.");
-//		break;
-//	case EBUSY:
-//		Snprintf(&reqc->recv_buf, &reqc->recv_len,
-//				"The updater is in use.");
-//		break;
-//	case EACCES:
-//		Snprintf(&reqc->recv_buf, &reqc->recv_len,
-//			       "Permission denied.");
-//		break;
-//	default:
-//		Snprintf(&reqc->recv_buf, &reqc->recv_len,
-//			       "Error %d %s", reqc->errcode,
-//			       ovis_errno_abbvr(reqc->errcode));
-//	}
-//	goto send_reply;
-//
-//einval:
-//	reqc->errcode = EINVAL;
-//	Snprintf(&reqc->recv_buf, &reqc->recv_len,
-//			"The attribute 'name' is required by updtr_del.");
-//	goto send_reply;
-//send_reply:
-//	ldmsd_send_req_response(reqc, reqc->recv_buf);
-//	if (name)
-//		free(name);
-//	return 0;
-//}
-//
-//static int updtr_start_handler(ldmsd_req_ctxt_t reqc)
-//{
-//	char *updtr_name, *interval_str, *offset_str, *auto_interval;
-//	updtr_name = interval_str = offset_str = auto_interval = NULL;
-//	struct ldmsd_sec_ctxt sctxt;
-//	int flags;
-//	reqc->errcode = 0;
-//
-//	updtr_name = ldmsd_req_attr_str_value_get_by_id(reqc, LDMSD_ATTR_NAME);
-//	if (!updtr_name) {
-//		reqc->errcode = EINVAL;
-//		Snprintf(&reqc->recv_buf, &reqc->recv_len,
-//				"The updater name must be specified.");
-//		goto send_reply;
-//	}
-//	interval_str = ldmsd_req_attr_str_value_get_by_id(reqc, LDMSD_ATTR_INTERVAL);
-//	offset_str  = ldmsd_req_attr_str_value_get_by_id(reqc, LDMSD_ATTR_OFFSET);
-//	auto_interval = ldmsd_req_attr_str_value_get_by_id(reqc, LDMSD_ATTR_AUTO_INTERVAL);
-//
-//	ldmsd_req_ctxt_sec_get(reqc, &sctxt);
-//	flags = (reqc->flags & LDMSD_REQ_DEFER_FLAG)?(LDMSD_PERM_DSTART):0;
-//	reqc->errcode = ldmsd_updtr_start(updtr_name, interval_str, offset_str,
-//					  auto_interval, &sctxt, flags);
-//	switch (reqc->errcode) {
-//	case 0:
-//		break;
-//	case ENOENT:
-//		Snprintf(&reqc->recv_buf, &reqc->recv_len,
-//				"The updater specified does not exist.");
-//		break;
-//	case EBUSY:
-//		Snprintf(&reqc->recv_buf, &reqc->recv_len,
-//				"The updater is already running.");
-//		break;
-//	case EACCES:
-//		Snprintf(&reqc->recv_buf, &reqc->recv_len,
-//			       "Permission denied.");
-//		break;
-//	default:
-//		Snprintf(&reqc->recv_buf, &reqc->recv_len,
-//			       "Error %d %s", reqc->errcode,
-//			       ovis_errno_abbvr(reqc->errcode));
-//	}
-//
-//send_reply:
-//	ldmsd_send_req_response(reqc, reqc->recv_buf);
-//	if (updtr_name)
-//		free(updtr_name);
-//	if (interval_str)
-//		free(interval_str);
-//	if (offset_str)
-//		free(offset_str);
-//	return 0;
-//}
-//
-//static int updtr_stop_handler(ldmsd_req_ctxt_t reqc)
-//{
-//	char *updtr_name = NULL;
-//	struct ldmsd_sec_ctxt sctxt;
-//
-//	reqc->errcode = 0;
-//
-//	updtr_name = ldmsd_req_attr_str_value_get_by_id(reqc, LDMSD_ATTR_NAME);
-//	if (!updtr_name) {
-//		reqc->errcode = EINVAL;
-//		Snprintf(&reqc->recv_buf, &reqc->recv_len,
-//				"The updater name must be specified.");
-//		goto send_reply;
-//	}
-//
-//	ldmsd_req_ctxt_sec_get(reqc, &sctxt);
-//	reqc->errcode = ldmsd_updtr_stop(updtr_name, &sctxt);
-//	switch (reqc->errcode) {
-//	case 0:
-//		break;
-//	case ENOENT:
-//		Snprintf(&reqc->recv_buf, &reqc->recv_len,
-//				"The updater specified does not exist.");
-//		break;
-//	case EBUSY:
-//		Snprintf(&reqc->recv_buf, &reqc->recv_len,
-//				"The updater is already stopped.");
-//		break;
-//	case EACCES:
-//		Snprintf(&reqc->recv_buf, &reqc->recv_len,
-//			       "Permission denied.");
-//		break;
-//	default:
-//		Snprintf(&reqc->recv_buf, &reqc->recv_len,
-//			       "Error %d %s", reqc->errcode,
-//			       ovis_errno_abbvr(reqc->errcode));
-//	}
-//
-//send_reply:
-//	ldmsd_send_req_response(reqc, reqc->recv_buf);
-//	if (updtr_name)
-//		free(updtr_name);
-//	return 0;
-//}
+
+static int updtr_action_handler(ldmsd_req_ctxt_t reqc)
+{
+	int rc;
+	json_entity_t action, names, regex, name;
+	char *action_s, *name_s;
+	struct ldmsd_sec_ctxt sctxt;
+
+	ldmsd_req_ctxt_sec_get(reqc, &sctxt);
+
+	action = json_value_find(reqc->json, "action");
+	action_s = json_value_str(action)->str;
+	regex = json_value_find(reqc->json, "regex");
+
+	if (regex) {
+		return ldmsd_send_error(reqc, ENOTSUP,
+			"act_obj:updtr does not support 'regex'");
+	}
+
+	names = json_value_find(reqc->json, "names");
+	if (!names)
+		return ldmsd_send_missing_attr_err(reqc, "act_obj:smplr", "names");
+
+	if (0 == strncmp(action_s, "start", 5)) {
+		for (name = json_item_first(names); name; name = json_item_next(name)) {
+			name_s = json_value_str(name)->str;
+			rc = ldmsd_updtr_start(name_s, NULL, NULL, NULL, &sctxt, 0);
+			switch (rc) {
+			case 0:
+				break;
+			case ENOENT:
+				return ldmsd_send_error(reqc, rc,
+					"act_obj: The updater '%s' does not exist.", name_s);
+			case EBUSY:
+				return ldmsd_send_error(reqc, rc,
+					"act_obj: The updater '%s' is already running.", name_s);
+			case EACCES:
+				return ldmsd_send_error(reqc, rc,
+					"act_obj:%s:updtr '%s' - Permission denied.",
+					action_s, name_s);
+			default:
+				return ldmsd_send_error(reqc, rc,
+					"Failed to start updtr '%s': %s.",
+					name_s, ovis_errno_abbvr(rc));
+			}
+		}
+	} else if (0 == strncmp(action_s, "stop", 4)) {
+		for (name = json_item_first(names); name; name = json_item_next(name)) {
+			name_s = json_value_str(name)->str;
+			rc = ldmsd_updtr_stop(name_s, &sctxt);
+			switch (rc) {
+			case 0:
+				break;
+			case ENOENT:
+				return ldmsd_send_error(reqc, rc,
+					"act_obj:stop - The updater '%s' "
+					"does not exist.", name_s);
+			case EBUSY:
+				return ldmsd_send_error(reqc, rc,
+					"act_obj:stop - The updater '%s' "
+					"is already stopped.", name_s);
+			case EACCES:
+				return ldmsd_send_error(reqc, rc,
+					"act_obj:stop:updtr '%s' - "
+					"Permission denied.", name_s);
+			default:
+				return ldmsd_send_error(reqc, rc,
+					"Failed to stop updtr '%s': %s.",
+					name_s, ovis_errno_abbvr(rc));
+			}
+		}
+	} else {
+		for (name = json_item_first(names); name; name = json_item_next(name)) {
+			name_s = json_value_str(name)->str;
+			rc = ldmsd_updtr_del(name_s, &sctxt);
+			switch (rc) {
+			case 0:
+				break;
+			case ENOENT:
+				return ldmsd_send_error(reqc, rc,
+					"act_obj:delete - "
+					"The updater %s does not exist.",
+					name_s);
+			case EBUSY:
+				return ldmsd_send_error(reqc, rc,
+					"act_obj:delete - The updater '%s' is in use.",
+					name_s);
+			case EACCES:
+				return ldmsd_send_error(reqc, rc,
+					"act_obj:delete:updtr '%s' - "
+					"Permission denied.");
+			default:
+				return ldmsd_send_error(reqc, rc,
+					"Failed to delete updtr '%s': %s.",
+					name_s, ovis_errno_abbvr(rc));
+			}
+		}
+	}
+	return ldmsd_send_error(reqc, 0, NULL);
+}
 
 static const char *update_mode(int push_flags)
 {
