@@ -187,13 +187,11 @@ static int updtr_handler(ldmsd_req_ctxt_t reqc);
  */
 static int prdcr_action_handler(ldmsd_req_ctxt_t reqc);
 static int smplr_action_handler(ldmsd_req_ctxt_t reqc);
+static int strgp_action_handler(ldmsd_req_ctxt_t reqc);
 static int updtr_action_handler(ldmsd_req_ctxt_t reqc);
 
 //static int prdcr_set_status_handler(ldmsd_req_ctxt_t req_ctxt);
 //static int prdcr_subscribe_regex_handler(ldmsd_req_ctxt_t req_ctxt);
-//static int strgp_del_handler(ldmsd_req_ctxt_t req_ctxt);
-//static int strgp_start_handler(ldmsd_req_ctxt_t req_ctxt);
-//static int strgp_stop_handler(ldmsd_req_ctxt_t req_ctxt);
 //static int strgp_status_handler(ldmsd_req_ctxt_t req_ctxt);
 //static int plugn_list_handler(ldmsd_req_ctxt_t req_ctxt);
 //static int plugn_sets_handler(ldmsd_req_ctxt_t req_ctxt);
@@ -290,6 +288,7 @@ static struct obj_handler_entry cmd_obj_handler_tbl[] = {
 static struct obj_handler_entry act_obj_handler_tbl[] = {
 		{ "prdcr",	prdcr_action_handler,	XUG },
 		{ "smplr", 	smplr_action_handler,	XUG },
+		{ "strgp",	strgp_action_handler,	XUG },
 		{ "updtr",	updtr_action_handler,	XUG },
 };
 
@@ -2186,54 +2185,6 @@ err:
 	return rc;
 }
 
-//static int strgp_del_handler(ldmsd_req_ctxt_t reqc)
-//{
-//	char *name = NULL;
-//	struct ldmsd_sec_ctxt sctxt;
-//
-//	reqc->errcode = 0;
-//
-//	name = ldmsd_req_attr_str_value_get_by_id(reqc, LDMSD_ATTR_NAME);
-//	if (!name) {
-//		reqc->errcode= EINVAL;
-//		Snprintf(&reqc->recv_buf, &reqc->recv_len,
-//				"The attribute 'name' is required"
-//				"by strgp_del.");
-//		goto send_reply;
-//	}
-//
-//	ldmsd_req_ctxt_sec_get(reqc, &sctxt);
-//
-//	reqc->errcode = ldmsd_strgp_del(name, &sctxt);
-//	switch (reqc->errcode) {
-//	case 0:
-//		break;
-//	case ENOENT:
-//		Snprintf(&reqc->recv_buf, &reqc->recv_len,
-//				"The storage policy specified does not exist.");
-//		break;
-//	case EBUSY:
-//		Snprintf(&reqc->recv_buf, &reqc->recv_len,
-//				"The storage policy is in use.");
-//		break;
-//	case EACCES:
-//		Snprintf(&reqc->recv_buf, &reqc->recv_len,
-//				"Permission denied.");
-//		break;
-//	default:
-//		Snprintf(&reqc->recv_buf, &reqc->recv_len,
-//			       "Error %d %s", reqc->errcode,
-//			       ovis_errno_abbvr(reqc->errcode));
-//	}
-//
-//send_reply:
-//	ldmsd_send_req_response(reqc, reqc->recv_buf);
-//	if (name)
-//		free(name);
-//	return 0;
-//}
-//
-
 static int __smplr_handler(ldmsd_req_ctxt_t reqc, json_entity_t d,
 				unsigned long int_v, unsigned long offset_v,
 				int perm_value, uid_t uid, gid_t gid)
@@ -2502,103 +2453,107 @@ static int smplr_handler(ldmsd_req_ctxt_t reqc)
 //	return 0;
 //}
 //
-//static int strgp_start_handler(ldmsd_req_ctxt_t reqc)
-//{
-//	char *name, *attr_name;
-//	name = NULL;
-//	struct ldmsd_sec_ctxt sctxt;
-//	int flags = 0;
-//
-//	reqc->errcode = 0;
-//
-//	attr_name = "name";
-//	name = ldmsd_req_attr_str_value_get_by_id(reqc, LDMSD_ATTR_NAME);
-//	if (!name) {
-//		reqc->errcode = EINVAL;
-//		Snprintf(&reqc->recv_buf, &reqc->recv_len,
-//				"%dThe attribute '%s' is required by %s.",
-//				EINVAL, attr_name, "strgp_start");
-//		goto send_reply;
-//	}
-//
-//	ldmsd_req_ctxt_sec_get(reqc, &sctxt);
-//	if (reqc->flags & LDMSD_REQ_DEFER_FLAG)
-//		flags = LDMSD_PERM_DSTART;
-//	reqc->errcode = ldmsd_strgp_start(name, &sctxt, flags);
-//	switch (reqc->errcode) {
-//	case ENOENT:
-//		Snprintf(&reqc->recv_buf, &reqc->recv_len,
-//			"The storage policy does not exist.");
-//		goto send_reply;
-//	case EPERM:
-//	case EACCES:
-//		Snprintf(&reqc->recv_buf, &reqc->recv_len,
-//			"Permission denied.");
-//		goto send_reply;
-//	case EBUSY:
-//		Snprintf(&reqc->recv_buf, &reqc->recv_len,
-//			"The storage policy is already running.");
-//		goto send_reply;
-//	case 0:
-//		break;
-//	default:
-//		break;
-//	}
-//
-//send_reply:
-//	ldmsd_send_req_response(reqc, reqc->recv_buf);
-//	if (name)
-//		free(name);
-//	return 0;
-//}
-//
-//static int strgp_stop_handler(ldmsd_req_ctxt_t reqc)
-//{
-//	char *name, *attr_name;
-//	name = NULL;
-//	struct ldmsd_sec_ctxt sctxt;
-//
-//	reqc->errcode = 0;
-//
-//	attr_name = "name";
-//	name = ldmsd_req_attr_str_value_get_by_id(reqc, LDMSD_ATTR_NAME);
-//	if (!name) {
-//		reqc->errcode = EINVAL;
-//		Snprintf(&reqc->recv_buf, &reqc->recv_len,
-//				"The attribute '%s' is required by %s.",
-//				attr_name, "strgp_stop");
-//		goto send_reply;
-//	}
-//
-//	ldmsd_req_ctxt_sec_get(reqc, &sctxt);
-//	reqc->errcode = ldmsd_strgp_stop(name, &sctxt);
-//	switch (reqc->errcode) {
-//	case 0:
-//		break;
-//	case ENOENT:
-//		Snprintf(&reqc->recv_buf, &reqc->recv_len,
-//				"The storage policy does not exist.");
-//		break;
-//	case EBUSY:
-//		Snprintf(&reqc->recv_buf, &reqc->recv_len,
-//				"The storage policy is not running.");
-//		break;
-//	case EACCES:
-//		Snprintf(&reqc->recv_buf, &reqc->recv_len,
-//			       "Permission denied.");
-//		break;
-//	default:
-//		Snprintf(&reqc->recv_buf, &reqc->recv_len,
-//			       "Error %d %s", reqc->errcode,
-//			       ovis_errno_abbvr(reqc->errcode));
-//	}
-//send_reply:
-//	ldmsd_send_req_response(reqc, reqc->recv_buf);
-//	if (name)
-//		free(name);
-//	return 0;
-//}
-//
+static int strgp_action_handler(ldmsd_req_ctxt_t reqc)
+{
+	int rc;
+	json_entity_t action, names, regex, name;
+	char *action_s, *name_s;
+	struct ldmsd_sec_ctxt sctxt;
+
+	ldmsd_req_ctxt_sec_get(reqc, &sctxt);
+
+	action = json_value_find(reqc->json, "action");
+	action_s = json_value_str(action)->str;
+	regex = json_value_find(reqc->json, "regex");
+	if (regex) {
+		return ldmsd_send_error(reqc, ENOTSUP,
+				"act_obj:strgp does not support 'regex'");
+	}
+
+	names = json_value_find(reqc->json, "names");
+	if (!names) {
+		return ldmsd_send_missing_attr_err(reqc, "act_obj:strgp", "names");
+	}
+
+	if (0 == strncmp(action_s, "start", 5)) {
+		for (name = json_item_first(names); name; name = json_item_next(name)) {
+			name_s = json_value_str(name)->str;
+			rc = ldmsd_strgp_start(name_s, &sctxt, 0);
+			switch (rc) {
+			case 0:
+				break;
+			case ENOENT:
+				return ldmsd_send_error(reqc, rc,
+					"act_obj:start The strgp '%s' does not exist.", name_s);
+			case EBUSY:
+				return ldmsd_send_error(reqc, rc,
+					"act_obj:start The strgp '%s' is already running.", name_s);
+			case EPERM:
+			case EACCES:
+				return ldmsd_send_error(reqc, rc,
+					"act_obj:start:updtr '%s' - Permission denied.",
+					name_s);
+			default:
+				return ldmsd_send_error(reqc, rc,
+					"Failed to start strgp '%s': %s.",
+					name_s, ovis_errno_abbvr(rc));
+			}
+		}
+	} else if (0 == strncmp(action_s, "stop", 4)) {
+		for (name = json_item_first(names); name; name = json_item_next(name)) {
+			name_s = json_value_str(name)->str;
+			rc = ldmsd_strgp_stop(name_s, &sctxt);
+			switch (rc) {
+			case 0:
+				break;
+			case ENOENT:
+				return ldmsd_send_error(reqc, rc,
+					"act_obj:stop - strgp '%s' "
+					"does not exist.", name_s);
+			case EBUSY:
+				return ldmsd_send_error(reqc, rc,
+					"act_obj:stop - strgp '%s' "
+					"is already stopped.", name_s);
+			case EACCES:
+				return ldmsd_send_error(reqc, rc,
+					"act_obj:stop:strgp '%s' - "
+					"Permission denied.", name_s);
+			default:
+				return ldmsd_send_error(reqc, rc,
+					"Failed to stop strgp '%s': %s.",
+					name_s, ovis_errno_abbvr(rc));
+			}
+		}
+	} else {
+		for (name = json_item_first(names); name; name = json_item_next(name)) {
+			name_s = json_value_str(name)->str;
+			rc = ldmsd_strgp_del(name_s, &sctxt);
+			switch (rc) {
+			case 0:
+				break;
+			case ENOENT:
+				return ldmsd_send_error(reqc, rc,
+					"act_obj:delete - "
+					"strgp %s does not exist.",
+					name_s);
+			case EBUSY:
+				return ldmsd_send_error(reqc, rc,
+					"act_obj:delete - strgp '%s' is in use.",
+					name_s);
+			case EACCES:
+				return ldmsd_send_error(reqc, rc,
+					"act_obj:delete:strgp '%s' - "
+					"Permission denied.");
+			default:
+				return ldmsd_send_error(reqc, rc,
+					"Failed to delete strgp '%s': %s.",
+					name_s, ovis_errno_abbvr(rc));
+			}
+		}
+	}
+	return ldmsd_send_error(reqc, 0, NULL);
+}
+
 //int __strgp_status_json_obj(ldmsd_req_ctxt_t reqc, ldmsd_strgp_t strgp,
 //							int strgp_cnt)
 //{
