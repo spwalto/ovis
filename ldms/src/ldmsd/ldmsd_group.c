@@ -105,15 +105,22 @@ err:
 }
 
 /* Caller must hold the setgroup lock */
-int __ldmsd_setgrp_start(ldmsd_setgrp_t grp)
+int ldmsd_setgrp_start(const char *name)
 {
 	int rc;
 	ldmsd_str_ent_t str;
+	ldmsd_setgrp_t grp;
 
+	grp = ldmsd_setgrp_find(name);
+	if (!grp)
+		return ENOENT;
+
+	ldmsd_setgrp_lock(grp);
 	if (!grp->producer) {
 		grp->producer = strdup(ldmsd_myname_get());
 		if (!grp->producer) {
-			return ENOMEM;
+			rc = ENOMEM;
+			goto err;
 		}
 	}
 
@@ -122,15 +129,21 @@ int __ldmsd_setgrp_start(ldmsd_setgrp_t grp)
 					grp->interval_us, grp->offset_us);
 	if (!grp->set) {
 		rc = errno;
-		return rc;
+		goto err;
 	}
 	LIST_FOREACH(str, &grp->member_list, entry) {
 		rc = ldmsd_group_set_add(grp->set, str->str);
 		if (rc)
-			return rc;
+			goto err;
 	}
 	grp->obj.perm &= ~LDMSD_PERM_DSTART;
+	ldmsd_setgrp_unlock(grp);
+	ldmsd_setgrp_put(grp); /* put back the find ref */
 	return 0;
+err:
+	ldmsd_setgrp_unlock(grp);
+	ldmsd_setgrp_put(grp);
+	return rc;
 }
 
 ldms_set_t
@@ -151,10 +164,8 @@ ldmsd_setgrp_new_with_auth(const char *name, const char *producer,
 				long interval_us, long offset_us,
 				uid_t uid, gid_t gid, mode_t perm, int flags)
 {
-	int rc;
 	ldmsd_setgrp_t grp;
 
-	rc = ENOMEM;
 	grp = (ldmsd_setgrp_t)ldmsd_cfgobj_new_with_auth(name,
 			LDMSD_CFGOBJ_SETGRP, sizeof(*grp),
 			ldmsd_setgrp___del, uid, gid, perm);
@@ -171,10 +182,6 @@ ldmsd_setgrp_new_with_auth(const char *name, const char *producer,
 	LIST_INIT(&grp->member_list);
 	if (flags & LDMSD_PERM_DSTART) {
 		grp->obj.perm |= LDMSD_PERM_DSTART;
-	} else {
-		rc = __ldmsd_setgrp_start(grp);
-		if (rc)
-			goto err1;
 	}
 
 	ldmsd_setgrp_unlock(grp);
@@ -242,11 +249,6 @@ int ldmsd_setgrp_ins(const char *name, const char *instance)
 
 	if (grp->obj.perm & LDMSD_PERM_DSTART)
 		goto out;
-
-	/*
-	 * Since \c grp has been started, \c grp->set must be created already.
-	 */
-	rc = ldmsd_group_set_add(grp->set, instance);
 
 out:
 	ldmsd_setgrp_unlock(grp);

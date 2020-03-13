@@ -180,6 +180,7 @@ static int env_handler(ldmsd_req_ctxt_t reqc);
 static int listen_handler(ldmsd_req_ctxt_t reqc);
 static int plugin_instance_handler(ldmsd_req_ctxt_t reqc);
 static int prdcr_handler(ldmsd_req_ctxt_t reqc);
+static int setgroup_handler(ldmsd_req_ctxt_t reqc);
 static int smplr_handler(ldmsd_req_ctxt_t req_ctxt);
 static int strgp_handler(ldmsd_req_ctxt_t reqc);
 static int updtr_handler(ldmsd_req_ctxt_t reqc);
@@ -264,6 +265,7 @@ static struct obj_handler_entry cfg_obj_handler_tbl[] = {
 		{ "listen",		listen_handler,			XUG },
 		{ "plugin_instance",	plugin_instance_handler,	XUG },
 		{ "prdcr",		prdcr_handler,			XUG },
+		{ "setgroup",		setgroup_handler,		XUG },
 		{ "smplr",		smplr_handler,			XUG },
 		{ "strgp",		strgp_handler,			XUG },
 		{ "updtr",		updtr_handler,			XUG },
@@ -2326,133 +2328,7 @@ static int smplr_handler(ldmsd_req_ctxt_t reqc)
 	rc = ldmsd_send_error(reqc, 0, "");
 	return rc;
 }
-//static int strgp_metric_add_handler(ldmsd_req_ctxt_t reqc)
-//{
-//	char *name, *metric_name, *attr_name;
-//	name = metric_name = NULL;
-//	struct ldmsd_sec_ctxt sctxt;
-//
-//	reqc->errcode = 0;
-//
-//	attr_name = "name";
-//	name = ldmsd_req_attr_str_value_get_by_id(reqc, LDMSD_ATTR_NAME);
-//	if (!name)
-//		goto einval;
-//
-//	attr_name = "metric";
-//	metric_name = ldmsd_req_attr_str_value_get_by_id(reqc, LDMSD_ATTR_METRIC);
-//	if (!metric_name)
-//		goto einval;
-//
-//	ldmsd_req_ctxt_sec_get(reqc, &sctxt);
-//	reqc->errcode = ldmsd_strgp_metric_add(name, metric_name, &sctxt);
-//	switch (reqc->errcode) {
-//	case 0:
-//		break;
-//	case ENOENT:
-//		Snprintf(&reqc->recv_buf, &reqc->recv_len,
-//				"The storage policy specified "
-//				"does not exist.");
-//		break;
-//	case EBUSY:
-//		Snprintf(&reqc->recv_buf, &reqc->recv_len,
-//				"Configuration changes cannot be made "
-//				"while the storage policy is running.");
-//		break;
-//	case EEXIST:
-//		Snprintf(&reqc->recv_buf, &reqc->recv_len,
-//				"The specified metric is already present.");
-//		break;
-//	case ENOMEM:
-//		Snprintf(&reqc->recv_buf, &reqc->recv_len,
-//				"Memory allocation failure.");
-//		break;
-//	case EACCES:
-//		Snprintf(&reqc->recv_buf, &reqc->recv_len,
-//				"Permission denied.");
-//		break;
-//	default:
-//		Snprintf(&reqc->recv_buf, &reqc->recv_len,
-//			       "Error %d %s", reqc->errcode,
-//			       ovis_errno_abbvr(reqc->errcode));
-//	}
-//	goto send_reply;
-//einval:
-//	reqc->errcode = EINVAL;
-//	Snprintf(&reqc->recv_buf, &reqc->recv_len,
-//			"The attribute '%s' is required by %s.", attr_name,
-//			"strgp_metric_add");
-//send_reply:
-//	ldmsd_send_req_response(reqc, reqc->recv_buf);
-//	if (name)
-//		free(name);
-//	if (metric_name)
-//		free(metric_name);
-//	return 0;
-//}
-//
-//static int strgp_metric_del_handler(ldmsd_req_ctxt_t reqc)
-//{
-//	char *name, *metric_name, *attr_name;
-//	name = metric_name = NULL;
-//	struct ldmsd_sec_ctxt sctxt;
-//
-//	reqc->errcode = 0;
-//
-//	attr_name = "name";
-//	name = ldmsd_req_attr_str_value_get_by_id(reqc, LDMSD_ATTR_NAME);
-//	if (!name)
-//		goto einval;
-//
-//	attr_name = "metric";
-//	metric_name = ldmsd_req_attr_str_value_get_by_id(reqc, LDMSD_ATTR_METRIC);
-//	if (!metric_name)
-//		goto einval;
-//
-//	ldmsd_req_ctxt_sec_get(reqc, &sctxt);
-//
-//	reqc->errcode = ldmsd_strgp_metric_del(name, metric_name, &sctxt);
-//	switch (reqc->errcode) {
-//	case 0:
-//		break;
-//	case ENOENT:
-//		Snprintf(&reqc->recv_buf, &reqc->recv_len,
-//				"The storage policy specified does not exist.");
-//		break;
-//	case EBUSY:
-//		Snprintf(&reqc->recv_buf, &reqc->recv_len,
-//				"Configuration changes cannot be made "
-//				"while the storage policy is running.");
-//		break;
-//	case EEXIST:
-//		Snprintf(&reqc->recv_buf, &reqc->recv_len,
-//				"The specified metric was not found.");
-//		reqc->errcode = ENOENT;
-//		break;
-//	case EACCES:
-//		Snprintf(&reqc->recv_buf, &reqc->recv_len,
-//			       "Permission denied.");
-//		break;
-//	default:
-//		Snprintf(&reqc->recv_buf, &reqc->recv_len,
-//			       "Error %d %s", reqc->errcode,
-//			       ovis_errno_abbvr(reqc->errcode));
-//	}
-//	goto send_reply;
-//einval:
-//	reqc->errcode = EINVAL;
-//	Snprintf(&reqc->recv_buf, &reqc->recv_len,
-//			"The attribute '%s' is required by %s.", attr_name,
-//			"strgp_metric_del");
-//send_reply:
-//	ldmsd_send_req_response(reqc, reqc->recv_buf);
-//	if (name)
-//		free(name);
-//	if (metric_name)
-//		free(metric_name);
-//	return 0;
-//}
-//
+
 static int strgp_action_handler(ldmsd_req_ctxt_t reqc)
 {
 	int rc;
@@ -3188,132 +3064,129 @@ out:
 		ldmsd_updtr_put(updtr);
 	return rc;
 }
-//
-//static int setgroup_add_handler(ldmsd_req_ctxt_t reqc)
-//{
-//	int rc = 0;
-//	char *name = NULL;
-//	char *producer = NULL;
-//	char *interval = NULL; /* for update hint */
-//	char *offset = NULL; /* for update hint */
-//	char *perm_s = NULL;
-//	ldmsd_setgrp_t grp = NULL;
-//	long interval_us, offset_us = LDMSD_UPDT_HINT_OFFSET_NONE;
-//	struct ldmsd_sec_ctxt sctxt;
-//	mode_t perm;
-//	int flags = 0;
-//
-//	name = ldmsd_req_attr_str_value_get_by_id(reqc, LDMSD_ATTR_NAME);
-//	if (!name) {
-//		linebuf_printf(reqc, "missing `name` attribute");
-//		rc = EINVAL;
-//		goto out;
-//	}
-//
-//	producer = ldmsd_req_attr_str_value_get_by_id(reqc, LDMSD_ATTR_PRODUCER);
-//	interval = ldmsd_req_attr_str_value_get_by_id(reqc, LDMSD_ATTR_INTERVAL);
-//	offset = ldmsd_req_attr_str_value_get_by_id(reqc, LDMSD_ATTR_OFFSET);
-//	if (interval) {
-//		/*
-//		 * The interval and offset values are used for
-//		 * the auto-interval update in the next aggregation.
-//		 */
-//		interval_us = strtol(interval, NULL, 0);
-//		if (offset) {
-//			offset_us = strtol(offset, NULL, 0);
-//		}
-//	} else {
-//		interval_us = 0;
-//	}
-//
-//	ldmsd_req_ctxt_sec_get(reqc, &sctxt);
-//	perm = 0777;
-//	perm_s = ldmsd_req_attr_str_value_get_by_id(reqc, LDMSD_ATTR_PERM);
-//	if (perm_s)
-//		perm = strtol(perm_s, NULL, 0);
-//
-//	if (reqc->flags & LDMSD_REQ_DEFER_FLAG)
-//		flags |= LDMSD_PERM_DSTART;
-//
-//	grp = ldmsd_setgrp_new_with_auth(name, producer, interval_us, offset_us,
-//					sctxt.crd.uid, sctxt.crd.gid, perm, flags);
-//	if (!grp) {
-//		rc = errno;
-//		if (errno == EEXIST) {
-//			linebuf_printf(reqc,
-//				"A set or a group existed with the given name.");
-//		} else {
-//			linebuf_printf(reqc, "Group creation error: %d", rc);
-//		}
-//	}
-//
-//out:
-//	reqc->errcode = rc;
-//	ldmsd_send_req_response(reqc, reqc->recv_buf);
-//	if (name)
-//		free(name);
-//	if (producer)
-//		free(producer);
-//	if (interval)
-//		free(interval);
-//	if (offset)
-//		free(offset);
-//	if (perm_s)
-//		free(perm_s);
-//	return 0;
-//}
-//
-//static int setgroup_mod_handler(ldmsd_req_ctxt_t reqc)
-//{
-//	int rc = 0;
-//	char *name = NULL;
-//	char *interval = NULL; /* for update hint */
-//	char *offset = NULL; /* for update hint */
-//	long interval_us = 0, offset_us = LDMSD_UPDT_HINT_OFFSET_NONE;
-//	ldmsd_setgrp_t grp = NULL;
-//
-//	name = ldmsd_req_attr_str_value_get_by_id(reqc, LDMSD_ATTR_NAME);
-//	if (!name) {
-//		linebuf_printf(reqc, "missing `name` attribute");
-//		rc = EINVAL;
-//		goto send_reply;
-//	}
-//
-//	interval = ldmsd_req_attr_str_value_get_by_id(reqc, LDMSD_ATTR_INTERVAL);
-//	offset = ldmsd_req_attr_str_value_get_by_id(reqc, LDMSD_ATTR_OFFSET);
-//	if (interval) {
-//		interval_us = strtol(interval, NULL, 0);
-//		if (offset) {
-//			offset_us = strtol(offset, NULL, 0);
-//		}
-//	}
-//
-//	grp = ldmsd_setgrp_find(name);
-//	if (!grp) {
-//		rc = ENOENT;
-//		linebuf_printf(reqc, "Group '%s' not found.", name);
-//		goto send_reply;
-//	}
-//	ldmsd_setgrp_lock(grp);
-//	rc = ldmsd_set_update_hint_set(grp->set, interval_us, offset_us);
-//	if (rc)
-//		linebuf_printf(reqc, "Update hint update error: %d", rc);
-//	/* rc is 0 */
-//	ldmsd_setgrp_unlock(grp);
-//send_reply:
-//	reqc->errcode = rc;
-//	ldmsd_send_req_response(reqc, reqc->recv_buf);
-//	if (name)
-//		free(name);
-//	if (interval)
-//		free(interval);
-//	if (offset)
-//		free(offset);
-//	if (grp)
-//		ldmsd_setgrp_put(grp); /* `fine` reference */
-//	return rc;
-//}
-//
+
+static int setgroup_handler(ldmsd_req_ctxt_t reqc)
+{
+	int rc = 0;
+	json_entity_t spec, value, members;
+	char *name = NULL;
+	char *producer = NULL;
+	char *member = NULL;
+	ldmsd_setgrp_t grp = NULL;
+	long interval_us, offset_us = LDMSD_UPDT_HINT_OFFSET_NONE;
+	struct ldmsd_sec_ctxt sctxt;
+	int perm;
+	int flags = 0;
+
+	spec = json_value_find(reqc->json, "spec");
+
+	/* name */
+	value = json_value_find(spec, "name");
+	if (!value)
+		return ldmsd_send_missing_attr_err(reqc, "cfg_obj:setgroup", "name");
+	if (JSON_STRING_VALUE != json_entity_type(value))
+		return ldmsd_send_type_error(reqc, "cfg_obj:setgroup:name", "a string");
+	name = json_value_str(value)->str;
+
+	/* producer */
+	value = json_value_find(spec, "producer");
+	if (value) {
+		if (JSON_STRING_VALUE != json_entity_type(value)) {
+			return ldmsd_send_type_error(reqc,
+					"cfg_obj:setgroup:producer", "a string");
+		}
+	}
+
+	/* sample interval */
+	value = json_value_find(spec, "interval");
+	if (!value) {
+		interval_us = 0;
+	} else {
+		if (JSON_STRING_VALUE == json_entity_type(value)) {
+			interval_us = ldmsd_time_str2us(json_value_str(value)->str);
+		} else if (JSON_INT_VALUE == json_entity_type(value)) {
+			interval_us = json_value_int(value);
+		} else {
+			return ldmsd_send_type_error(reqc,
+						"cfg_obj:setgroup:interval",
+						"a string or an integer");
+		}
+	}
+
+	/* offset */
+	value = json_value_find(spec, "offset");
+	if (value) {
+		if (JSON_STRING_VALUE == json_entity_type(value)) {
+			offset_us = ldmsd_time_str2us(json_value_str(value)->str);
+		} else if (JSON_INT_VALUE == json_entity_type(value)) {
+			offset_us = json_value_int(value);
+		} else {
+			return ldmsd_send_type_error(reqc,
+					"cfg_obj:setgroup:offset",
+					"a string or an integer");
+		}
+	} else {
+		offset_us = LDMSD_UPDT_HINT_OFFSET_NONE;
+	}
+
+	/* perm */
+	perm = 0777;
+	rc = __find_perm(reqc, spec, &perm);
+	if (rc)
+		return rc;
+
+	/* members */
+	members = json_value_find(spec, "members");
+	if (!members) {
+		return ldmsd_send_missing_attr_err(reqc,
+				"cfg_obj:setgroup", "members");
+	}
+	if (JSON_LIST_VALUE != json_entity_type(members)) {
+		return ldmsd_send_type_error(reqc,
+				"cfg_obj:setgroup:members", "a list of strings");
+	}
+
+	ldmsd_req_ctxt_sec_get(reqc, &sctxt);
+
+	grp = ldmsd_setgrp_new_with_auth(name, producer, interval_us, offset_us,
+					sctxt.crd.uid, sctxt.crd.gid, perm, flags);
+	if (!grp) {
+		rc = errno;
+		if (errno == EEXIST) {
+			return ldmsd_send_error(reqc, rc,
+				"cfg_obj:setgroup '%s': '%s' already exists.", name);
+		} else {
+			return ldmsd_send_error(reqc, rc,
+				"cfg_obj:setgroup: Failed to create '%s': %s.",
+				name, ovis_errno_abbvr(rc));
+		}
+	}
+
+	/* Add members */
+	for (value = json_item_first(members); value; value = json_item_next(value)) {
+		if (JSON_STRING_VALUE != json_entity_type(value)) {
+			return ldmsd_send_type_error(reqc,
+					"cfg_obj:setgroup:members[]", "a string");
+		}
+		member = json_value_str(value)->str;
+		rc = ldmsd_setgrp_ins(name, member);
+		if (rc == ENOENT) {
+			/* Impossible to happen. do nothing */
+		} else if (rc != 0){
+			rc = ldmsd_send_error(reqc, rc,
+					"cfg_obj:setgroup: Failed to add "
+					"member '%s' to setgroup '%s'",
+					member, name);
+			goto err;
+		}
+	}
+
+	return ldmsd_send_error(reqc, 0, NULL);
+err:
+	ldmsd_setgrp_unlock(grp);
+	ldmsd_setgrp_put(grp);
+	return rc;
+}
 //static int setgroup_del_handler(ldmsd_req_ctxt_t reqc)
 //{
 //	int rc = 0;
@@ -3342,59 +3215,7 @@ out:
 //		free(name);
 //	return 0;
 //}
-//
-//static int setgroup_ins_handler(ldmsd_req_ctxt_t reqc)
-//{
-//	int rc = 0;
-//	const char *delim = ",";
-//	char *name = NULL;
-//	char *instance = NULL;
-//	char *sname;
-//	char *p;
-//	char *attr_name;
-//
-//	name = ldmsd_req_attr_str_value_get_by_id(reqc, LDMSD_ATTR_NAME);
-//	if (!name) {
-//		attr_name = "name";
-//		goto einval;
-//	}
-//	instance = ldmsd_req_attr_str_value_get_by_id(reqc, LDMSD_ATTR_INSTANCE);
-//	if (!instance) {
-//		attr_name = "instance";
-//		goto einval;
-//	}
-//
-//	sname = strtok_r(instance, delim, &p);
-//	while (sname) {
-//		rc = ldmsd_setgrp_ins(name, sname);
-//		if (rc) {
-//			if (rc == ENOENT) {
-//				linebuf_printf(reqc,
-//					"Either setgroup '%s' or member '%s' not exist",
-//					name, sname);
-//			} else {
-//				linebuf_printf(reqc, "Error %d: Failed to add "
-//						"member '%s' to setgroup '%s'",
-//						rc, sname, name);
-//			}
-//			goto send_reply;
-//		}
-//		sname = strtok_r(NULL, delim, &p);
-//	}
-//	/* rc is 0 */
-//	goto send_reply;
-//einval:
-//	linebuf_printf(reqc, "The attribute '%s' is missing.", attr_name);
-//	rc = EINVAL;
-//send_reply:
-//	reqc->errcode = rc;
-//	ldmsd_send_req_response(reqc, reqc->recv_buf);
-//	if (name)
-//		free(name);
-//	if (instance)
-//		free(instance);
-//	return rc;
-//}
+
 //
 //int __ldmsd_setgrp_rm(ldmsd_setgrp_t grp, const char *instance);
 //
