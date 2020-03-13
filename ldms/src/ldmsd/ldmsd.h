@@ -963,9 +963,11 @@ int __ldmsd_updtr_start(ldmsd_updtr_t updtr, ldmsd_sec_ctxt_t ctxt);
 int __ldmsd_updtr_stop(ldmsd_updtr_t updtr, ldmsd_sec_ctxt_t ctxt);
 
 /* strgp */
-ldmsd_strgp_t ldmsd_strgp_new(const char *name);
-ldmsd_strgp_t ldmsd_strgp_new_with_auth(const char *name,
-					uid_t uid, gid_t gid, int perm);
+ldmsd_strgp_t ldmsd_strgp_new(const char *name, const char *container,
+		const char *schema);
+ldmsd_strgp_t
+ldmsd_strgp_new_with_auth(const char *name, const char *container,
+		const char *schema, uid_t uid, gid_t gid, int perm);
 int ldmsd_strgp_del(const char *strgp_name, ldmsd_sec_ctxt_t ctxt);
 ldmsd_strgp_t ldmsd_strgp_first();
 ldmsd_strgp_t ldmsd_strgp_next(struct ldmsd_strgp *strgp);

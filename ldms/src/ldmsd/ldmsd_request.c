@@ -179,6 +179,7 @@ static int listen_handler(ldmsd_req_ctxt_t reqc);
 static int plugin_instance_handler(ldmsd_req_ctxt_t reqc);
 static int prdcr_handler(ldmsd_req_ctxt_t reqc);
 static int smplr_handler(ldmsd_req_ctxt_t req_ctxt);
+static int strgp_handler(ldmsd_req_ctxt_t reqc);
 static int updtr_handler(ldmsd_req_ctxt_t reqc);
 
 /*
@@ -190,14 +191,9 @@ static int updtr_action_handler(ldmsd_req_ctxt_t reqc);
 
 //static int prdcr_set_status_handler(ldmsd_req_ctxt_t req_ctxt);
 //static int prdcr_subscribe_regex_handler(ldmsd_req_ctxt_t req_ctxt);
-//static int strgp_add_handler(ldmsd_req_ctxt_t req_ctxt);
 //static int strgp_del_handler(ldmsd_req_ctxt_t req_ctxt);
 //static int strgp_start_handler(ldmsd_req_ctxt_t req_ctxt);
 //static int strgp_stop_handler(ldmsd_req_ctxt_t req_ctxt);
-//static int strgp_prdcr_add_handler(ldmsd_req_ctxt_t req_ctxt);
-//static int strgp_prdcr_del_handler(ldmsd_req_ctxt_t req_ctxt);
-//static int strgp_metric_add_handler(ldmsd_req_ctxt_t req_ctxt);
-//static int strgp_metric_del_handler(ldmsd_req_ctxt_t req_ctxt);
 //static int strgp_status_handler(ldmsd_req_ctxt_t req_ctxt);
 //static int plugn_list_handler(ldmsd_req_ctxt_t req_ctxt);
 //static int plugn_sets_handler(ldmsd_req_ctxt_t req_ctxt);
@@ -271,6 +267,7 @@ static struct obj_handler_entry cfg_obj_handler_tbl[] = {
 		{ "plugin_instance",	plugin_instance_handler,	XUG },
 		{ "prdcr",		prdcr_handler,			XUG },
 		{ "smplr",		smplr_handler,			XUG },
+		{ "strgp",		strgp_handler,			XUG },
 		{ "updtr",		updtr_handler,			XUG },
 //		{ "prdcr",	prdcr_add_handler },
 //		{ "updtr",	updtr_add_handler },
@@ -1976,101 +1973,219 @@ out:
 //	return rc;
 //}
 //
-//static int strgp_add_handler(ldmsd_req_ctxt_t reqc)
-//{
-//	char *attr_name, *name, *container, *schema;
-//	name = container = schema = NULL;
-//	uid_t uid;
-//	gid_t gid;
-//	int perm;
-//	char *perm_s = NULL;
-//	ldmsd_plugin_inst_t inst = NULL;
-//
-//	reqc->errcode = 0;
-//
-//	attr_name = "name";
-//	name = ldmsd_req_attr_str_value_get_by_id(reqc, LDMSD_ATTR_NAME);
-//	if (!name)
-//		goto einval;
-//
-//	attr_name = "container";
-//	container = ldmsd_req_attr_str_value_get_by_id(reqc, LDMSD_ATTR_CONTAINER);
-//	if (!container)
-//		goto einval;
-//
-//	inst = ldmsd_plugin_inst_find(container);
-//	if (!inst)
-//		goto enoent;
-//
-//	attr_name = "schema";
-//	schema = ldmsd_req_attr_str_value_get_by_id(reqc, LDMSD_ATTR_SCHEMA);
-//	if (!schema)
-//		goto einval;
-//
-//	struct ldmsd_sec_ctxt sctxt;
-//	ldmsd_sec_ctxt_get(&sctxt);
-//	uid = sctxt.crd.uid;
-//	gid = sctxt.crd.gid;
-//
-//	perm = 0770;
-//	perm_s = ldmsd_req_attr_str_value_get_by_name(reqc, "perm");
-//	if (perm_s)
-//		perm = strtol(perm_s, NULL, 0);
-//
-//	ldmsd_strgp_t strgp = ldmsd_strgp_new_with_auth(name, uid, gid, perm);
-//	if (!strgp) {
-//		if (errno == EEXIST)
-//			goto eexist;
-//		else
-//			goto enomem;
-//	}
-//	ldmsd_plugin_inst_get(inst); /* for attaching inst to strgp,
-//				      * this is put down on strgp delete. */
-//	strgp->inst = inst;
-//	strgp->schema = strdup(schema);
-//	if (!strgp->schema)
-//		goto enomem_1;
-//
-//	goto send_reply;
-//
-//enomem_1:
-//	ldmsd_strgp_del(name, &sctxt);
-//enomem:
-//	reqc->errcode = ENOMEM;
-//	Snprintf(&reqc->recv_buf, &reqc->recv_len,
-//				"Memory allocation failed.");
-//	goto send_reply;
-//eexist:
-//	reqc->errcode = EEXIST;
-//	Snprintf(&reqc->recv_buf, &reqc->recv_len,
-//				"The prdcr %s already exists.", name);
-//	goto send_reply;
-//enoent:
-//	reqc->errcode = ENOENT;
-//	Snprintf(&reqc->recv_buf, &reqc->recv_len,
-//				"Store instance (container '%s') not found.",
-//				container);
-//	goto send_reply;
-//einval:
-//	reqc->errcode = EINVAL;
-//	Snprintf(&reqc->recv_buf, &reqc->recv_len,
-//		       "The attribute '%s' is required by strgp_add.",
-//		       attr_name);
-//send_reply:
-//	ldmsd_send_req_response(reqc, reqc->recv_buf);
-//	if (name)
-//		free(name);
-//	if (container)
-//		free(container);
-//	if (schema)
-//		free(schema);
-//	if (perm_s)
-//		free(perm_s);
-//	if (inst)
-//		ldmsd_plugin_inst_put(inst); /* put down ref from `find` */
-//	return 0;
-//}
-//
+static int strgp_handler(ldmsd_req_ctxt_t reqc)
+{
+	int rc;
+	json_entity_t spec, value, producers, metrics, item;
+	char *name, *container, *schema, *s;
+	uid_t uid;
+	gid_t gid;
+	int perm;
+
+	/* instances */
+	value = json_value_find(reqc->json, "instances");
+	if (value) {
+		return ldmsd_send_error(reqc, EINVAL,
+				"cfg_obj:strgp not support 'instances'.");
+	}
+
+	spec = json_value_find(reqc->json, "spec");
+
+	/* container */
+	value = json_value_find(spec, "container");
+	if (!value) {
+		return ldmsd_send_missing_attr_err(reqc,
+				"cfg_obj:strgp:spec", "container");
+	}
+	if (JSON_STRING_VALUE != json_entity_type(value)) {
+		return ldmsd_send_type_error(reqc,
+				"cfg_obj:strgp:spec:container", "a string");
+	}
+	container = json_value_str(value)->str;
+
+	/* schema */
+	value = json_value_find(spec, "schema");
+	if (!value) {
+		return ldmsd_send_missing_attr_err(reqc,
+				"cfg_obj:strgp:spec", "schema");
+	}
+	if (JSON_STRING_VALUE != json_entity_type(value)) {
+		return ldmsd_send_type_error(reqc,
+				"cfg_obj:strgp:spec:schema", "a string");
+	}
+	schema = json_value_str(value)->str;
+
+	/* name */
+	value = json_value_find(spec, "name");
+	if (!value) {
+		return ldmsd_send_missing_attr_err(reqc,
+				"cfg_obj:strgp:spec", "name");
+	}
+	if (JSON_STRING_VALUE != json_entity_type(value)) {
+		return ldmsd_send_type_error(reqc,
+				"cfg_obj:strgp:spec:name", "a string");
+	}
+	name = json_value_str(value)->str;
+
+	/* prdcr */
+	producers = json_value_find(spec, "producers");
+	if (producers && (JSON_LIST_VALUE != json_entity_type(producers))) {
+		return ldmsd_send_type_error(reqc, "cfg_obj:strgp:spec:producers",
+							"a list of strings");
+	}
+
+	/* metrics */
+	metrics = json_value_find(spec, "metrics");
+	if (metrics && (JSON_LIST_VALUE != json_entity_type(metrics))) {
+		return ldmsd_send_type_error(reqc, "cfg_obj:strgp:spec:metrics",
+								"a list of strings");
+	}
+
+	/* perm */
+	perm = 0770;
+	rc = __find_perm(reqc, spec, &perm);
+	if (rc)
+		return rc;
+
+	struct ldmsd_sec_ctxt sctxt;
+	ldmsd_sec_ctxt_get(&sctxt);
+	uid = sctxt.crd.uid;
+	gid = sctxt.crd.gid;
+
+	ldmsd_strgp_t strgp = ldmsd_strgp_new_with_auth(name, container,
+						schema, uid, gid, perm);
+	if (!strgp) {
+		rc = errno;
+		switch (rc) {
+		case EEXIST:
+			return ldmsd_send_error(reqc, rc,
+				"cfg_obj:strgp '%s' already exists.", name);
+		case ENOENT:
+			return ldmsd_send_error(reqc, ENOENT, "cfg_obj:strgp '%s' - "
+					"the store plugin '%s' not found.",
+					name, container);
+		case ENOMEM:
+			ldmsd_log(LDMSD_LCRITICAL, "Out of memory\n");
+			return ENOMEM;
+		default:
+			return ldmsd_send_error(reqc, rc,
+					"Failed to create strgp '%s': %s",
+					name, ovis_errno_abbvr(rc));
+		}
+	}
+
+	/* reuse the received buffer */
+	ldmsd_req_buf_reset(reqc->recv_buf);
+
+	/* add producer filter*/
+	if (!producers)
+		goto add_metrics;
+
+	for (item = json_item_first(producers); item; item = json_item_next(item)) {
+		if (JSON_STRING_VALUE != json_entity_type(item)) {
+			rc = ldmsd_send_type_error(reqc,
+					"cfg_obj:strgp:producers[]", "a string");
+			goto err;
+		}
+		s = json_value_str(item)->str;
+		rc = ldmsd_strgp_prdcr_add(name, s, reqc->recv_buf->buf,
+						reqc->recv_buf->len, &sctxt);
+		switch (rc) {
+		case 0:
+			break;
+		case ENOENT:
+			rc = ldmsd_send_error(reqc, rc,
+					"cfg_obj:strgp - The storage policy '%s' "
+					"does not exist.", name);
+			goto err;
+		case EBUSY:
+			rc = ldmsd_send_error(reqc, rc,
+					"cfg_obj:strgp '%s' - "
+					"Configuration changes cannot be made "
+					"while the storage policy is running.",
+					name);
+			goto err;
+		case ENOMEM:
+			ldmsd_log(LDMSD_LCRITICAL, "Out of memory\n");
+			rc = ENOMEM;
+			goto err;
+		case EACCES:
+			rc = ldmsd_send_error(reqc, rc,
+					"cfg_obj:strgp '%s' - Permission denied.",
+					name);
+			goto err;
+		default:
+			rc = ldmsd_send_error(reqc, rc,
+					"cfg_obj:strgp '%s' - "
+					"Failed to add producer regex %s: %s.",
+					name, s, ovis_errno_abbvr(rc));
+			goto err;
+		}
+	}
+
+add_metrics:
+	/* Add metric filter */
+	if (!metrics)
+		goto out;
+	for (item = json_item_first(metrics); item; item = json_item_next(item)) {
+		if (JSON_STRING_VALUE != json_entity_type(item)) {
+			rc = ldmsd_send_type_error(reqc,
+					"cfg_obj:strgp:metrics[]", "a string");
+			goto err;
+		}
+		s = json_value_str(item)->str;
+		rc = ldmsd_strgp_metric_add(name, s, &sctxt);
+		switch (rc) {
+		case 0:
+			break;
+		case ENOENT:
+			rc = ldmsd_send_error(reqc, rc,
+					"cfg_obj:strgp - The storage policy '%s' "
+					"does not exist.", name);
+			goto err;
+		case EBUSY:
+			rc = ldmsd_send_error(reqc, rc,
+					"cfg_obj:strgp '%s' - "
+					"Configuration changes cannot be made "
+					"while the storage policy is running.",
+					name);
+			goto err;
+		case EEXIST:
+			rc = ldmsd_send_error(reqc, rc,
+					"cfg_obj:strgp '%s' - "
+					"The metric '%s' is already present.",
+					name, s);
+			goto err;
+		case ENOMEM:
+			ldmsd_log(LDMSD_LCRITICAL, "Out of memory\n");
+			rc = ENOMEM;
+			goto err;
+		case EACCES:
+			rc = ldmsd_send_error(reqc, rc,
+					"cfg_obj:strgp '%s' - Permission denied.",
+					name);
+			goto err;
+		default:
+			rc = ldmsd_send_error(reqc, rc,
+					"cfg_obj:strgp '%s' - "
+					"Failed to add metric '%s': %s.",
+					name, s, ovis_errno_abbvr(rc));
+			goto err;
+		}
+	}
+
+out:
+	ldmsd_strgp_unlock(strgp);
+	return ldmsd_send_error(reqc, 0, NULL);
+
+err:
+	if (strgp) {
+		ldmsd_strgp_unlock(strgp);
+		ldmsd_strgp_put(strgp);
+	}
+	return rc;
+}
+
 //static int strgp_del_handler(ldmsd_req_ctxt_t reqc)
 //{
 //	char *name = NULL;
@@ -2260,132 +2375,6 @@ static int smplr_handler(ldmsd_req_ctxt_t reqc)
 	rc = ldmsd_send_error(reqc, 0, "");
 	return rc;
 }
-//
-//static int strgp_prdcr_add_handler(ldmsd_req_ctxt_t reqc)
-//{
-//	char *name, *regex_str, *attr_name;
-//	name = regex_str = NULL;
-//	struct ldmsd_sec_ctxt sctxt;
-//
-//	reqc->errcode = 0;
-//
-//	attr_name = "name";
-//	name = ldmsd_req_attr_str_value_get_by_id(reqc, LDMSD_ATTR_NAME);
-//	if (!name)
-//		goto einval;
-//
-//	attr_name = "regex";
-//	regex_str = ldmsd_req_attr_str_value_get_by_id(reqc, LDMSD_ATTR_REGEX);
-//	if (!regex_str)
-//		goto einval;
-//
-//	ldmsd_req_ctxt_sec_get(reqc, &sctxt);
-//	reqc->errcode = ldmsd_strgp_prdcr_add(name, regex_str,
-//				reqc->recv_buf, reqc->recv_len, &sctxt);
-//	switch (reqc->errcode) {
-//	case 0:
-//		break;
-//	case ENOENT:
-//		Snprintf(&reqc->recv_buf, &reqc->recv_len,
-//				"The storage policy specified "
-//				"does not exist.");
-//		break;
-//	case EBUSY:
-//		Snprintf(&reqc->recv_buf, &reqc->recv_len,
-//				"Configuration changes cannot be made "
-//				"while the storage policy is running.");
-//		break;
-//	case ENOMEM:
-//		Snprintf(&reqc->recv_buf, &reqc->recv_len,
-//					"Out of memory");
-//		break;
-//	case EACCES:
-//		Snprintf(&reqc->recv_buf, &reqc->recv_len,
-//					"Permission denied.");
-//		break;
-//	default:
-//		Snprintf(&reqc->recv_buf, &reqc->recv_len,
-//			       "Error %d %s", reqc->errcode,
-//			       ovis_errno_abbvr(reqc->errcode));
-//	}
-//	goto send_reply;
-//einval:
-//	reqc->errcode = EINVAL;
-//	Snprintf(&reqc->recv_buf, &reqc->recv_len,
-//			"The attribute '%s' is required by %s.", attr_name,
-//			"strgp_prdcr_add");
-//send_reply:
-//	ldmsd_send_req_response(reqc, reqc->recv_buf);
-//	if (name)
-//		free(name);
-//	if (regex_str)
-//		free(regex_str);
-//	return 0;
-//}
-//
-//static int strgp_prdcr_del_handler(ldmsd_req_ctxt_t reqc)
-//{
-//	char *name, *regex_str, *attr_name;
-//	name = regex_str = NULL;
-//	struct ldmsd_sec_ctxt sctxt;
-//
-//	reqc->errcode = 0;
-//
-//	attr_name = "name";
-//	name = ldmsd_req_attr_str_value_get_by_id(reqc, LDMSD_ATTR_NAME);
-//	if (!name)
-//		goto einval;
-//
-//	attr_name = "regex";
-//	regex_str = ldmsd_req_attr_str_value_get_by_id(reqc, LDMSD_ATTR_REGEX);
-//	if (!regex_str)
-//		goto einval;
-//
-//	ldmsd_req_ctxt_sec_get(reqc, &sctxt);
-//	reqc->errcode = ldmsd_strgp_prdcr_del(name, regex_str, &sctxt);
-//	switch (reqc->errcode) {
-//	case 0:
-//		break;
-//	case ENOENT:
-//		Snprintf(&reqc->recv_buf, &reqc->recv_len,
-//				"The storage policy specified "
-//				"does not exist.");
-//		break;
-//	case EBUSY:
-//		Snprintf(&reqc->recv_buf, &reqc->recv_len,
-//			"Configuration changes cannot be made "
-//			"while the storage policy is running.");
-//		break;
-//	case EEXIST:
-//		Snprintf(&reqc->recv_buf, &reqc->recv_len,
-//				"The specified regex does not match "
-//				"any condition.");
-//		reqc->errcode = ENOENT;
-//		break;
-//	case EACCES:
-//		Snprintf(&reqc->recv_buf, &reqc->recv_len,
-//				"Permission denied.");
-//		break;
-//	default:
-//		Snprintf(&reqc->recv_buf, &reqc->recv_len,
-//			       "Error %d %s", reqc->errcode,
-//			       ovis_errno_abbvr(reqc->errcode));
-//	}
-//	goto send_reply;
-//einval:
-//	reqc->errcode = EINVAL;
-//	Snprintf(&reqc->recv_buf, &reqc->recv_len,
-//			"The attribute '%s' is required by %s.", attr_name,
-//			"strgp_prdcr_del");
-//send_reply:
-//	ldmsd_send_req_response(reqc, reqc->recv_buf);
-//	if (name)
-//		free(name);
-//	if (regex_str)
-//		free(regex_str);
-//	return 0;
-//}
-//
 //static int strgp_metric_add_handler(ldmsd_req_ctxt_t reqc)
 //{
 //	char *name, *metric_name, *attr_name;
