@@ -1265,7 +1265,7 @@ ldmsd_setgrp_new_with_auth(const char *name, const char *producer,
 				uid_t uid, gid_t gid, mode_t perm, int flags);
 #pragma weak ldmsd_setgrp_new_with_auth
 
-int ldmsd_setgrp_start(const char *name);
+int ldmsd_setgrp_start(const char *name, ldmsd_sec_ctxt_t ctxt);
 
 /*
  * \brief Delete a setgroup cfgobject

@@ -105,7 +105,7 @@ err:
 }
 
 /* Caller must hold the setgroup lock */
-int ldmsd_setgrp_start(const char *name)
+int ldmsd_setgrp_start(const char *name, ldmsd_sec_ctxt_t ctxt)
 {
 	int rc;
 	ldmsd_str_ent_t str;
@@ -116,6 +116,11 @@ int ldmsd_setgrp_start(const char *name)
 		return ENOENT;
 
 	ldmsd_setgrp_lock(grp);
+
+	rc = ldmsd_cfgobj_access_check(&grp->obj, 0222, ctxt);
+	if (rc)
+		goto err;
+
 	if (!grp->producer) {
 		grp->producer = strdup(ldmsd_myname_get());
 		if (!grp->producer) {

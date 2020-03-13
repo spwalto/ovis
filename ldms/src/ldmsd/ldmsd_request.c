@@ -190,6 +190,7 @@ static int updtr_handler(ldmsd_req_ctxt_t reqc);
  */
 static int prdcr_action_handler(ldmsd_req_ctxt_t reqc);
 static int smplr_action_handler(ldmsd_req_ctxt_t reqc);
+static int setgroup_action_handler(ldmsd_req_ctxt_t reqc);
 static int strgp_action_handler(ldmsd_req_ctxt_t reqc);
 static int updtr_action_handler(ldmsd_req_ctxt_t reqc);
 
@@ -291,6 +292,7 @@ static struct obj_handler_entry cmd_obj_handler_tbl[] = {
 
 static struct obj_handler_entry act_obj_handler_tbl[] = {
 		{ "prdcr",	prdcr_action_handler,	XUG },
+		{ "setgroup",	setgroup_action_handler,XUG },
 		{ "smplr", 	smplr_action_handler,	XUG },
 		{ "strgp",	strgp_action_handler,	XUG },
 		{ "updtr",	updtr_action_handler,	XUG },
@@ -3187,111 +3189,93 @@ err:
 	ldmsd_setgrp_put(grp);
 	return rc;
 }
-//static int setgroup_del_handler(ldmsd_req_ctxt_t reqc)
-//{
-//	int rc = 0;
-//	char *name = NULL;
-//	struct ldmsd_sec_ctxt sctxt;
-//
-//	name = ldmsd_req_attr_str_value_get_by_id(reqc, LDMSD_ATTR_NAME);
-//	if (!name) {
-//		linebuf_printf(reqc, "missing `name` attribute");
-//		rc = EINVAL;
-//		goto out;
-//	}
-//	rc = ldmsd_setgrp_del(name, &sctxt);
-//	if (rc == ENOENT) {
-//		linebuf_printf(reqc, "Setgroup '%s' not found.", name);
-//	} else if (rc == EACCES) {
-//		linebuf_printf(reqc, "Permission denied");
-//	} else {
-//		linebuf_printf(reqc, "Failed to delete setgroup '%s'", name);
-//	}
-//
-//out:
-//	reqc->errcode = rc;
-//	ldmsd_send_req_response(reqc, reqc->recv_buf);
-//	if (name)
-//		free(name);
-//	return 0;
-//}
 
-//
-//int __ldmsd_setgrp_rm(ldmsd_setgrp_t grp, const char *instance);
-//
-//static int setgroup_rm_handler(ldmsd_req_ctxt_t reqc)
-//{
-//	int rc = 0;
-//	const char *delim = ",";
-//	char *name = NULL;
-//	char *instance = NULL;
-//	char *sname;
-//	char *p;
-//	char *attr_name;
-//	ldmsd_setgrp_t grp = NULL;
-//
-//	name = ldmsd_req_attr_str_value_get_by_id(reqc, LDMSD_ATTR_NAME);
-//	if (!name) {
-//		attr_name = "name";
-//		goto einval;
-//	}
-//
-//	instance = ldmsd_req_attr_str_value_get_by_id(reqc, LDMSD_ATTR_INSTANCE);
-//	if (!instance) {
-//		attr_name = "instance";
-//		goto einval;
-//	}
-//
-//	grp = ldmsd_setgrp_find(name);
-//	if (!grp) {
-//		rc = ENOENT;;
-//		linebuf_printf(reqc, "Setgroup '%s' not found.", name);
-//		goto send_reply;
-//	}
-//
-//	ldmsd_setgrp_lock(grp);
-//	sname = strtok_r(instance, delim, &p);
-//	while (sname) {
-//		rc = __ldmsd_setgrp_rm(grp, sname);
-//		if (rc) {
-//			if (rc == ENOENT) {
-//				linebuf_printf(reqc,
-//					"Either setgroup '%s' or member '%s' not exist",
-//					name, sname);
-//			} else {
-//				linebuf_printf(reqc, "Error %d: Failed to remove "
-//						"member '%s' from setgroup '%s'",
-//						rc, sname, name);
-//			}
-//			ldmsd_setgrp_unlock(grp);
-//			goto send_reply;
-//		}
-//		sname = strtok_r(NULL, delim, &p);
-//	}
-//	ldmsd_setgrp_unlock(grp);
-//	/* rc is 0 */
-//	goto send_reply;
-//einval:
-//	linebuf_printf(reqc, "The attribute '%s' is missing.", attr_name);
-//	rc = EINVAL;
-//send_reply:
-//	reqc->errcode = rc;
-//	ldmsd_send_req_response(reqc, reqc->recv_buf);
-//	if (name)
-//		free(name);
-//	if (instance)
-//		free(instance);
-//	if (grp)
-//		ldmsd_setgrp_put(grp); /* `find` reference */
-//	return rc;
-//}
-//
-//extern int ldmsd_load_plugin(const char *inst_name,
-//			     const char *plugin_name,
-//			     char *errstr, size_t errlen);
-//extern int ldmsd_term_plugin(const char *plugin_name);
-//
-//
+static int setgroup_action_handler(ldmsd_req_ctxt_t reqc)
+{
+	int rc;
+	json_entity_t action, list, value;
+	char *action_s, *name_s;
+	struct ldmsd_sec_ctxt sctxt;
+
+	ldmsd_req_ctxt_sec_get(reqc, &sctxt);
+
+	/* regex */
+	value = json_value_find(reqc->json, "regex");
+	if (value) {
+		return ldmsd_send_error(reqc, ENOTSUP,
+				"act_obj:setgroup not support 'regex'.");
+	}
+
+	action = json_value_find(reqc->json, "action");
+	action_s = json_value_str(action)->str;
+	list = json_value_find(reqc->json, "names");
+
+	if (0 == strncmp(action_s, "start", 5)) {
+		for (value = json_item_first(list); value;
+				value = json_item_next(value)) {
+			if (JSON_STRING_VALUE != json_entity_type(value)) {
+				return ldmsd_send_type_error(reqc,
+						"cfg_obj:setgroup:names[]", "a string");
+			}
+			name_s = json_value_str(value)->str;
+			rc = ldmsd_setgrp_start(name_s, &sctxt);
+			if (!rc)
+				continue;
+			switch (rc) {
+			case ENOMEM:
+				ldmsd_log(LDMSD_LCRITICAL, "Out of memory\n");
+				return ENOMEM;
+			case ENOENT:
+				return ldmsd_send_error(reqc, rc,
+					"act_obj:setgroup:start: '%s' not found.",
+					name_s);
+			case EACCES:
+				return ldmsd_send_error(reqc, rc,
+					"act_obj:setgroup:start: '%s' "
+					"permission denied");
+			default:
+				return ldmsd_send_error(reqc, rc,
+					"act_obj:setgroup:start: failed to start '%s': %s",
+					name_s, ovis_errno_abbvr(rc));
+			}
+		}
+	} else if (0 == strncmp(action_s, "stop", 4)) {
+		return ldmsd_send_error(reqc, ENOTSUP, "act_obj:setgroup - "
+				"Action 'stop' not supported for "
+				"'setgroup' configuration objects.");
+	} else {
+		for (value = json_item_first(list); value;
+				value = json_item_next(value)) {
+			if (JSON_STRING_VALUE != json_entity_type(value)) {
+				return ldmsd_send_type_error(reqc,
+						"cfg_obj:setgroup:names[]", "a string");
+			}
+			name_s = json_value_str(value)->str;
+			rc = ldmsd_setgrp_del(name_s, &sctxt);
+			if (!rc)
+				continue;
+			switch (rc) {
+			case ENOMEM:
+				ldmsd_log(LDMSD_LCRITICAL, "Out of memory\n");
+				return ENOMEM;
+			case ENOENT:
+				return ldmsd_send_error(reqc, rc,
+					"act_obj:setgroup:delete: '%s' not found.",
+					name_s);
+			case EACCES:
+				return ldmsd_send_error(reqc, rc,
+					"act_obj:setgroup:delete: '%s' "
+					"permission denied");
+			default:
+				return ldmsd_send_error(reqc, rc,
+					"act_obj:setgroup: failed to delete '%s': %s",
+					name_s, ovis_errno_abbvr(rc));
+			}
+		}
+	}
+	return ldmsd_send_error(reqc, 0, NULL);
+}
+
 static int smplr_action_handler(ldmsd_req_ctxt_t reqc)
 {
 	int rc;
