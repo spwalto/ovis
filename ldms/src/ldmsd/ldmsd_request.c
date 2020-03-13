@@ -167,6 +167,7 @@ static int plugin_status_handler(ldmsd_req_ctxt_t reqc);
 static int prdcr_status_handler(ldmsd_req_ctxt_t reqc);
 static int set_route_handler(ldmsd_req_ctxt_t req_ctxt);
 static int smplr_status_handler(ldmsd_req_ctxt_t reqc);
+static int strgp_status_handler(ldmsd_req_ctxt_t reqc);
 static int updtr_status_handler(ldmsd_req_ctxt_t reqc);
 
 /*
@@ -192,7 +193,6 @@ static int updtr_action_handler(ldmsd_req_ctxt_t reqc);
 
 //static int prdcr_set_status_handler(ldmsd_req_ctxt_t req_ctxt);
 //static int prdcr_subscribe_regex_handler(ldmsd_req_ctxt_t req_ctxt);
-//static int strgp_status_handler(ldmsd_req_ctxt_t req_ctxt);
 //static int plugn_list_handler(ldmsd_req_ctxt_t req_ctxt);
 //static int plugn_sets_handler(ldmsd_req_ctxt_t req_ctxt);
 //static int plugn_usage_handler(ldmsd_req_ctxt_t req_ctxt);
@@ -282,6 +282,7 @@ static struct obj_handler_entry cmd_obj_handler_tbl[] = {
 		{ "prdcr_status",	prdcr_status_handler,	XALL },
 		{ "set_route",	set_route_handler, 	XUG },
 		{ "smplr_status",	smplr_status_handler,	XALL },
+		{ "strgp_status",	strgp_status_handler,	XALL },
 		{ "updtr_status",	updtr_status_handler,	XALL },
 };
 
@@ -2554,148 +2555,129 @@ static int strgp_action_handler(ldmsd_req_ctxt_t reqc)
 	return ldmsd_send_error(reqc, 0, NULL);
 }
 
-//int __strgp_status_json_obj(ldmsd_req_ctxt_t reqc, ldmsd_strgp_t strgp,
-//							int strgp_cnt)
-//{
-//	int rc;
-//	int match_count, metric_count;
-//	ldmsd_name_match_t match;
-//	ldmsd_strgp_metric_t metric;
-//
-//	if (strgp_cnt) {
-//		rc = linebuf_printf(reqc, ",\n");
-//		if (rc)
-//			goto out;
-//	}
-//
-//	ldmsd_strgp_lock(strgp);
-//	rc = linebuf_printf(reqc,
-//		       "{\"name\":\"%s\","
-//		       "\"container\":\"%s\","
-//		       "\"plugin\":\"%s\","
-//		       "\"schema\":\"%s\","
-//		       "\"state\":\"%s\","
-//		       "\"producers\":[",
-//		       strgp->obj.name,
-//		       strgp->inst->inst_name,
-//		       strgp->inst->plugin_name,
-//		       strgp->schema,
-//		       ldmsd_strgp_state_str(strgp->state));
-//	if (rc)
-//		goto out;
-//
-//	match_count = 0;
-//	for (match = ldmsd_strgp_prdcr_first(strgp); match;
-//	     match = ldmsd_strgp_prdcr_next(match)) {
-//		if (match_count) {
-//			rc = linebuf_printf(reqc, ",");
-//			if (rc)
-//				goto out;
-//		}
-//		match_count++;
-//		rc = linebuf_printf(reqc, "\"%s\"", match->regex_str);
-//		if (rc)
-//			goto out;
-//	}
-//	rc = linebuf_printf(reqc, "],\"metrics\":[");
-//	if (rc)
-//		goto out;
-//
-//	metric_count = 0;
-//	for (metric = ldmsd_strgp_metric_first(strgp); metric;
-//	     metric = ldmsd_strgp_metric_next(metric)) {
-//		if (metric_count) {
-//			rc = linebuf_printf(reqc, ",");
-//			if (rc)
-//				goto out;
-//		}
-//		metric_count++;
-//		rc = linebuf_printf(reqc, "\"%s\"", metric->name);
-//		if (rc)
-//			goto out;
-//	}
-//	rc = linebuf_printf(reqc, "]}");
-//out:
-//	ldmsd_strgp_unlock(strgp);
-//	return rc;
-//}
-//
-//static int strgp_status_handler(ldmsd_req_ctxt_t reqc)
-//{
-//	int rc = 0;
-//	size_t cnt = 0;
-//	struct ldmsd_req_attr_s attr;
-//	char *name;
-//	ldmsd_strgp_t strgp = NULL;
-//	int strgp_cnt;
-//
-//	reqc->errcode = 0;
-//	name = ldmsd_req_attr_str_value_get_by_id(reqc, LDMSD_ATTR_NAME);
-//	if (name) {
-//		strgp = ldmsd_strgp_find(name);
-//		if (!strgp) {
-//			/* Not report any status */
-//			cnt = snprintf(reqc->recv_buf, reqc->recv_len,
-//				"strgp '%s' doesn't exist.", name);
-//			reqc->errcode = ENOENT;
-//			ldmsd_send_req_response(reqc, reqc->recv_buf);
-//			return 0;
-//		}
-//	}
-//
-//	/* Construct the json object of the strgp(s) */
-//	if (strgp) {
-//		rc = __strgp_status_json_obj(reqc, strgp, 0);
-//	} else {
-//		strgp_cnt = 0;
-//		ldmsd_cfg_lock(LDMSD_CFGOBJ_STRGP);
-//		for (strgp = ldmsd_strgp_first(); strgp;
-//			strgp = ldmsd_strgp_next(strgp)) {
-//			rc = __strgp_status_json_obj(reqc, strgp, strgp_cnt);
-//			if (rc) {
-//				ldmsd_cfg_unlock(LDMSD_CFGOBJ_STRGP);
-//				goto out;
-//			}
-//			strgp_cnt++;
-//		}
-//		ldmsd_cfg_unlock(LDMSD_CFGOBJ_STRGP);
-//	}
-//	cnt = reqc->recv_off + 2; /* +2 for '[' and ']' */
-//
-//	/* Send the json attribute header */
-//	attr.discrim = 1;
-//	attr.attr_len = cnt;
-//	attr.attr_id = LDMSD_ATTR_JSON;
-//	ldmsd_hton_req_attr(&attr);
-//	rc = ldmsd_append_reply(reqc, (char *)&attr, sizeof(attr), LDMSD_REC_SOM_F);
-//	if (rc)
-//		goto out;
-//
-//	/* Send the json object */
-//	rc = ldmsd_append_reply(reqc, "[", 1, 0);
-//	if (rc)
-//		goto out;
-//	if (reqc->recv_off) {
-//		rc = ldmsd_append_reply(reqc, reqc->recv_buf, reqc->recv_off, 0);
-//		if (rc)
-//			goto out;
-//	}
-//	rc = ldmsd_append_reply(reqc, "]", 1, 0);
-//	if (rc)
-//		goto out;
-//
-//	/* Send the terminating attribute */
-//	attr.discrim = 0;
-//	rc = ldmsd_append_reply(reqc, (char *)&attr.discrim, sizeof(uint32_t),
-//								LDMSD_REC_EOM_F);
-//out:
-//	if (name)
-//		free(name);
-//	if (strgp)
-//		ldmsd_strgp_put(strgp);
-//	return rc;
-//}
-//
+int __strgp_status_json_obj(ldmsd_req_ctxt_t reqc, ldmsd_strgp_t strgp)
+{
+	int rc;
+	int match_count, metric_count;
+	ldmsd_name_match_t match;
+	ldmsd_strgp_metric_t metric;
+	char *s;
+
+	ldmsd_strgp_lock(strgp);
+	rc = ldmsd_append_response_va(reqc, 0,
+		       "{\"name\":\"%s\","
+		       "\"container\":\"%s\","
+		       "\"plugin\":\"%s\","
+		       "\"schema\":\"%s\","
+		       "\"state\":\"%s\","
+		       "\"producers\":[",
+		       strgp->obj.name,
+		       strgp->inst->inst_name,
+		       strgp->inst->plugin_name,
+		       strgp->schema,
+		       ldmsd_strgp_state_str(strgp->state));
+	if (rc)
+		goto out;
+
+	match_count = 0;
+	for (match = ldmsd_strgp_prdcr_first(strgp); match;
+	     match = ldmsd_strgp_prdcr_next(match)) {
+		if (match_count) {
+			rc = ldmsd_append_response(reqc, 0, ",", 1);
+			if (rc)
+				goto out;
+		}
+		match_count++;
+		rc = ldmsd_append_response_va(reqc, 0, "\"%s\"", match->regex_str);
+		if (rc)
+			goto out;
+	}
+	s = "],\"metrics\":[";
+	rc = ldmsd_append_response(reqc, 0, s, strlen(s));
+	if (rc)
+		goto out;
+
+	metric_count = 0;
+	for (metric = ldmsd_strgp_metric_first(strgp); metric;
+	     metric = ldmsd_strgp_metric_next(metric)) {
+		if (metric_count) {
+			rc = ldmsd_append_response(reqc, 0, ",", 1);
+			if (rc)
+				goto out;
+		}
+		metric_count++;
+		rc = ldmsd_append_response_va(reqc, 0, "\"%s\"", metric->name);
+		if (rc)
+			goto out;
+	}
+	rc = ldmsd_append_response(reqc, 0, "]}", 2);
+out:
+	ldmsd_strgp_unlock(strgp);
+	return rc;
+}
+
+static int strgp_status_handler(ldmsd_req_ctxt_t reqc)
+{
+	int rc = 0;
+	json_entity_t spec, name;
+	char *name_s;
+	ldmsd_strgp_t strgp = NULL;
+	int strgp_cnt;
+
+	spec = json_value_find(reqc->json, "spec");
+	if (spec) {
+		name = json_value_find(spec, "name");
+		if (JSON_STRING_VALUE != json_entity_type(name)) {
+			return ldmsd_send_type_error(reqc,
+					"strgp_status:name", "a string");
+		}
+		name_s = json_value_str(name)->str;
+		strgp = ldmsd_strgp_find(name_s);
+		if (!strgp) {
+			return ldmsd_send_error(reqc, ENOENT,
+				"strgp_status: strgp '%s' does not exist.", name_s);
+		}
+	}
+
+	rc = ldmsd_append_info_obj_hdr(reqc, "strgp_status");
+	if (rc)
+		goto out;
+	rc = ldmsd_append_response(reqc, 0, "[", 1);
+	if (rc)
+		goto out;
+
+	if (strgp) {
+		rc = __strgp_status_json_obj(reqc, strgp);
+		ldmsd_strgp_put(strgp);
+		if (rc)
+			return rc;
+	} else {
+		strgp_cnt = 0;
+		ldmsd_cfg_lock(LDMSD_CFGOBJ_STRGP);
+		for (strgp = ldmsd_strgp_first(); strgp;
+			strgp = ldmsd_strgp_next(strgp)) {
+			if (strgp_cnt) {
+				rc = ldmsd_append_response(reqc, 0, ",", 1);
+				if (rc)
+					goto unlock_out;
+			}
+			rc = __strgp_status_json_obj(reqc, strgp);
+			if (rc)
+				goto unlock_out;
+			strgp_cnt++;
+		}
+		ldmsd_cfg_unlock(LDMSD_CFGOBJ_STRGP);
+	}
+
+	return ldmsd_append_response(reqc, LDMSD_REC_EOM_F, "]}", 2);
+
+unlock_out:
+	ldmsd_cfg_unlock(LDMSD_CFGOBJ_STRGP);
+out:
+	if (strgp)
+		ldmsd_strgp_put(strgp);
+	return rc;
+}
 
 static int __updtr_handler(ldmsd_req_ctxt_t reqc, json_entity_t spec,
 				json_entity_t inst, long interval_us,
