@@ -164,6 +164,7 @@ static int example_handler(ldmsd_req_ctxt_t req_ctxt);
 static int greeting_handler(ldmsd_req_ctxt_t req_ctxt);
 static int include_handler(ldmsd_req_ctxt_t req_ctxt);
 static int plugin_status_handler(ldmsd_req_ctxt_t reqc);
+static int prdcr_set_status_handler(ldmsd_req_ctxt_t reqc);
 static int prdcr_status_handler(ldmsd_req_ctxt_t reqc);
 static int set_route_handler(ldmsd_req_ctxt_t req_ctxt);
 static int smplr_status_handler(ldmsd_req_ctxt_t reqc);
@@ -191,7 +192,6 @@ static int smplr_action_handler(ldmsd_req_ctxt_t reqc);
 static int strgp_action_handler(ldmsd_req_ctxt_t reqc);
 static int updtr_action_handler(ldmsd_req_ctxt_t reqc);
 
-//static int prdcr_set_status_handler(ldmsd_req_ctxt_t req_ctxt);
 //static int prdcr_subscribe_regex_handler(ldmsd_req_ctxt_t req_ctxt);
 //static int plugn_list_handler(ldmsd_req_ctxt_t req_ctxt);
 //static int plugn_sets_handler(ldmsd_req_ctxt_t req_ctxt);
@@ -279,6 +279,7 @@ static struct obj_handler_entry cmd_obj_handler_tbl[] = {
 		{ "greeting",	greeting_handler,	XALL },
 		{ "include",	include_handler,	XUG },
 		{ "plugin_status",	plugin_status_handler,	XALL },
+		{ "prdcr_set_status",	prdcr_set_status_handler, XALL },
 		{ "prdcr_status",	prdcr_status_handler,	XALL },
 		{ "set_route",	set_route_handler, 	XUG },
 		{ "smplr_status",	smplr_status_handler,	XALL },
@@ -1804,175 +1805,173 @@ out:
 	return rc;
 }
 
-//size_t __prdcr_set_status(ldmsd_req_ctxt_t reqc, ldmsd_prdcr_set_t prd_set)
-//{
-//	struct ldms_timestamp ts = { 0, 0 }, dur = { 0, 0 };
-//	const char *producer_name = "";
-//	char intrvl_hint[32];
-//	char offset_hint[32];
-//	if (prd_set->set) {
-//		ts = ldms_transaction_timestamp_get(prd_set->set);
-//		dur = ldms_transaction_duration_get(prd_set->set);
-//		producer_name = ldms_set_producer_name_get(prd_set->set);
-//	}
-//	if (prd_set->updt_hint.intrvl_us) {
-//		snprintf(intrvl_hint, sizeof(intrvl_hint), "%ld",
-//			 prd_set->updt_hint.intrvl_us);
-//	} else {
-//		snprintf(intrvl_hint, sizeof(intrvl_hint), "none");
-//	}
-//	if (prd_set->updt_hint.offset_us != LDMSD_UPDT_HINT_OFFSET_NONE) {
-//		snprintf(offset_hint, sizeof(offset_hint), "%ld",
-//			 prd_set->updt_hint.offset_us);
-//	} else {
-//		snprintf(offset_hint, sizeof(offset_hint), "none");
-//	}
-//	return linebuf_printf(reqc,
-//		"{ "
-//		"\"inst_name\":\"%s\","
-//		"\"schema_name\":\"%s\","
-//		"\"state\":\"%s\","
-//		"\"origin\":\"%s\","
-//		"\"producer\":\"%s\","
-//		"\"hint.sec\":\"%s\","
-//		"\"hint.usec\":\"%s\","
-//		"\"timestamp.sec\":\"%d\","
-//		"\"timestamp.usec\":\"%d\","
-//		"\"duration.sec\":\"%d\","
-//		"\"duration.usec\":\"%d\""
-//		"}",
-//		prd_set->inst_name, prd_set->schema_name,
-//		ldmsd_prdcr_set_state_str(prd_set->state),
-//		producer_name,
-//		prd_set->prdcr->obj.name,
-//		intrvl_hint, offset_hint,
-//		ts.sec, ts.usec,
-//		dur.sec, dur.usec);
-//}
-//
-///* This function must be called with producer lock held */
-//int __prdcr_set_status_handler(ldmsd_req_ctxt_t reqc, ldmsd_prdcr_t prdcr,
-//			int *count, const char *setname, const char *schema)
-//{
-//	int rc = 0;
-//	ldmsd_prdcr_set_t prd_set;
-//
-//	if (setname) {
-//		prd_set = ldmsd_prdcr_set_find(prdcr, setname);
-//		if (!prd_set)
-//			return 0;
-//		if (schema && (0 != strcmp(prd_set->schema_name, schema)))
-//			return 0;
-//		if (*count) {
-//			rc = linebuf_printf(reqc, ",\n");
-//			if (rc)
-//				return rc;
-//		}
-//		rc = __prdcr_set_status(reqc, prd_set);
-//		if (rc)
-//			return rc;
-//		(*count)++;
-//	} else {
-//		for (prd_set = ldmsd_prdcr_set_first(prdcr); prd_set;
-//			prd_set = ldmsd_prdcr_set_next(prd_set)) {
-//			if (schema && (0 != strcmp(prd_set->schema_name, schema)))
-//				continue;
-//
-//			if (*count) {
-//				rc = linebuf_printf(reqc, ",\n");
-//				if (rc)
-//					return rc;
-//			}
-//			rc = __prdcr_set_status(reqc, prd_set);
-//			if (rc)
-//				return rc;
-//			(*count)++;
-//		}
-//	}
-//	return rc;
-//}
-//
-//int __prdcr_set_status_json_obj(ldmsd_req_ctxt_t reqc)
-//{
-//	char *prdcr_name, *setname, *schema;
-//	prdcr_name = setname = schema = NULL;
-//	ldmsd_prdcr_t prdcr = NULL;
-//	int rc, count = 0;
-//	reqc->errcode = 0;
-//
-//	prdcr_name = ldmsd_req_attr_str_value_get_by_id(reqc, LDMSD_ATTR_PRODUCER);
-//	setname = ldmsd_req_attr_str_value_get_by_id(reqc, LDMSD_ATTR_INSTANCE);
-//	schema = ldmsd_req_attr_str_value_get_by_id(reqc, LDMSD_ATTR_SCHEMA);
-//
-//	rc = linebuf_printf(reqc, "[");
-//	if (rc)
-//		return rc;
-//	if (prdcr_name) {
-//		prdcr = ldmsd_prdcr_find(prdcr_name);
-//		if (!prdcr)
-//			goto out;
-//	}
-//
-//	if (prdcr) {
-//		ldmsd_prdcr_lock(prdcr);
-//		rc = __prdcr_set_status_handler(reqc, prdcr, &count,
-//						setname, schema);
-//		ldmsd_prdcr_unlock(prdcr);
-//	} else {
-//		ldmsd_cfg_lock(LDMSD_CFGOBJ_PRDCR);
-//		for (prdcr = ldmsd_prdcr_first(); prdcr;
-//				prdcr = ldmsd_prdcr_next(prdcr)) {
-//			ldmsd_prdcr_lock(prdcr);
-//			rc = __prdcr_set_status_handler(reqc, prdcr, &count,
-//							setname, schema);
-//			ldmsd_prdcr_unlock(prdcr);
-//			if (rc) {
-//				ldmsd_cfg_unlock(LDMSD_CFGOBJ_PRDCR);
-//				goto out;
-//			}
-//		}
-//		ldmsd_cfg_unlock(LDMSD_CFGOBJ_PRDCR);
-//	}
-//
-//out:
-//	rc = linebuf_printf(reqc, "]");
-//	if (prdcr_name)
-//		free(prdcr_name);
-//	if (setname)
-//		free(setname);
-//	if (schema)
-//		free(schema);
-//	if (prdcr) /* ref from find(), first(), or next() */
-//		ldmsd_prdcr_put(prdcr);
-//	return rc;
-//}
-//
-//static int prdcr_set_status_handler(ldmsd_req_ctxt_t reqc)
-//{
-//	int rc;
-//	struct ldmsd_req_attr_s attr;
-//
-//	rc = __prdcr_set_status_json_obj(reqc);
-//	if (rc)
-//		return rc;
-//	attr.discrim = 1;
-//	attr.attr_len = reqc->recv_off;
-//	attr.attr_id = LDMSD_ATTR_JSON;
-//	ldmsd_hton_req_attr(&attr);
-//	rc = ldmsd_append_reply(reqc, (char *)&attr,
-//				sizeof(attr), LDMSD_REC_SOM_F);
-//	if (rc)
-//		return rc;
-//
-//	rc = ldmsd_append_reply(reqc, reqc->recv_buf, reqc->recv_off, 0);
-//	if (rc)
-//		return rc;
-//	attr.discrim = 0;
-//	rc = ldmsd_append_reply(reqc, (char *)&attr.discrim,
-//			sizeof(uint32_t), LDMSD_REC_EOM_F);
-//	return rc;
-//}
-//
+size_t __prdcr_set_status(ldmsd_req_ctxt_t reqc, ldmsd_prdcr_set_t prd_set)
+{
+	struct ldms_timestamp ts = { 0, 0 }, dur = { 0, 0 };
+	const char *producer_name = "";
+	char intrvl_hint[32];
+	char offset_hint[32];
+	if (prd_set->set) {
+		ts = ldms_transaction_timestamp_get(prd_set->set);
+		dur = ldms_transaction_duration_get(prd_set->set);
+		producer_name = ldms_set_producer_name_get(prd_set->set);
+	}
+	if (prd_set->updt_hint.intrvl_us) {
+		snprintf(intrvl_hint, sizeof(intrvl_hint), "%ld",
+			 prd_set->updt_hint.intrvl_us);
+	} else {
+		snprintf(intrvl_hint, sizeof(intrvl_hint), "none");
+	}
+	if (prd_set->updt_hint.offset_us != LDMSD_UPDT_HINT_OFFSET_NONE) {
+		snprintf(offset_hint, sizeof(offset_hint), "%ld",
+			 prd_set->updt_hint.offset_us);
+	} else {
+		snprintf(offset_hint, sizeof(offset_hint), "none");
+	}
+	return ldmsd_append_response_va(reqc, 0,
+		"{ "
+		"\"inst_name\":\"%s\","
+		"\"schema_name\":\"%s\","
+		"\"state\":\"%s\","
+		"\"origin\":\"%s\","
+		"\"producer\":\"%s\","
+		"\"hint.sec\":\"%s\","
+		"\"hint.usec\":\"%s\","
+		"\"timestamp.sec\":\"%d\","
+		"\"timestamp.usec\":\"%d\","
+		"\"duration.sec\":\"%d\","
+		"\"duration.usec\":\"%d\""
+		"}",
+		prd_set->inst_name, prd_set->schema_name,
+		ldmsd_prdcr_set_state_str(prd_set->state),
+		producer_name,
+		prd_set->prdcr->obj.name,
+		intrvl_hint, offset_hint,
+		ts.sec, ts.usec,
+		dur.sec, dur.usec);
+}
+
+/* This function must be called with producer lock held */
+int __prdcr_set_status_handler(ldmsd_req_ctxt_t reqc, ldmsd_prdcr_t prdcr,
+			int *count, const char *setname, const char *schema)
+{
+	int rc = 0;
+	ldmsd_prdcr_set_t prd_set;
+
+	if (setname) {
+		prd_set = ldmsd_prdcr_set_find(prdcr, setname);
+		if (!prd_set)
+			return 0;
+		if (schema && (0 != strcmp(prd_set->schema_name, schema)))
+			return 0;
+		if (*count) {
+			rc = ldmsd_append_response(reqc, 0, ",", 1);
+			if (rc)
+				return rc;
+		}
+		rc = __prdcr_set_status(reqc, prd_set);
+		if (rc)
+			return rc;
+		(*count)++;
+	} else {
+		for (prd_set = ldmsd_prdcr_set_first(prdcr); prd_set;
+			prd_set = ldmsd_prdcr_set_next(prd_set)) {
+			if (schema && (0 != strcmp(prd_set->schema_name, schema)))
+				continue;
+
+			if (*count) {
+				rc = ldmsd_append_response(reqc, 0, ",", 1);
+				if (rc)
+					return rc;
+			}
+			rc = __prdcr_set_status(reqc, prd_set);
+			if (rc)
+				return rc;
+			(*count)++;
+		}
+	}
+	return rc;
+}
+
+int prdcr_set_status_handler(ldmsd_req_ctxt_t reqc)
+{
+	int rc, count = 0;
+	json_entity_t spec, value;
+	char *prdcr_name, *setname, *schema;
+	prdcr_name = setname = schema = NULL;
+	ldmsd_prdcr_t prdcr = NULL;
+
+	spec = json_value_find(reqc->json, "spec");
+	if (spec) {
+		/* producer */
+		value = json_value_find(spec, "producer");
+		if (value && (JSON_STRING_VALUE != json_entity_type(value))) {
+			return ldmsd_send_type_error(reqc,
+				"cmd_obj:prdcr_set_status:producer", "a string");
+		}
+		prdcr_name = json_value_str(value)->str;
+
+		/* set_name */
+		value = json_value_find(spec, "set_name");
+		if (value && (JSON_STRING_VALUE != json_entity_type(value))) {
+			return ldmsd_send_type_error(reqc,
+				"cmd_obj:prdcr_set_status:set_name", "a string");
+		}
+		setname = json_value_str(value)->str;
+
+		/* schema */
+		value = json_value_find(spec, "schema");
+		if (value && (JSON_STRING_VALUE != json_entity_type(value))) {
+			return ldmsd_send_type_error(reqc,
+				"cmd_obj:prdcr_set_status:schema", "a string");
+		}
+		schema = json_value_str(value)->str;
+	}
+
+	if (prdcr_name) {
+		prdcr = ldmsd_prdcr_find(prdcr_name);
+		if (!prdcr) {
+			return ldmsd_send_error(reqc, ENOENT,
+					"Producer '%s' not found.", prdcr_name);
+		}
+	}
+
+	rc = ldmsd_append_info_obj_hdr(reqc, "prdcr_set_status");
+	if (rc)
+		goto out;
+	rc = ldmsd_append_response(reqc, 0, "[", 1);
+	if (rc)
+		goto out;
+
+	if (prdcr) {
+		ldmsd_prdcr_lock(prdcr);
+		rc = __prdcr_set_status_handler(reqc, prdcr, &count,
+						setname, schema);
+		ldmsd_prdcr_unlock(prdcr);
+		if (rc)
+			goto out;
+	} else {
+		ldmsd_cfg_lock(LDMSD_CFGOBJ_PRDCR);
+		for (prdcr = ldmsd_prdcr_first(); prdcr;
+				prdcr = ldmsd_prdcr_next(prdcr)) {
+			ldmsd_prdcr_lock(prdcr);
+			rc = __prdcr_set_status_handler(reqc, prdcr, &count,
+							setname, schema);
+			ldmsd_prdcr_unlock(prdcr);
+			if (rc) {
+				ldmsd_cfg_unlock(LDMSD_CFGOBJ_PRDCR);
+				goto out;
+			}
+		}
+		ldmsd_cfg_unlock(LDMSD_CFGOBJ_PRDCR);
+	}
+	return ldmsd_append_response(reqc, LDMSD_REC_EOM_F, "]}", 2);
+out:
+	if (prdcr) /* ref from find(), first(), or next() */
+		ldmsd_prdcr_put(prdcr);
+	return rc;
+}
+
 static int strgp_handler(ldmsd_req_ctxt_t reqc)
 {
 	int rc;
