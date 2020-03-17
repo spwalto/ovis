@@ -163,6 +163,7 @@ struct obj_handler_entry {
 static int example_handler(ldmsd_req_ctxt_t req_ctxt);
 static int greeting_handler(ldmsd_req_ctxt_t req_ctxt);
 static int include_handler(ldmsd_req_ctxt_t req_ctxt);
+static int plugin_list_handler(ldmsd_req_ctxt_t reqc);
 static int plugin_status_handler(ldmsd_req_ctxt_t reqc);
 static int prdcr_set_status_handler(ldmsd_req_ctxt_t reqc);
 static int prdcr_status_handler(ldmsd_req_ctxt_t reqc);
@@ -195,7 +196,6 @@ static int strgp_action_handler(ldmsd_req_ctxt_t reqc);
 static int updtr_action_handler(ldmsd_req_ctxt_t reqc);
 
 //static int prdcr_subscribe_regex_handler(ldmsd_req_ctxt_t req_ctxt);
-//static int plugn_list_handler(ldmsd_req_ctxt_t req_ctxt);
 //static int plugn_sets_handler(ldmsd_req_ctxt_t req_ctxt);
 //static int plugn_usage_handler(ldmsd_req_ctxt_t req_ctxt);
 //static int plugn_query_handler(ldmsd_req_ctxt_t req_ctxt);
@@ -281,6 +281,7 @@ static struct obj_handler_entry cmd_obj_handler_tbl[] = {
 		{ "example", 	example_handler, 	XALL },
 		{ "greeting",	greeting_handler,	XALL },
 		{ "include",	include_handler,	XUG },
+		{ "plugin_list",	plugin_list_handler,	XALL },
 		{ "plugin_status",	plugin_status_handler,	XALL },
 		{ "prdcr_set_status",	prdcr_set_status_handler, XALL },
 		{ "prdcr_status",	prdcr_status_handler,	XALL },
@@ -3911,67 +3912,78 @@ static int plugin_instance_handler(ldmsd_req_ctxt_t reqc)
 //	return rc;
 //}
 //
-//extern struct plugin_list plugin_list;
-//int __plugn_list_string(ldmsd_req_ctxt_t reqc)
-//{
-//	char *plugin;
-//	const char *desc;
-//	int rc, count = 0;
-//	ldmsd_plugin_inst_t inst;
-//	rc = 0;
-//
-//	plugin = ldmsd_req_attr_str_value_get_by_id(reqc, LDMSD_ATTR_PLUGIN);
-//	LDMSD_PLUGIN_INST_FOREACH(inst) {
-//		if (plugin && strcmp(plugin, inst->type_name)
-//			   && strcmp(plugin, inst->plugin_name)) {
-//			/* does not match type nor plugin name */
-//			continue;
-//		}
-//		desc = ldmsd_plugin_inst_desc(inst);
-//		if (!desc)
-//			desc = inst->plugin_name;
-//		rc = linebuf_printf(reqc, "%s - %s\n", inst->inst_name, desc);
-//		if (rc)
-//			goto out;
-//		count++;
-//	}
-//
-//	if (!count) {
-//		rc = linebuf_printf(reqc, "-- No plugin instances --");
-//		reqc->errcode = ENOENT;
-//	}
-//out:
-//	if (plugin)
-//		free(plugin);
-//	return rc;
-//}
-//
-//static int plugn_list_handler(ldmsd_req_ctxt_t reqc)
-//{
-//	int rc;
-//	struct ldmsd_req_attr_s attr;
-//
-//	rc = __plugn_list_string(reqc);
-//	if (rc)
-//		return rc;
-//
-//	attr.discrim = 1;
-//	attr.attr_len = reqc->recv_off;
-//	attr.attr_id = LDMSD_ATTR_STRING;
-//	ldmsd_hton_req_attr(&attr);
-//	rc = ldmsd_append_reply(reqc, (char *)&attr, sizeof(attr),
-//				LDMSD_REC_SOM_F);
-//	if (rc)
-//		return rc;
-//	rc = ldmsd_append_reply(reqc, reqc->recv_buf, reqc->recv_off, 0);
-//	if (rc)
-//		return rc;
-//	attr.discrim = 0;
-//	rc = ldmsd_append_reply(reqc, (char *)&attr.discrim, sizeof(uint32_t),
-//				LDMSD_REC_EOM_F);
-//	return rc;
-//}
-//
+extern struct plugin_list plugin_list;
+int __plugn_list_string(ldmsd_req_ctxt_t reqc)
+{
+	json_entity_t spec, plugin;
+	char *plugin_s = NULL;;
+	const char *desc;
+	int rc, count = 0;
+	ldmsd_plugin_inst_t inst;
+	rc = 0;
+
+	spec = json_value_find(reqc->json, "spec");
+	if (spec) {
+		plugin = json_value_find(spec, "plugin");
+		if (plugin) {
+			if (JSON_STRING_VALUE != json_entity_type(plugin)) {
+				return ldmsd_send_type_error(reqc,
+					"cfg_obj:plugin_list:plugin", "a string");
+			}
+			plugin_s = json_value_str(plugin)->str;
+		}
+	}
+
+	LDMSD_PLUGIN_INST_FOREACH(inst) {
+		if (plugin_s && strcmp(plugin_s, inst->type_name)
+			   && strcmp(plugin_s, inst->plugin_name)) {
+			/* does not match type nor plugin name */
+			continue;
+		}
+		if (count) {
+			rc = ldmsd_append_response(reqc, 0, ",", 1);
+			if (rc)
+				return rc;
+		}
+		desc = ldmsd_plugin_inst_desc(inst);
+		if (!desc)
+			desc = inst->plugin_name;
+		rc = ldmsd_append_response_va(reqc, 0,
+				"{\"%s\": \"%s\"}", inst->inst_name, desc);
+		if (rc)
+			goto out;
+		count++;
+	}
+
+	if (!count) {
+		if (plugin) {
+			return ldmsd_send_error(reqc, ENOENT,
+					"cmd_obj:plugin_list - "
+					"Plugin instance '%s' not found.",
+					plugin_s);
+		}
+	}
+out:
+	return rc;
+}
+
+static int plugin_list_handler(ldmsd_req_ctxt_t reqc)
+{
+	int rc;
+
+	rc = ldmsd_append_info_obj_hdr(reqc, "plugin_list");
+	if (rc)
+		return rc;
+	rc = ldmsd_append_response(reqc, 0, "[", 1);
+	if (rc)
+		return rc;
+
+	rc = __plugn_list_string(reqc);
+	if (rc)
+		return rc;
+	return ldmsd_append_response(reqc, LDMSD_REC_EOM_F, "]}", 2);
+}
+
 //static int plugn_usage_handler(ldmsd_req_ctxt_t reqc)
 //{
 //	int rc = 0;
