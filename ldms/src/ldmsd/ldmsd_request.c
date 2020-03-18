@@ -164,6 +164,7 @@ static int example_handler(ldmsd_req_ctxt_t req_ctxt);
 static int greeting_handler(ldmsd_req_ctxt_t req_ctxt);
 static int include_handler(ldmsd_req_ctxt_t req_ctxt);
 static int plugin_list_handler(ldmsd_req_ctxt_t reqc);
+static int plugin_sets_handler(ldmsd_req_ctxt_t reqc);
 static int plugin_status_handler(ldmsd_req_ctxt_t reqc);
 static int prdcr_set_status_handler(ldmsd_req_ctxt_t reqc);
 static int prdcr_status_handler(ldmsd_req_ctxt_t reqc);
@@ -196,7 +197,6 @@ static int strgp_action_handler(ldmsd_req_ctxt_t reqc);
 static int updtr_action_handler(ldmsd_req_ctxt_t reqc);
 
 //static int prdcr_subscribe_regex_handler(ldmsd_req_ctxt_t req_ctxt);
-//static int plugn_sets_handler(ldmsd_req_ctxt_t req_ctxt);
 //static int plugn_usage_handler(ldmsd_req_ctxt_t req_ctxt);
 //static int plugn_query_handler(ldmsd_req_ctxt_t req_ctxt);
 //static int set_udata_handler(ldmsd_req_ctxt_t req_ctxt);
@@ -282,6 +282,7 @@ static struct obj_handler_entry cmd_obj_handler_tbl[] = {
 		{ "greeting",	greeting_handler,	XALL },
 		{ "include",	include_handler,	XUG },
 		{ "plugin_list",	plugin_list_handler,	XALL },
+		{ "plugin_sets",	plugin_sets_handler,	XALL },
 		{ "plugin_status",	plugin_status_handler,	XALL },
 		{ "prdcr_set_status",	prdcr_set_status_handler, XALL },
 		{ "prdcr_status",	prdcr_status_handler,	XALL },
@@ -4059,112 +4060,95 @@ static int plugin_list_handler(ldmsd_req_ctxt_t reqc)
 //		ldmsd_plugin_inst_put(inst); /* put ref from find */
 //	return rc;
 //}
-//
-///* Caller must hold the set tree lock. */
-//int __plugn_sets_json_obj(ldmsd_req_ctxt_t reqc,
-//				ldmsd_plugin_inst_t inst)
-//{
-//	ldmsd_set_entry_t ent;
-//	ldmsd_sampler_type_t samp = (void*)inst->base;
-//	int rc, set_count;
-//	rc = linebuf_printf(reqc,
-//			"{"
-//			"\"plugin\":\"%s\","
-//			"\"sets\":[",
-//			inst->inst_name);
-//	if (rc)
-//		return rc;
-//	set_count = 0;
-//	LIST_FOREACH(ent, &samp->set_list, entry) {
-//		if (set_count) {
-//			linebuf_printf(reqc, ",\"%s\"",
-//				       ldms_set_instance_name_get(ent->set));
-//		} else {
-//			linebuf_printf(reqc, "\"%s\"",
-//				       ldms_set_instance_name_get(ent->set));
-//		}
-//		set_count++;
-//		if (rc)
-//			return rc;
-//	}
-//	rc = linebuf_printf(reqc, "]}");
-//	return rc;
-//}
-//
-//static int plugn_sets_handler(ldmsd_req_ctxt_t reqc)
-//{
-//	int rc = 0;
-//	struct ldmsd_req_attr_s attr;
-//
-//	char *name;
-//	int plugn_count;
-//	ldmsd_plugin_inst_t inst;
-//
-//	rc = linebuf_printf(reqc, "[");
-//	if (rc)
-//		goto err;
-//	name = ldmsd_req_attr_str_value_get_by_id(reqc, LDMSD_ATTR_NAME);
-//	if (name) {
-//		inst = ldmsd_plugin_inst_find(name);
-//		if (!inst) {
-//			snprintf(reqc->recv_buf, reqc->recv_len,
-//					"Plugin instance '%s' not found",
-//					name);
-//			reqc->errcode = ENOENT;
-//			goto err0;
-//		}
-//		rc = __plugn_sets_json_obj(reqc, inst);
-//		ldmsd_plugin_inst_put(inst);
-//		if (rc)
-//			goto err;
-//	} else {
-//		plugn_count = 0;
-//		LDMSD_PLUGIN_INST_FOREACH(inst) {
-//			if (strcmp(inst->type_name, "sampler"))
-//				continue; /* skip non-sampler instance */
-//			if (plugn_count) {
-//				rc = linebuf_printf(reqc, ",");
-//				if (rc)
-//					goto err;
-//			}
-//			rc = __plugn_sets_json_obj(reqc, inst);
-//			if (rc)
-//				goto err;
-//			plugn_count += 1;
-//		}
-//	}
-//	rc = linebuf_printf(reqc, "]");
-//	if (rc)
-//		goto err;
-//
-//	attr.discrim = 1;
-//	attr.attr_len = reqc->recv_off;
-//	attr.attr_id = LDMSD_ATTR_JSON;
-//	ldmsd_hton_req_attr(&attr);
-//	rc = ldmsd_append_reply(reqc, (char *)&attr, sizeof(attr),
-//				LDMSD_REC_SOM_F);
-//	if (rc)
-//		return rc;
-//	rc = ldmsd_append_reply(reqc, reqc->recv_buf, reqc->recv_off, 0);
-//	if (rc)
-//		return rc;
-//	attr.discrim = 0;
-//	rc = ldmsd_append_reply(reqc, (char *)&attr.discrim, sizeof(uint32_t),
-//				LDMSD_REC_EOM_F);
-//	return rc;
-//
-//err:
-//	ldmsd_send_error_reply(reqc->xprt, reqc->rec_no, rc,
-//						"internal error", 15);
-//	goto out;
-//err0:
-//	if (name)
-//		free(name);
-//	ldmsd_send_req_response(reqc, reqc->recv_buf);
-//	goto out;
-//out:
-//	return rc;
-//}
+
+/* Caller must hold the set tree lock. */
+int __plugn_sets_json_obj(ldmsd_req_ctxt_t reqc,
+				ldmsd_plugin_inst_t inst)
+{
+	ldmsd_set_entry_t ent;
+	ldmsd_sampler_type_t samp = (void*)inst->base;
+	int rc, set_count;
+	rc = ldmsd_append_response_va(reqc, 0,
+			"{"
+			"\"plugin\":\"%s\","
+			"\"sets\":[",
+			inst->inst_name);
+	if (rc)
+		return rc;
+	set_count = 0;
+	LIST_FOREACH(ent, &samp->set_list, entry) {
+		if (set_count) {
+			rc = ldmsd_append_response(reqc, 0, ",", 1);
+			if (rc)
+				return rc;
+		}
+		rc = ldmsd_append_response_va(reqc, 0, "\"%s\"",
+			       ldms_set_instance_name_get(ent->set));
+		if (rc)
+			return rc;
+		set_count++;
+	}
+	return ldmsd_append_response(reqc, 0, "]}", 2);
+}
+
+static int plugin_sets_handler(ldmsd_req_ctxt_t reqc)
+{
+	int rc = 0;
+	json_entity_t spec, plugin;
+	char *name = NULL;
+	int plugn_count;
+	ldmsd_plugin_inst_t inst;
+
+	rc = ldmsd_append_info_obj_hdr(reqc, "plugn_sets");
+	if (rc)
+		return rc;
+
+	rc = ldmsd_append_response(reqc, 0, "[", 1);
+	if (rc)
+		return rc;
+	spec = json_value_find(reqc->json, "spec");
+	if (spec) {
+		plugin = json_value_find(spec, "plugin");
+		if (plugin) {
+			if (JSON_STRING_VALUE != json_entity_type(plugin))
+				return ldmsd_send_type_error(reqc,
+					"cmd_obj:plugin_sets:spec:plugin", "a string");
+			name = json_value_str(plugin)->str;
+		}
+	}
+	if (name) {
+		inst = ldmsd_plugin_inst_find(name);
+		if (!inst) {
+			return ldmsd_send_error(reqc, ENOENT, "cmd_obj:plugin_sets - "
+					"Plugin instance '%s' not found", name);
+		}
+		rc = __plugn_sets_json_obj(reqc, inst);
+		ldmsd_plugin_inst_put(inst);
+		if (rc)
+			return rc;
+	} else {
+		plugn_count = 0;
+		LDMSD_PLUGIN_INST_FOREACH(inst) {
+			if (strcmp(inst->type_name, "sampler"))
+				continue; /* skip non-sampler instance */
+			if (plugn_count) {
+				rc = ldmsd_append_response(reqc, 0, ",", 1);
+				if (rc) {
+					ldmsd_plugin_inst_put(inst);
+					return rc;
+				}
+			}
+			rc = __plugn_sets_json_obj(reqc, inst);
+			if (rc) {
+				ldmsd_plugin_inst_put(inst);
+				return rc;
+			}
+
+			plugn_count += 1;
+		}
+	}
+	return ldmsd_append_response(reqc, LDMSD_REC_EOM_F, "]}", 2);
+}
 //
 //extern int ldmsd_set_udata(const char *set_name, const char *metric_name,
 //			   const char *udata_s, ldmsd_sec_ctxt_t sctxt);
