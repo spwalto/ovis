@@ -162,7 +162,16 @@ struct obj_handler_entry {
  */
 static int example_handler(ldmsd_req_ctxt_t req_ctxt);
 static int greeting_handler(ldmsd_req_ctxt_t req_ctxt);
+static int include_handler(ldmsd_req_ctxt_t req_ctxt);
 static int set_route_handler(ldmsd_req_ctxt_t req_ctxt);
+
+/*
+ * Configuration object handlers
+ */
+static int auth_handler(ldmsd_req_ctxt_t reqc);
+static int daemon_handler(ldmsd_req_ctxt_t reqc);
+static int listen_handler(ldmsd_req_ctxt_t reqc);
+static int plugin_instance_handler(ldmsd_req_ctxt_t reqc);
 
 //static int smplr_add_handler(ldmsd_req_ctxt_t req_ctxt);
 //static int smplr_del_handler(ldmsd_req_ctxt_t req_ctxt);
@@ -197,9 +206,6 @@ static int set_route_handler(ldmsd_req_ctxt_t req_ctxt);
 //static int updtr_stop_handler(ldmsd_req_ctxt_t req_ctxt);
 //static int updtr_status_handler(ldmsd_req_ctxt_t req_ctxt);
 //static int plugn_status_handler(ldmsd_req_ctxt_t req_ctxt);
-//static int plugn_load_handler(ldmsd_req_ctxt_t req_ctxt);
-//static int plugn_term_handler(ldmsd_req_ctxt_t req_ctxt);
-//static int plugn_config_handler(ldmsd_req_ctxt_t req_ctxt);
 //static int plugn_list_handler(ldmsd_req_ctxt_t req_ctxt);
 //static int plugn_sets_handler(ldmsd_req_ctxt_t req_ctxt);
 //static int plugn_usage_handler(ldmsd_req_ctxt_t req_ctxt);
@@ -210,15 +216,13 @@ static int set_route_handler(ldmsd_req_ctxt_t req_ctxt);
 //static int daemon_status_handler(ldmsd_req_ctxt_t reqc);
 //static int version_handler(ldmsd_req_ctxt_t reqc);
 //static int env_handler(ldmsd_req_ctxt_t req_ctxt);
-static int include_handler(ldmsd_req_ctxt_t req_ctxt);
 //static int oneshot_handler(ldmsd_req_ctxt_t req_ctxt);
 //static int logrotate_handler(ldmsd_req_ctxt_t req_ctxt);
 //static int exit_daemon_handler(ldmsd_req_ctxt_t req_ctxt);
 //static int unimplemented_handler(ldmsd_req_ctxt_t req_ctxt);
 //static int eperm_handler(ldmsd_req_ctxt_t req_ctxt);
 //static int ebusy_handler(ldmsd_req_ctxt_t reqc);
-static int daemon_handler(ldmsd_req_ctxt_t reqc);
-static int listen_handler(ldmsd_req_ctxt_t reqc);
+
 //static int export_config_handler(ldmsd_req_ctxt_t reqc);
 //
 ///* these are implemented in ldmsd_failover.c */
@@ -247,7 +251,6 @@ static int listen_handler(ldmsd_req_ctxt_t reqc);
 //static int stream_publish_handler(ldmsd_req_ctxt_t req_ctxt);
 //static int stream_subscribe_handler(ldmsd_req_ctxt_t reqc);
 //
-static int auth_handler(ldmsd_req_ctxt_t reqc);
 //static int auth_del_handler(ldmsd_req_ctxt_t reqc);
 
 /* executable for all */
@@ -268,11 +271,11 @@ static int handler_entry_comp(const void *a, const void *b)
  * TODO: Fill in the flag field of all obj_handler_entry in all tables.
  */
 static struct obj_handler_entry cfg_obj_handler_tbl[] = {
-		{ "auth",	auth_handler,		XUG },
+		{ "auth",		auth_handler,			XUG },
 //		{ "env",	env_handler    },
-		{ "daemon",	daemon_handler,		XUG },
-		{ "listen",	listen_handler,		XUG },
-//		{ "plugin_instance", /* TODO: fill this */ },
+		{ "daemon",		daemon_handler,			XUG },
+		{ "listen",		listen_handler,			XUG },
+		{ "plugin_instance",	plugin_instance_handler,	XUG },
 //		{ "smplr",	smplr_add_handler },
 //		{ "prdcr",	prdcr_add_handler },
 //		{ "updtr",	updtr_add_handler },
@@ -4035,37 +4038,141 @@ out:
 //	return rc;
 //}
 //
-//static int plugn_load_handler(ldmsd_req_ctxt_t reqc)
-//{
-//	char *plugin_name, *inst_name, *attr_name;
-//	plugin_name = NULL;
-//
-//	attr_name = "name";
-//	inst_name = ldmsd_req_attr_str_value_get_by_id(reqc, LDMSD_ATTR_NAME);
-//	if (!inst_name)
-//		goto einval;
-//
-//	attr_name = "plugin";
-//	plugin_name = ldmsd_req_attr_str_value_get_by_id(reqc, LDMSD_ATTR_PLUGIN);
-//
-//	reqc->errcode = ldmsd_load_plugin(inst_name,
-//					  plugin_name?plugin_name:inst_name,
-//					  reqc->recv_buf, reqc->recv_len);
-//	goto send_reply;
-//
-//einval:
-//	reqc->errcode = EINVAL;
-//	Snprintf(&reqc->recv_buf, &reqc->recv_len,
-//			"The attribute '%s' is required by load.", attr_name);
-//send_reply:
-//	ldmsd_send_req_response(reqc, reqc->recv_buf);
-//	if (plugin_name)
-//		free(plugin_name);
-//	if (inst_name)
-//		free(inst_name);
-//	return 0;
-//}
-//
+
+static int plugin_instance_handler(ldmsd_req_ctxt_t reqc)
+{
+	int rc = 0;
+	json_entity_t spec, plugin, name, config, item;
+	ldmsd_plugin_inst_t pi;
+	char *plugin_s, *name_s;
+
+	spec = json_value_find(reqc->json, "spec");
+	name = json_value_find(spec, "name");
+	if (!name) {
+		rc = ldmsd_send_missing_attr_err(reqc, "cfg_obj:plugin_instance", "name");
+		return rc;
+	}
+	if (JSON_STRING_VALUE != json_entity_type(name)) {
+		rc = ldmsd_send_type_error(reqc, "plugin_instance:name", "a string");
+		return rc;
+	}
+	name_s = json_value_str(name)->str;
+
+
+	plugin = json_value_find(spec, "plugin");
+	if (!plugin) {
+		plugin_s = name_s;
+	} else if (JSON_STRING_VALUE != json_entity_type(plugin)) {
+		rc = ldmsd_send_type_error(reqc, "plugin_instance:plugin", "a string");
+		return rc;
+	} else {
+		plugin_s = json_value_str(plugin)->str;
+	}
+
+	config = json_value_find(spec, "config");
+	if (!config) {
+		rc = ldmsd_send_missing_attr_err(reqc,
+				"cfg_obj:plugin_instance", "config");
+		return rc;
+	}
+	if ((JSON_DICT_VALUE != json_entity_type(config)) &&
+			(JSON_LIST_VALUE != json_entity_type(config))) {
+		/*
+		 * The JSON_LIST_VALUE is supported because some plugins
+		 * need to be configured multiple times in some setup, e.g.,
+		 * test_sampler. These plugins MUST be redesigned on how they
+		 * should be configured.
+		 */
+		rc = ldmsd_send_type_error(reqc, "plugin_instance:config",
+				"a dictionary or a list of dictionaries");
+		return rc;
+	}
+	/* reuse the receive buffer for an underlying error message */
+	ldmsd_req_buf_reset(reqc->recv_buf);
+
+	pi = ldmsd_plugin_inst_load(name_s, plugin_s,
+			reqc->recv_buf->buf, reqc->recv_buf->len);
+	if (!pi) {
+		rc = ldmsd_send_error(reqc, errno, "%s", reqc->recv_buf->buf);
+		return rc;
+	}
+
+	/* Add the config dictionary */
+	/*
+	 * TODO: resolve this.
+	 *
+	 * Is it possible that a plugin instance will need multiple config object?
+	 * I hope not. Any plugin that is required to be configured with multiple
+	 * config lines should be re-designed so that all information will be
+	 * contained in the plugin instance cfgobj.
+	 *
+	 * Before this change, the config json object of a plugin instance
+	 * is designed to be a list of dictionary. Each dictionary represents
+	 * a config line.
+	 *
+	 * TODO: change the list of dictionaries design to be just a dictionary.
+	 *
+	 */
+	if (JSON_LIST_VALUE == json_entity_type(config)) {
+		for (item = json_item_first(config); item; item = json_item_next(item)) {
+			if (JSON_DICT_VALUE != json_entity_type(item)) {
+				return ldmsd_send_type_error(reqc,
+					"cfg_obj:plugin_instance:config",
+					"a dictionary or a list of dictionaries.");
+			}
+		}
+	}
+
+	/*
+	 * TODO: I hate this. I need to defer configuring plugin instances
+	 * because sampler plugins create LDMS sets at config time.
+	 *
+	 * I strongly believe that the sampler plugin interface should
+	 * include 'start()' which will create LDMS sets as configured and schedule
+	 * the next sampling.
+	 *
+	 * The 'start()' will be called when the corresponding sampler policy
+	 * is started.
+	 */
+	if (!ldmsd_is_initialized()) {
+		ldmsd_deferred_pi_config_t cfg;
+		cfg = ldmsd_deferred_pi_config_new(name_s, config,
+							reqc->rem_key.msg_no,
+							reqc->xprt->file.filename);
+		if (!cfg) {
+			ldmsd_log(LDMSD_LCRITICAL, "Out of memory\n");
+			return ENOMEM;
+		}
+	} else {
+		if (JSON_LIST_VALUE == json_entity_type(config)) {
+			for (item = json_item_first(config); item;
+					item = json_item_next(item)) {
+				rc = ldmsd_plugin_inst_config(pi, item,
+							reqc->recv_buf->buf,
+							reqc->recv_buf->len);
+				/*
+				 * Send the config error to the requester.
+				 */
+				if (rc) {
+					rc = ldmsd_send_error(reqc, rc, "%s",
+							reqc->recv_buf->buf);
+					return rc;
+				}
+			}
+		} else {
+			rc = ldmsd_plugin_inst_config(pi, config,
+					reqc->recv_buf->buf, reqc->recv_buf->len);
+			if (rc) {
+				rc = ldmsd_send_error(reqc, rc, "%s",
+						reqc->recv_buf->buf);
+				return rc;
+			}
+		}
+
+	}
+	return rc;
+}
+
 //static int plugn_term_handler(ldmsd_req_ctxt_t reqc)
 //{
 //	char *plugin_name, *attr_name;

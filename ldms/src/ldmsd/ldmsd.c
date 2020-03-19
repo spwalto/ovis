@@ -1720,8 +1720,13 @@ int main(int argc, char *argv[])
 		}
 	}
 
+	int rc;
+
 	ldmsd_init();
-	ldmsd_handle_deferred_plugin_config();
+	rc = ldmsd_handle_plugin_config();
+	if (rc && !ldmsd_is_check_syntax()) {
+		cleanup(rc, "Failed to process a plugin instance configuration");
+	}
 
 	if (cmd_line_args.is_syntax_check) {
 		try_creating_default_auth();
@@ -1746,14 +1751,14 @@ int main(int argc, char *argv[])
 //		}
 	} else {
 		/* we can start cfgobjs right away */
-//		ret = ldmsd_ourcfg_start_proc();
-//		if (ret) {
-//			ldmsd_log(LDMSD_LERROR,
-//				  "config start failed, rc: %d\n", ret);
-//			cleanup(100, "config start failed");
-//		}
-//		ldmsd_linfo("Enabling in-band config\n");
-//		ldmsd_inband_cfg_mask_add(0777);
+		ret = ldmsd_ourcfg_start_proc();
+		if (ret) {
+			ldmsd_log(LDMSD_LERROR,
+				  "config start failed, rc: %d\n", ret);
+			cleanup(100, "config start failed");
+		}
+		ldmsd_linfo("Enabling in-band config\n");
+		ldmsd_inband_cfg_mask_add(0777);
 	}
 
 	/* Keep the process alive */

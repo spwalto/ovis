@@ -311,10 +311,10 @@ static void __config_file_msgno_get(uint64_t file_no, uint32_t obj_cnt,
 	key_->conn_id = file_no;
 }
 
-static uint16_t __config_file_msgno2lineno(uint32_t msgno)
-{
-	return msgno & 0xFFFF;
-}
+//static uint16_t __config_file_msgno2lineno(uint32_t msgno)
+//{
+//	return msgno & 0xFFFF;
+//}
 
 static int log_response_fn(ldmsd_cfg_xprt_t xprt, char *data, size_t data_len)
 {
@@ -904,25 +904,31 @@ out:
 	return rc;
 }
 
-//int __our_cfgobj_filter(ldmsd_cfgobj_t obj)
-//{
+int __our_cfgobj_filter(ldmsd_cfgobj_t obj)
+{
 //	if (!cfgobj_is_failover(obj) && (obj->perm & LDMSD_PERM_DSTART))
 //		return 0;
 //	return -1;
-//}
+	/*
+	 * TODO: TEMP
+	 */
+	if (obj->perm & LDMSD_PERM_DSTART)
+		return 0;
+	return -1;
+}
 
 /*
  * ldmsd config start prodcedure
  */
-//int ldmsd_ourcfg_start_proc()
-//{
-//	int rc;
-//	rc = ldmsd_cfgobjs_start(__our_cfgobj_filter);
-//	if (rc) {
-//		exit(100);
-//	}
-//	return 0;
-//}
+int ldmsd_ourcfg_start_proc()
+{
+	int rc;
+	rc = ldmsd_cfgobjs_start(__our_cfgobj_filter);
+	if (rc) {
+		exit(100);
+	}
+	return 0;
+}
 
 static inline void __log_sent_req(ldmsd_cfg_xprt_t xprt, ldmsd_rec_hdr_t req)
 {
@@ -1057,27 +1063,45 @@ int listen_on_ldms_xprt(ldmsd_listen_t listen)
 	return 0;
 }
 
-int ldmsd_handle_deferred_plugin_config()
+int ldmsd_handle_plugin_config()
 {
 	struct ldmsd_deferred_pi_config *cfg, *nxt_cfg;
 	ldmsd_plugin_inst_t inst;
+	json_entity_t item;
 	int rc;
-	uint16_t lineno;
 	cfg = ldmsd_deferred_pi_config_first();
 	while (cfg) {
 		nxt_cfg = ldmsd_deffered_pi_config_next(cfg);
-		lineno = __config_file_msgno2lineno(cfg->msg_no);
 		inst = ldmsd_plugin_inst_find(cfg->name);
-		rc = ldmsd_plugin_inst_config(inst, cfg->d, cfg->buf, cfg->buflen);
-		if (rc) {
-			jbuf_t jb = json_entity_dump(NULL, cfg->d);
-			ldmsd_log(LDMSD_LERROR, "At line %d (%s): "
-					"Error config plugin instance "
-					"'%s': %s\n", lineno, cfg->config_file,
-					cfg->name, cfg->buf);
-			jbuf_free(jb);
-			if (!ldmsd_is_check_syntax())
-				return rc;
+		if (JSON_LIST_VALUE == json_entity_type(cfg->config)) {
+			for (item = json_item_first(cfg->config); item;
+					item = json_item_next(item)) {
+				rc = ldmsd_plugin_inst_config(inst, item,
+						cfg->buf, cfg->buflen);
+				if (rc) {
+					jbuf_t jb = json_entity_dump(NULL, cfg->config);
+					ldmsd_log(LDMSD_LERROR, "%s: Error %d:"
+							"Error config plugin instance "
+							"'%s': %s\n", cfg->config_file,
+							rc,  cfg->name, cfg->buf);
+					jbuf_free(jb);
+					if (!ldmsd_is_check_syntax())
+						return rc;
+				}
+			}
+		} else {
+			rc = ldmsd_plugin_inst_config(inst, cfg->config, cfg->buf, cfg->buflen);
+			if (rc) {
+				jbuf_t jb = json_entity_dump(NULL, cfg->config);
+				ldmsd_log(LDMSD_LERROR, "%s: Error %d:"
+						"Error config plugin instance "
+						"'%s': %s\n", cfg->config_file,
+						rc,  cfg->name, cfg->buf);
+				jbuf_free(jb);
+				if (!ldmsd_is_check_syntax())
+					return rc;
+			}
+
 		}
 		ldmsd_deferred_pi_config_free(cfg);
 		cfg = nxt_cfg;
