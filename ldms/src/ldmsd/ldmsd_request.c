@@ -167,6 +167,7 @@ static int plugin_list_handler(ldmsd_req_ctxt_t reqc);
 static int plugin_query_handler(ldmsd_req_ctxt_t reqc);
 static int plugin_sets_handler(ldmsd_req_ctxt_t reqc);
 static int plugin_status_handler(ldmsd_req_ctxt_t reqc);
+static int plugin_usage_handler(ldmsd_req_ctxt_t reqc);
 static int prdcr_set_status_handler(ldmsd_req_ctxt_t reqc);
 static int prdcr_status_handler(ldmsd_req_ctxt_t reqc);
 static int set_route_handler(ldmsd_req_ctxt_t req_ctxt);
@@ -198,7 +199,6 @@ static int strgp_action_handler(ldmsd_req_ctxt_t reqc);
 static int updtr_action_handler(ldmsd_req_ctxt_t reqc);
 
 //static int prdcr_subscribe_regex_handler(ldmsd_req_ctxt_t req_ctxt);
-//static int plugn_usage_handler(ldmsd_req_ctxt_t req_ctxt);
 //static int set_udata_handler(ldmsd_req_ctxt_t req_ctxt);
 //static int set_udata_regex_handler(ldmsd_req_ctxt_t req_ctxt);
 //static int verbosity_change_handler(ldmsd_req_ctxt_t reqc);
@@ -285,6 +285,7 @@ static struct obj_handler_entry cmd_obj_handler_tbl[] = {
 		{ "plugin_query",	plugin_query_handler,	XALL },
 		{ "plugin_sets",	plugin_sets_handler,	XALL },
 		{ "plugin_status",	plugin_status_handler,	XALL },
+		{ "plugin_usage",	plugin_usage_handler,	XALL },
 		{ "prdcr_set_status",	prdcr_set_status_handler, XALL },
 		{ "prdcr_status",	prdcr_status_handler,	XALL },
 		{ "set_route",	set_route_handler, 	XUG },
@@ -3980,81 +3981,145 @@ static int plugin_list_handler(ldmsd_req_ctxt_t reqc)
 	return ldmsd_append_response(reqc, LDMSD_REC_EOM_F, "]}", 2);
 }
 
-//static int plugn_usage_handler(ldmsd_req_ctxt_t reqc)
-//{
-//	int rc = 0;
-//	char *name = NULL;
-//	char *type = NULL;
-//	const char *usage = NULL;
-//	ldmsd_plugin_inst_t inst = NULL;
-//
-//	name = ldmsd_req_attr_str_value_get_by_id(reqc, LDMSD_ATTR_NAME);
-//	if (name) {
-//		inst = ldmsd_plugin_inst_find(name);
-//		if (!inst) {
-//			rc = reqc->errcode = ENOENT;
-//			snprintf(reqc->recv_buf, reqc->recv_len,
-//				 "Plugin instance `%s` not found.", name);
-//			goto send_reply;
-//		}
-//		usage = ldmsd_plugin_inst_help(inst);
-//		if (!usage) {
-//			rc = reqc->errcode = ENOSYS;
-//			snprintf(reqc->recv_buf, reqc->recv_len,
-//				 "`%s` has no usage", name);
-//			goto send_reply;
-//		}
-//		linebuf_printf(reqc, "%s\n", usage);
-//	}
-//
-//	type = ldmsd_req_attr_str_value_get_by_id(reqc, LDMSD_ATTR_TYPE);
-//	if (type) {
-//		if (0 == strcmp(type, "true")) {
-//			if (!name) {
-//				reqc->errcode = EINVAL;
-//				snprintf(reqc->recv_buf, reqc->recv_len,
-//						"The 'name' must be given if type=true");
-//				goto send_reply;
-//			}
-//			type = (char *)inst->type_name;
-//		}
-//		if (0 == strcmp(type, "sampler")) {
-//			usage = ldmsd_sampler_help();
-//			linebuf_printf(reqc, "\nCommon attributes of sampler plugin instances\n");
-//			linebuf_printf(reqc, "%s", usage);
-//		} else if (0 == strcmp(type, "store")) {
-//			usage = ldmsd_store_help();
-//			linebuf_printf(reqc, "\nCommon attributes of store plugin instance\n");
-//			linebuf_printf(reqc, "%s", usage);
-//		} else if (0 == strcmp(type, "all")) {
-//			usage = ldmsd_sampler_help();
-//			linebuf_printf(reqc, "\nCommon attributes of sampler plugin instances\n");
-//			linebuf_printf(reqc, "%s", usage);
-//
-//			usage = ldmsd_store_help();
-//			linebuf_printf(reqc, "\nCommon attributes of store plugin instance\n");
-//			linebuf_printf(reqc, "%s", usage);
-//		} else {
-//			reqc->errcode = EINVAL;
-//			snprintf(reqc->recv_buf, reqc->recv_len,
-//					"Invalid type value '%s'", type);
-//			goto send_reply;
-//		}
-//	}
-//
-//	if (!name && !type) {
-//		reqc->errcode = EINVAL;
-//		snprintf(reqc->recv_buf, reqc->recv_len, "Either 'name' or 'type' must be given.");
-//	}
-//
-// send_reply:
-//	ldmsd_send_req_response(reqc, reqc->recv_buf);
-//	if (name)
-//		free(name);
-//	if (inst)
-//		ldmsd_plugin_inst_put(inst); /* put ref from find */
-//	return rc;
-//}
+static int plugin_usage_handler(ldmsd_req_ctxt_t reqc)
+{
+	int rc = 0;
+	json_entity_t spec, value;
+	char *name = NULL;
+	char *type = NULL;
+	const char *usage = NULL;
+	char *str;
+	ldmsd_plugin_inst_t inst = NULL;
+
+	spec = json_value_find(reqc->json, "spec");
+	if (!spec) {
+		return ldmsd_send_missing_attr_err(reqc,
+				"cmd_obj:plugin_usage", "spec");
+	}
+
+	/* name */
+	value = json_value_find(spec, "name");
+	if (value) {
+		if (JSON_STRING_VALUE != json_entity_type(value)) {
+			return ldmsd_send_type_error(reqc,
+				"cmd_obj:plugin_usage:spec:name", "a string");
+		}
+		name = json_value_str(value)->str;
+	}
+
+	/* type */
+	value = json_value_find(spec, "type");
+	if (value) {
+		if (JSON_STRING_VALUE != json_entity_type(value)) {
+			return ldmsd_send_type_error(reqc,
+				"cmd_obj:plugin_usage:spec:type", "a string");
+		}
+		type = json_value_str(value)->str;
+	}
+
+	if (!name && !type) {
+		return ldmsd_send_error(reqc, EINVAL, "cmd_obj:plugin_query:spec - "
+				"Either 'name' or 'type' must be given.");
+	}
+
+	rc = ldmsd_append_info_obj_hdr(reqc, "plugin_usage");
+	if (rc)
+		return rc;
+
+	rc = ldmsd_append_response(reqc, 0, "{", 1);
+	if (rc)
+		return rc;
+
+	if (name) {
+		inst = ldmsd_plugin_inst_find(name);
+		if (!inst) {
+			return ldmsd_send_error(reqc, ENOENT,
+					"cmd_obj:plugin_usage - Plugin instance "
+					"'%s' not found.", name);
+		}
+		usage = ldmsd_plugin_inst_help(inst);
+		if (!usage) {
+			rc = ldmsd_send_error(reqc, ENOSYS, "cmd_obj:plugin_usage - "
+						"'%s' has no usage.", name);
+			goto out;
+		}
+		rc = ldmsd_append_response_va(reqc, 0, "\"%s\":\"%s\"", name, usage);
+		if (rc)
+			goto out;
+	}
+
+	if (type) {
+		if (name) {
+			rc = ldmsd_append_response(reqc, 0, ",", 1);
+			if (rc)
+				goto out;
+		}
+		if (0 == strcmp(type, "true")) {
+			if (!name) {
+				rc = ldmsd_send_error(reqc, EINVAL,
+					"cmd_obj:plugin_query - "
+					"The 'name' must be given "
+					"if 'type' is true.");
+				goto out;
+			}
+			type = (char *)inst->type_name;
+		}
+		if (0 == strcmp(type, "sampler")) {
+			usage = ldmsd_sampler_help();
+			str = "\"Common attributes of sampler plugin instances\":";
+			rc = ldmsd_append_response(reqc, 0, str, strlen(str));
+			if (rc)
+				goto out;
+			rc = ldmsd_append_response_va(reqc, 0, "%s", usage);
+			if (rc)
+				goto out;
+		} else if (0 == strcmp(type, "store")) {
+			usage = ldmsd_store_help();
+			str = "\"Common attributes of store plugin instance\":";
+			rc = ldmsd_append_response(reqc, 0, str, strlen(str));
+			if (rc)
+				goto out;
+			rc = ldmsd_append_response_va(reqc, 0, "%s", usage);
+			if (rc)
+				goto out;
+		} else if (0 == strcmp(type, "all")) {
+			usage = ldmsd_sampler_help();
+			str = "\"Common attributes of sampler plugin instances\":";
+			rc = ldmsd_append_response(reqc, 0, str, strlen(str));
+			if (rc)
+				goto out;
+			rc = ldmsd_append_response_va(reqc, 0, "%s", usage);
+			if (rc)
+				goto out;
+
+			rc = ldmsd_append_response(reqc, 0, ",", 1);
+			if (rc)
+				goto out;
+
+			usage = ldmsd_store_help();
+			str = "\"Common attributes of store plugin instance\":";
+			rc = ldmsd_append_response(reqc, 0, str, strlen(str));
+			if (rc)
+				goto out;
+			rc = ldmsd_append_response_va(reqc, 0, "%s", usage);
+			if (rc)
+				goto out;
+		} else {
+			rc = ldmsd_send_error(reqc, EINVAL,
+					"cmd_obj:plugin_usage - "
+					"Unrecognized type '%s'", type);
+			if (rc)
+				goto out;
+		}
+	}
+
+	rc = ldmsd_append_response(reqc, LDMSD_REC_EOM_F, "}}", 2);
+
+out:
+	if (inst)
+		ldmsd_plugin_inst_put(inst); /* put ref from find */
+	return rc;
+}
 
 /* Caller must hold the set tree lock. */
 int __plugn_sets_json_obj(ldmsd_req_ctxt_t reqc,
