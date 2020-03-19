@@ -97,7 +97,7 @@ int ldmsd_req_debug = 0; /* turn on / off using gdb or edit src to
 /*
  * TODO: Uncomment this when refactoring the quit handler
  */
-//static int cleanup_requested = 0;
+static int cleanup_requested = 0;
 
 void __ldmsd_log(enum ldmsd_loglevel level, const char *fmt, va_list ap);
 
@@ -161,6 +161,7 @@ struct obj_handler_entry {
  * Command object handlers
  */
 static int example_handler(ldmsd_req_ctxt_t req_ctxt);
+static int exit_daemon_handler(ldmsd_req_ctxt_t reqc);
 static int greeting_handler(ldmsd_req_ctxt_t req_ctxt);
 static int include_handler(ldmsd_req_ctxt_t req_ctxt);
 static int plugin_list_handler(ldmsd_req_ctxt_t reqc);
@@ -207,7 +208,6 @@ static int updtr_action_handler(ldmsd_req_ctxt_t reqc);
 //static int env_handler(ldmsd_req_ctxt_t req_ctxt);
 //static int oneshot_handler(ldmsd_req_ctxt_t req_ctxt);
 //static int logrotate_handler(ldmsd_req_ctxt_t req_ctxt);
-//static int exit_daemon_handler(ldmsd_req_ctxt_t req_ctxt);
 //static int unimplemented_handler(ldmsd_req_ctxt_t req_ctxt);
 //static int eperm_handler(ldmsd_req_ctxt_t req_ctxt);
 //static int ebusy_handler(ldmsd_req_ctxt_t reqc);
@@ -279,6 +279,7 @@ static struct obj_handler_entry cfg_obj_handler_tbl[] = {
 
 static struct obj_handler_entry cmd_obj_handler_tbl[] = {
 		{ "example", 	example_handler, 	XALL },
+		{ "exit_daemon",	exit_daemon_handler,	XUG },
 		{ "greeting",	greeting_handler,	XALL },
 		{ "include",	include_handler,	XUG },
 		{ "plugin_list",	plugin_list_handler,	XALL },
@@ -729,6 +730,7 @@ out:
 	return rc;
 }
 
+extern void cleanup(int x, char *reason);
 int ldmsd_process_msg_request(ldmsd_rec_hdr_t req, ldmsd_cfg_xprt_t xprt)
 {
 	ldmsd_req_ctxt_t reqc = NULL;
@@ -814,6 +816,9 @@ int ldmsd_process_msg_request(ldmsd_rec_hdr_t req, ldmsd_cfg_xprt_t xprt)
 	}
 
 	rc = ldmsd_process_json_obj(reqc);
+
+	if (cleanup_requested)
+		cleanup(0, "user quit");
 out:
 	return rc;
 
@@ -4676,16 +4681,18 @@ static int include_handler(ldmsd_req_ctxt_t reqc)
 //	ldmsd_send_req_response(reqc, reqc->recv_buf);
 //	return 0;
 //}
-//
-//static int exit_daemon_handler(ldmsd_req_ctxt_t reqc)
-//{
-//	cleanup_requested = 1;
-//	ldmsd_log(LDMSD_LINFO, "User requested exit.\n");
-//	Snprintf(&reqc->recv_buf, &reqc->recv_len,
-//				"exit daemon request received");
-//	ldmsd_send_req_response(reqc, reqc->recv_buf);
-//	return 0;
-//}
+
+static int exit_daemon_handler(ldmsd_req_ctxt_t reqc)
+{
+	int rc;
+	cleanup_requested = 1;
+	ldmsd_log(LDMSD_LINFO, "User requested exit.\n");
+	rc = ldmsd_append_info_obj_hdr(reqc, "exit_daemon");
+	if (rc)
+		return rc;
+	return ldmsd_append_response_va(reqc, LDMSD_REC_EOM_F, "%s",
+					"\"exit daemon request received.\"}");
+}
 
 extern size_t __get_remaining(size_t max_msg, ldmsd_req_buf_t buf);
 static int
