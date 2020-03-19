@@ -174,6 +174,7 @@ static int set_route_handler(ldmsd_req_ctxt_t req_ctxt);
 static int smplr_status_handler(ldmsd_req_ctxt_t reqc);
 static int strgp_status_handler(ldmsd_req_ctxt_t reqc);
 static int updtr_status_handler(ldmsd_req_ctxt_t reqc);
+static int verbosity_change_handler(ldmsd_req_ctxt_t reqc);
 
 /*
  * Configuration object handlers
@@ -201,7 +202,6 @@ static int updtr_action_handler(ldmsd_req_ctxt_t reqc);
 //static int prdcr_subscribe_regex_handler(ldmsd_req_ctxt_t req_ctxt);
 //static int set_udata_handler(ldmsd_req_ctxt_t req_ctxt);
 //static int set_udata_regex_handler(ldmsd_req_ctxt_t req_ctxt);
-//static int verbosity_change_handler(ldmsd_req_ctxt_t reqc);
 //static int daemon_status_handler(ldmsd_req_ctxt_t reqc);
 //static int version_handler(ldmsd_req_ctxt_t reqc);
 //static int env_handler(ldmsd_req_ctxt_t req_ctxt);
@@ -292,6 +292,7 @@ static struct obj_handler_entry cmd_obj_handler_tbl[] = {
 		{ "smplr_status",	smplr_status_handler,	XALL },
 		{ "strgp_status",	strgp_status_handler,	XALL },
 		{ "updtr_status",	updtr_status_handler,	XALL },
+		{ "verbosity_change",	verbosity_change_handler, XUG },
 };
 
 static struct obj_handler_entry act_obj_handler_tbl[] = {
@@ -4324,48 +4325,47 @@ static int plugin_sets_handler(ldmsd_req_ctxt_t reqc)
 //		free(inc_s);
 //	return 0;
 //}
-//
-//static int verbosity_change_handler(ldmsd_req_ctxt_t reqc)
-//{
-//	char *level_s = NULL;
-//	int is_test = 0;
-//
-//	level_s = ldmsd_req_attr_str_value_get_by_id(reqc, LDMSD_ATTR_LEVEL);
-//	if (!level_s) {
-//		reqc->errcode = EINVAL;
-//		Snprintf(&reqc->recv_buf, &reqc->recv_len,
-//				"The attribute 'level' is required.");
-//		goto out;
-//	}
-//
-//	int rc = ldmsd_loglevel_set(level_s);
-//	if (rc < 0) {
-//		reqc->errcode = EINVAL;
-//		Snprintf(&reqc->recv_buf, &reqc->recv_len,
-//				"Invalid verbosity level, expecting DEBUG, "
-//				"INFO, ERROR, CRITICAL and QUIET\n");
-//		goto out;
-//	}
-//
-//	if (ldmsd_req_attr_keyword_exist_by_id(reqc->req_buf, LDMSD_ATTR_TEST))
-//		is_test = 1;
-//
-//	if (is_test) {
-//		ldmsd_log(LDMSD_LDEBUG, "TEST DEBUG\n");
-//		ldmsd_log(LDMSD_LINFO, "TEST INFO\n");
-//		ldmsd_log(LDMSD_LWARNING, "TEST WARNING\n");
-//		ldmsd_log(LDMSD_LERROR, "TEST ERROR\n");
-//		ldmsd_log(LDMSD_LCRITICAL, "TEST CRITICAL\n");
-//		ldmsd_log(LDMSD_LALL, "TEST ALWAYS\n");
-//	}
-//
-//out:
-//	ldmsd_send_req_response(reqc, reqc->recv_buf);
-//	if (level_s)
-//		free(level_s);
-//	return 0;
-//}
-//
+
+static int verbosity_change_handler(ldmsd_req_ctxt_t reqc)
+{
+	char *level_s;
+	json_entity_t spec, level, test;
+
+	spec = json_value_find(reqc->json, "spec");
+	if (!spec) {
+		return ldmsd_send_missing_attr_err(reqc,
+				"cmd_obj:verbosity_change", "spec:level");
+	}
+	level = json_value_find(spec, "level");
+	if (!level) {
+		return ldmsd_send_missing_attr_err(reqc,
+				"cmd_obj:verbosity_change:spec", "level");
+	}
+	if (JSON_STRING_VALUE != json_entity_type(level)) {
+		return ldmsd_send_type_error(reqc,
+			"cmd_obj:verbosity_change:spec:level", "a string");
+	}
+	level_s = json_value_str(level)->str;
+	int rc = ldmsd_loglevel_set(level_s);
+	if (rc < 0) {
+		return ldmsd_send_error(reqc, EINVAL,
+				"Invalid verbosity level '%s', expecting DEBUG, "
+				"INFO, ERROR, CRITICAL and QUIET",
+				level_s);
+	}
+	test = json_value_find(spec, "test");
+	if (test) {
+		ldmsd_log(LDMSD_LDEBUG, "TEST DEBUG\n");
+		ldmsd_log(LDMSD_LINFO, "TEST INFO\n");
+		ldmsd_log(LDMSD_LWARNING, "TEST WARNING\n");
+		ldmsd_log(LDMSD_LERROR, "TEST ERROR\n");
+		ldmsd_log(LDMSD_LCRITICAL, "TEST CRITICAL\n");
+		ldmsd_log(LDMSD_LALL, "TEST ALWAYS\n");
+	}
+
+	return ldmsd_send_error(reqc, 0, NULL);
+}
+
 //int __daemon_status_json_obj(ldmsd_req_ctxt_t reqc)
 //{
 //	int rc = 0;
