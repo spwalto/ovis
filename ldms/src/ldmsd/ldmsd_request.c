@@ -176,6 +176,7 @@ static int smplr_status_handler(ldmsd_req_ctxt_t reqc);
 static int strgp_status_handler(ldmsd_req_ctxt_t reqc);
 static int updtr_status_handler(ldmsd_req_ctxt_t reqc);
 static int verbosity_change_handler(ldmsd_req_ctxt_t reqc);
+static int version_handler(ldmsd_req_ctxt_t reqc);
 
 /*
  * Configuration object handlers
@@ -204,7 +205,6 @@ static int updtr_action_handler(ldmsd_req_ctxt_t reqc);
 //static int set_udata_handler(ldmsd_req_ctxt_t req_ctxt);
 //static int set_udata_regex_handler(ldmsd_req_ctxt_t req_ctxt);
 //static int daemon_status_handler(ldmsd_req_ctxt_t reqc);
-//static int version_handler(ldmsd_req_ctxt_t reqc);
 //static int env_handler(ldmsd_req_ctxt_t req_ctxt);
 //static int oneshot_handler(ldmsd_req_ctxt_t req_ctxt);
 //static int logrotate_handler(ldmsd_req_ctxt_t req_ctxt);
@@ -294,6 +294,7 @@ static struct obj_handler_entry cmd_obj_handler_tbl[] = {
 		{ "strgp_status",	strgp_status_handler,	XALL },
 		{ "updtr_status",	updtr_status_handler,	XALL },
 		{ "verbosity_change",	verbosity_change_handler, XUG },
+		{ "version",	version_handler,		XALL },
 };
 
 static struct obj_handler_entry act_obj_handler_tbl[] = {
@@ -4423,28 +4424,32 @@ static int verbosity_change_handler(ldmsd_req_ctxt_t reqc)
 //	ldmsd_append_reply(reqc, (char *)&attr.discrim, sizeof(uint32_t), LDMSD_REC_EOM_F);
 //	return rc;
 //}
-//
-//static int version_handler(ldmsd_req_ctxt_t reqc)
-//{
-//	struct ldms_version ldms_version;
-//	struct ldmsd_version ldmsd_version;
-//
-//	ldms_version_get(&ldms_version);
-//	size_t cnt = snprintf(reqc->recv_buf, reqc->recv_len,
-//			"LDMS Version: %hhu.%hhu.%hhu.%hhu\n",
-//			ldms_version.major, ldms_version.minor,
-//			ldms_version.patch, ldms_version.flags);
-//
-//	ldmsd_version_get(&ldmsd_version);
-//	cnt += snprintf(&reqc->recv_buf[cnt], reqc->recv_len-cnt,
-//			"LDMSD Version: %hhu.%hhu.%hhu.%hhu",
-//			ldmsd_version.major, ldmsd_version.minor,
-//			ldmsd_version.patch, ldmsd_version.flags);
-//	ldmsd_send_req_response(reqc, reqc->recv_buf);
-//	return 0;
-//
-//
-//}
+
+static int version_handler(ldmsd_req_ctxt_t reqc)
+{
+	int rc;
+	struct ldms_version ldms_version;
+	struct ldmsd_version ldmsd_version;
+
+	ldms_version_get(&ldms_version);
+
+	rc = ldmsd_append_info_obj_hdr(reqc, "version");
+	if (rc)
+		return rc;
+	rc = ldmsd_append_response_va(reqc, 0,
+			"{\"LDMS Version\": \"%hhu.%hhu.%hhu.%hhu\",",
+			ldms_version.major, ldms_version.minor,
+			ldms_version.patch, ldms_version.flags);
+	if (rc)
+		return rc;
+
+	ldmsd_version_get(&ldmsd_version);
+	rc = ldmsd_append_response_va(reqc, 0,
+			"\"LDMSD Version\": \"%hhu.%hhu.%hhu.%hhu\"}",
+			ldmsd_version.major, ldmsd_version.minor,
+			ldmsd_version.patch, ldmsd_version.flags);
+	return ldmsd_append_response(reqc, LDMSD_REC_EOM_F, "}", 1);
+}
 
 /*
  * The tree contains environment variables given in
