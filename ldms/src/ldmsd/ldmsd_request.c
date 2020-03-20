@@ -160,6 +160,7 @@ struct obj_handler_entry {
 /*
  * Command object handlers
  */
+static int daemon_status_handler(ldmsd_req_ctxt_t reqc);
 static int example_handler(ldmsd_req_ctxt_t req_ctxt);
 static int exit_daemon_handler(ldmsd_req_ctxt_t reqc);
 static int greeting_handler(ldmsd_req_ctxt_t req_ctxt);
@@ -204,7 +205,6 @@ static int updtr_action_handler(ldmsd_req_ctxt_t reqc);
 //static int prdcr_subscribe_regex_handler(ldmsd_req_ctxt_t req_ctxt);
 //static int set_udata_handler(ldmsd_req_ctxt_t req_ctxt);
 //static int set_udata_regex_handler(ldmsd_req_ctxt_t req_ctxt);
-//static int daemon_status_handler(ldmsd_req_ctxt_t reqc);
 //static int env_handler(ldmsd_req_ctxt_t req_ctxt);
 //static int oneshot_handler(ldmsd_req_ctxt_t req_ctxt);
 //static int logrotate_handler(ldmsd_req_ctxt_t req_ctxt);
@@ -278,6 +278,7 @@ static struct obj_handler_entry cfg_obj_handler_tbl[] = {
 };
 
 static struct obj_handler_entry cmd_obj_handler_tbl[] = {
+		{ "daemon_status",	daemon_status_handler,	XALL },
 		{ "example", 	example_handler, 	XALL },
 		{ "exit_daemon",	exit_daemon_handler,	XUG },
 		{ "greeting",	greeting_handler,	XALL },
@@ -4372,58 +4373,35 @@ static int verbosity_change_handler(ldmsd_req_ctxt_t reqc)
 	return ldmsd_send_error(reqc, 0, NULL);
 }
 
-//int __daemon_status_json_obj(ldmsd_req_ctxt_t reqc)
-//{
-//	int rc = 0;
-//
-//	extern pthread_t *ev_thread;
-//	extern int *ev_count;
-//	int i;
-//
-//	rc = linebuf_printf(reqc, "[");
-//	if (rc)
-//		return rc;
-//	for (i = 0; i < ldmsd_ev_thread_count_get(); i++) {
-//		if (i) {
-//			rc = linebuf_printf(reqc, ",\n");
-//			if (rc)
-//				return rc;
-//		}
-//
-//		rc = linebuf_printf(reqc,
-//				"{ \"thread\":\"%p\","
-//				"\"task_count\":\"%d\"}",
-//				(void *)ev_thread[i], ev_count[i]);
-//		if (rc)
-//			return rc;
-//	}
-//	rc = linebuf_printf(reqc, "]");
-//	return rc;
-//}
-//
-//static int daemon_status_handler(ldmsd_req_ctxt_t reqc)
-//{
-//	int rc;
-//	struct ldmsd_req_attr_s attr;
-//
-//	rc = __daemon_status_json_obj(reqc);
-//	if (rc)
-//		return rc;
-//
-//	attr.discrim = 1;
-//	attr.attr_len = reqc->recv_off;
-//	attr.attr_id = LDMSD_ATTR_JSON;
-//	ldmsd_hton_req_attr(&attr);
-//	rc = ldmsd_append_reply(reqc, (char *)&attr, sizeof(attr), LDMSD_REC_SOM_F);
-//	if (rc)
-//		return rc;
-//	rc = ldmsd_append_reply(reqc, reqc->recv_buf, reqc->recv_off, 0);
-//	if (rc)
-//		return rc;
-//	attr.discrim = 0;
-//	ldmsd_append_reply(reqc, (char *)&attr.discrim, sizeof(uint32_t), LDMSD_REC_EOM_F);
-//	return rc;
-//}
+static int daemon_status_handler(ldmsd_req_ctxt_t reqc)
+{
+	int rc, i;
+	extern pthread_t *ev_thread;
+	extern int *ev_count;
+
+	rc = ldmsd_append_info_obj_hdr(reqc, "daemon_status");
+	if (rc)
+		return rc;
+
+	rc = ldmsd_append_response(reqc, 0, "[", 1);
+	if (rc)
+		return rc;
+	for (i = 0; i < ldmsd_ev_thread_count_get(); i++) {
+		if (i) {
+			rc = ldmsd_append_response(reqc, 0, ",", 1);
+			if (rc)
+				return rc;
+		}
+
+		rc = ldmsd_append_response_va(reqc, 0,
+				"{ \"thread\":\"%p\","
+				"\"task_count\":\"%d\"}",
+				(void *)ev_thread[i], ev_count[i]);
+		if (rc)
+			return rc;
+	}
+	return ldmsd_append_response(reqc, LDMSD_REC_EOM_F, "]}", 2);
+}
 
 static int version_handler(ldmsd_req_ctxt_t reqc)
 {
