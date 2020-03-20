@@ -203,13 +203,8 @@ static int setgroup_action_handler(ldmsd_req_ctxt_t reqc);
 static int strgp_action_handler(ldmsd_req_ctxt_t reqc);
 static int updtr_action_handler(ldmsd_req_ctxt_t reqc);
 
-//static int prdcr_subscribe_regex_handler(ldmsd_req_ctxt_t req_ctxt);
-//static int env_handler(ldmsd_req_ctxt_t req_ctxt);
 //static int oneshot_handler(ldmsd_req_ctxt_t req_ctxt);
 //static int logrotate_handler(ldmsd_req_ctxt_t req_ctxt);
-//static int unimplemented_handler(ldmsd_req_ctxt_t req_ctxt);
-//static int eperm_handler(ldmsd_req_ctxt_t req_ctxt);
-//static int ebusy_handler(ldmsd_req_ctxt_t reqc);
 
 //static int export_config_handler(ldmsd_req_ctxt_t reqc);
 //
@@ -229,12 +224,6 @@ static int updtr_action_handler(ldmsd_req_ctxt_t reqc);
 //
 //int failover_start_handler(ldmsd_req_ctxt_t req_ctxt);
 //int failover_stop_handler(ldmsd_req_ctxt_t req_ctxt);
-//
-//static int setgroup_add_handler(ldmsd_req_ctxt_t req_ctxt);
-//static int setgroup_mod_handler(ldmsd_req_ctxt_t req_ctxt);
-//static int setgroup_del_handler(ldmsd_req_ctxt_t req_ctxt);
-//static int setgroup_ins_handler(ldmsd_req_ctxt_t req_ctxt);
-//static int setgroup_rm_handler(ldmsd_req_ctxt_t req_ctxt);
 //
 //static int stream_publish_handler(ldmsd_req_ctxt_t req_ctxt);
 //static int stream_subscribe_handler(ldmsd_req_ctxt_t reqc);
