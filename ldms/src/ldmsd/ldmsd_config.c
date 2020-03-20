@@ -213,7 +213,7 @@ int ldmsd_set_access_check(ldms_set_t set, int acc, ldmsd_sec_ctxt_t ctxt)
  * Assign user data to a metric
  */
 int ldmsd_set_udata(const char *set_name, const char *metric_name,
-		    const char *udata_s, ldmsd_sec_ctxt_t sctxt)
+		    int64_t udata, ldmsd_sec_ctxt_t sctxt)
 {
 	ldms_set_t set;
 	int rc = 0;
@@ -227,13 +227,6 @@ int ldmsd_set_udata(const char *set_name, const char *metric_name,
 	rc = ldmsd_set_access_check(set, 0222, sctxt);
 	if (rc)
 		goto out;
-
-	char *endptr;
-	uint64_t udata = strtoull(udata_s, &endptr, 0);
-	if (endptr[0] != '\0') {
-		rc = EINVAL;
-		goto out;
-	}
 
 	int mid = ldms_metric_by_name(set, metric_name);
 	if (mid < 0) {
@@ -250,7 +243,7 @@ out:
 }
 
 int ldmsd_set_udata_regex(char *set_name, char *regex_str,
-		char *base_s, char *inc_s, char *errstr, size_t errsz,
+		int64_t base, int64_t inc, char *errstr, size_t errsz,
 		ldmsd_sec_ctxt_t sctxt)
 {
 	int rc = 0;
@@ -267,19 +260,6 @@ int ldmsd_set_udata_regex(char *set_name, char *regex_str,
 		snprintf(errstr, errsz, "Permission denied.");
 		goto out;
 	}
-
-	char *endptr;
-	uint64_t base = strtoull(base_s, &endptr, 0);
-	if (endptr[0] != '\0') {
-		snprintf(errstr, errsz, "User data base '%s' invalid.",
-								base_s);
-		rc = EINVAL;
-		goto out;
-	}
-
-	int inc = 0;
-	if (inc_s)
-		inc = atoi(inc_s);
 
 	regex_t regex;
 	rc = ldmsd_compile_regex(&regex, regex_str, errstr, errsz);

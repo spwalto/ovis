@@ -173,6 +173,7 @@ static int plugin_usage_handler(ldmsd_req_ctxt_t reqc);
 static int prdcr_set_status_handler(ldmsd_req_ctxt_t reqc);
 static int prdcr_status_handler(ldmsd_req_ctxt_t reqc);
 static int set_route_handler(ldmsd_req_ctxt_t req_ctxt);
+static int set_udata_handler(ldmsd_req_ctxt_t req_ctxt);
 static int smplr_status_handler(ldmsd_req_ctxt_t reqc);
 static int strgp_status_handler(ldmsd_req_ctxt_t reqc);
 static int updtr_status_handler(ldmsd_req_ctxt_t reqc);
@@ -203,8 +204,6 @@ static int strgp_action_handler(ldmsd_req_ctxt_t reqc);
 static int updtr_action_handler(ldmsd_req_ctxt_t reqc);
 
 //static int prdcr_subscribe_regex_handler(ldmsd_req_ctxt_t req_ctxt);
-//static int set_udata_handler(ldmsd_req_ctxt_t req_ctxt);
-//static int set_udata_regex_handler(ldmsd_req_ctxt_t req_ctxt);
 //static int env_handler(ldmsd_req_ctxt_t req_ctxt);
 //static int oneshot_handler(ldmsd_req_ctxt_t req_ctxt);
 //static int logrotate_handler(ldmsd_req_ctxt_t req_ctxt);
@@ -291,6 +290,7 @@ static struct obj_handler_entry cmd_obj_handler_tbl[] = {
 		{ "prdcr_set_status",	prdcr_set_status_handler, XALL },
 		{ "prdcr_status",	prdcr_status_handler,	XALL },
 		{ "set_route",	set_route_handler, 	XUG },
+		{ "set_udata",		set_udata_handler,	XUG },
 		{ "smplr_status",	smplr_status_handler,	XALL },
 		{ "strgp_status",	strgp_status_handler,	XALL },
 		{ "updtr_status",	updtr_status_handler,	XALL },
@@ -4217,121 +4217,166 @@ static int plugin_sets_handler(ldmsd_req_ctxt_t reqc)
 	}
 	return ldmsd_append_response(reqc, LDMSD_REC_EOM_F, "]}", 2);
 }
-//
-//extern int ldmsd_set_udata(const char *set_name, const char *metric_name,
-//			   const char *udata_s, ldmsd_sec_ctxt_t sctxt);
-//static int set_udata_handler(ldmsd_req_ctxt_t reqc)
-//{
-//	char *set_name, *metric_name, *udata, *attr_name;
-//	set_name = metric_name = udata = NULL;
-//	struct ldmsd_sec_ctxt sctxt;
-//
-//	reqc->errcode = 0;
-//
-//	attr_name = "instance";
-//	set_name = ldmsd_req_attr_str_value_get_by_id(reqc, LDMSD_ATTR_INSTANCE);
-//	if (!set_name)
-//		goto einval;
-//	attr_name = "metric";
-//	metric_name = ldmsd_req_attr_str_value_get_by_id(reqc, LDMSD_ATTR_METRIC);
-//	if (!metric_name)
-//		goto einval;
-//	attr_name = "udata";
-//	udata = ldmsd_req_attr_str_value_get_by_id(reqc, LDMSD_ATTR_UDATA);
-//	if (!udata)
-//		goto einval;
-//
-//	ldmsd_req_ctxt_sec_get(reqc, &sctxt);
-//
-//	reqc->errcode = ldmsd_set_udata(set_name, metric_name, udata, &sctxt);
-//	switch (reqc->errcode) {
-//	case 0:
-//		break;
-//	case EACCES:
-//		Snprintf(&reqc->recv_buf, &reqc->recv_len,
-//			       "Permission denied.");
-//		break;
-//	case ENOENT:
-//		Snprintf(&reqc->recv_buf, &reqc->recv_len,
-//				"Set '%s' not found.", set_name);
-//		break;
-//	case -ENOENT:
-//		Snprintf(&reqc->recv_buf, &reqc->recv_len,
-//				"Metric '%s' not found in Set '%s'.",
-//				metric_name, set_name);
-//		break;
-//	case EINVAL:
-//		Snprintf(&reqc->recv_buf, &reqc->recv_len,
-//				"User data '%s' is invalid.", udata);
-//		break;
-//	default:
-//		Snprintf(&reqc->recv_buf, &reqc->recv_len,
-//			       "Error %d %s", reqc->errcode,
-//			       ovis_errno_abbvr(reqc->errcode));
-//	}
-//	goto out;
-//
-//einval:
-//	reqc->errcode = EINVAL;
-//	Snprintf(&reqc->recv_buf, &reqc->recv_len,
-//			"The attribute '%s' is required.", attr_name);
-//out:
-//	ldmsd_send_req_response(reqc, reqc->recv_buf);
-//	if (set_name)
-//		free(set_name);
-//	if (metric_name)
-//		free(metric_name);
-//	if (udata)
-//		free(udata);
-//	return 0;
-//}
-//
-//extern int ldmsd_set_udata_regex(char *set_name, char *regex_str,
-//		char *base_s, char *inc_s, char *er_str, size_t errsz,
-//		ldmsd_sec_ctxt_t sctxt);
-//static int set_udata_regex_handler(ldmsd_req_ctxt_t reqc)
-//{
-//	char *set_name, *regex, *base_s, *inc_s, *attr_name;
-//	set_name = regex = base_s = inc_s = NULL;
-//	struct ldmsd_sec_ctxt sctxt;
-//
-//	reqc->errcode = 0;
-//
-//	attr_name = "instance";
-//	set_name = ldmsd_req_attr_str_value_get_by_id(reqc, LDMSD_ATTR_INSTANCE);
-//	if (!set_name)
-//		goto einval;
-//	attr_name = "regex";
-//	regex = ldmsd_req_attr_str_value_get_by_id(reqc, LDMSD_ATTR_REGEX);
-//	if (!regex)
-//		goto einval;
-//	attr_name = "base";
-//	base_s = ldmsd_req_attr_str_value_get_by_id(reqc, LDMSD_ATTR_BASE);
-//	if (!base_s)
-//		goto einval;
-//
-//	inc_s = ldmsd_req_attr_str_value_get_by_id(reqc, LDMSD_ATTR_INCREMENT);
-//
-//	ldmsd_req_ctxt_sec_get(reqc, &sctxt);
-//	reqc->errcode = ldmsd_set_udata_regex(set_name, regex, base_s, inc_s,
-//				reqc->recv_buf, reqc->recv_len, &sctxt);
-//	goto out;
-//einval:
-//	reqc->errcode = EINVAL;
-//	Snprintf(&reqc->recv_buf, &reqc->recv_len,
-//			"The attribute '%s' is required.", attr_name);
-//out:
-//	ldmsd_send_req_response(reqc, reqc->recv_buf);
-//	if (set_name)
-//		free(set_name);
-//	if (base_s)
-//		free(base_s);
-//	if (regex)
-//		free(regex);
-//	if (inc_s)
-//		free(inc_s);
-//	return 0;
-//}
+
+extern int ldmsd_set_udata(const char *set_name, const char *metric_name,
+			   int64_t udata, ldmsd_sec_ctxt_t sctxt);
+extern int ldmsd_set_udata_regex(char *set_name, char *regex_str,
+		int64_t base, int64_t inc, char *er_str, size_t errsz,
+		ldmsd_sec_ctxt_t sctxt);
+static int set_udata_handler(ldmsd_req_ctxt_t reqc)
+{
+	int rc;
+	json_entity_t spec, value, udata;
+	char *set_name, *metric_name, *regex;
+	set_name = metric_name = regex = NULL;
+	int64_t v, base, incr;
+	struct ldmsd_sec_ctxt sctxt;
+
+	spec = json_value_find(reqc->json, "spec");
+	if (!spec) {
+		return ldmsd_send_missing_attr_err(reqc,
+				"cmd_obj:set_udata", "spec");
+	}
+
+	/* set instance */
+	value = json_value_find(spec, "set_instance");
+	if (!value) {
+		return ldmsd_send_missing_attr_err(reqc,
+				"cmd_obj:set_udata:spec", "set_instance");
+	}
+	if (JSON_STRING_VALUE != json_entity_type(value)) {
+		return ldmsd_send_type_error(reqc,
+				"cmd_obj:set_udata:spec:set_instance", "a string");
+	}
+	set_name = json_value_str(value)->str;
+
+	/* metric */
+	value = json_value_find(spec, "metric");
+	if (value) {
+		if (JSON_STRING_VALUE != json_entity_type(value)) {
+			return ldmsd_send_type_error(reqc,
+					"cmd_obj:set_udata:spec:metric", "a string");
+		}
+		metric_name = json_value_str(value)->str;
+	}
+
+	/* regex */
+	value = json_value_find(spec, "regex");
+	if (value) {
+		if (JSON_STRING_VALUE != json_entity_type(value)) {
+			return ldmsd_send_type_error(reqc,
+					"cmd_obj:set_udata:spec:regex", "a string");
+		}
+		regex = json_value_str(value)->str;
+	}
+
+	if (!metric_name && !regex) {
+		return ldmsd_send_error(reqc, EINVAL, "cmd_obj:set_udata - "
+				"Either 'metric' or 'regex' must be given.");
+	}
+
+	/* udata */
+	udata = json_value_find(spec, "udata");
+	if (!udata) {
+		if (!udata) {
+			return ldmsd_send_missing_attr_err(reqc,
+					"cmd_obj:set_udata:spec", "udata");
+		}
+		if (JSON_DICT_VALUE != json_entity_type(udata)) {
+			return ldmsd_send_type_error(reqc,
+					"cmd_obj:set_udata:spec:udata", "a dictionary");
+		}
+	}
+
+	/* udata value */
+	value = json_value_find(udata, "value");
+	if (!value && metric_name) {
+		return ldmsd_send_error(reqc, EINVAL,
+			"cmd_obj:set_udata - If 'metric' is given, "
+			"the 'udata:value' must be given.");
+	}
+	if (value) {
+		if (JSON_INT_VALUE != json_entity_type(value)) {
+			return ldmsd_send_type_error(reqc,
+				"cmd_obj:set_udata:spec:udata:value", "an integer");
+		}
+		v = json_value_int(value);
+	}
+
+	/* base */
+	value = json_value_find(udata, "base");
+	if (!value && regex) {
+		return ldmsd_send_error(reqc, EINVAL,
+			"cmd_obj:set_udata - If 'regex' is given, "
+			"the 'udata:base' must be given.");
+	}
+	if (value) {
+		if (JSON_INT_VALUE != json_entity_type(value)) {
+			return ldmsd_send_type_error(reqc,
+				"cmd_obj:set_udata:spec:udata:base", "an integer");
+		}
+		base = json_value_int(value);
+	}
+
+	/* increment */
+	value = json_value_find(udata, "increment");
+	if (value && metric_name) {
+		return ldmsd_send_error(reqc, EINVAL,
+			"cmd_obj:set_udata - The 'increment' is ignored because "
+			"'metric' is given.");
+	}
+	if (value) {
+		if (JSON_INT_VALUE != json_entity_type(value)) {
+			return ldmsd_send_type_error(reqc,
+				"cmd_obj:set_udata:spec:udata:base", "an integer");
+		}
+		incr = json_value_int(value);
+	} else {
+		incr = 0;
+	}
+
+	ldmsd_req_ctxt_sec_get(reqc, &sctxt);
+
+	if (metric_name) {
+		rc = ldmsd_set_udata(set_name, metric_name, v, &sctxt);
+		switch (rc) {
+		case 0:
+			break;
+		case EACCES:
+			return ldmsd_send_error(reqc, rc, "cmd_obj:set_udata - "
+					"Metric '%s' in set '%s': "
+					"Permission denied.",
+					metric_name, set_name);
+		case ENOENT:
+			return ldmsd_send_error(reqc, rc, "cmd_obj:set_udata - "
+					"Set '%s' not found.", set_name);
+		case -ENOENT:
+			return ldmsd_send_error(reqc, rc, "cmd_obj:set_udata - "
+					"Metric '%s' not found in Set '%s'.",
+					metric_name, set_name);
+		case EINVAL:
+			return ldmsd_send_error(reqc, rc, "cmd_obj:set_udata - "
+					"User data '%s' is invalid.", v);
+		default:
+			return ldmsd_send_error(reqc, rc, "cmd_obj:set_udata - "
+					"Failed to set udata '%s' of metric '%s' "
+					"in set '%s': %s", v, metric_name, set_name,
+					ovis_errno_abbvr(rc));
+		}
+	} else {
+		/* regex */
+		ldmsd_req_buf_reset(reqc->recv_buf);
+		rc = ldmsd_set_udata_regex(set_name, regex, base, incr,
+							reqc->recv_buf->buf,
+							reqc->recv_buf->len,
+							&sctxt);
+		if (rc) {
+			return ldmsd_send_error(reqc, rc, "cmd_obj:set_udata - "
+					"%s", reqc->recv_buf->buf);
+		}
+	}
+	return ldmsd_send_error(reqc, 0, NULL);
+}
 
 static int verbosity_change_handler(ldmsd_req_ctxt_t reqc)
 {
