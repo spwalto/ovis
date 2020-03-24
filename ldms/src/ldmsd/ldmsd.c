@@ -322,6 +322,48 @@ unsigned long ldmsd_time_str2us(const char *s)
 	}
 }
 
+char *ldmsd_time_us2str(unsigned long us)
+{
+	char *s = malloc(128);
+	if (!s)
+		return NULL;
+	unsigned long _us = us % 1000;
+	if (_us) {
+		/* The microsecond value is not a multiple of milliseconds
+		 * return the value in microseconds.
+		 */
+		snprintf(s, 128, "%lu us", us);
+		return s;
+	}
+	unsigned long ms = us / 1000;
+	unsigned long _ms = ms % 1000;
+	if (_ms) {
+		snprintf(s, 128, "%lu ms", ms);
+		return s;
+	}
+	unsigned long sec = ms / 1000;
+	unsigned long _sec = sec % 60;
+	if (_sec) {
+		snprintf(s, 128, "%lu s", sec);
+		return s;
+	}
+	unsigned long m = sec / 60;
+	unsigned long _m = m % 60;
+	if (_m) {
+		snprintf(s, 128, "%lu minutes", m);
+		return s;
+	}
+	unsigned long hr = m / 60;
+	unsigned long _hr = hr % 24;
+	if (_hr) {
+		snprintf(s, 128, "%lu hours", hr);
+		return s;
+	}
+	unsigned long day = hr / 24;
+	snprintf(s, 128, "%lu days", day);
+	return s;
+}
+
 const char *ldmsd_myhostname_get()
 {
 	return cmd_line_args.myhostname;
