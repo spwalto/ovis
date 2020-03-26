@@ -65,7 +65,7 @@
 #include "ldmsd_sampler.h"
 #include "ldmsd_store.h"
 #include "ldmsd_request.h"
-//#include "ldmsd_stream.h"
+#include "ldmsd_stream.h"
 #include "ldms_xprt.h"
 
 /*
@@ -176,6 +176,7 @@ static int set_route_handler(ldmsd_req_ctxt_t req_ctxt);
 static int set_udata_handler(ldmsd_req_ctxt_t req_ctxt);
 static int smplr_status_handler(ldmsd_req_ctxt_t reqc);
 static int strgp_status_handler(ldmsd_req_ctxt_t reqc);
+static int stream_subscribe_handler(ldmsd_req_ctxt_t reqc);
 static int updtr_status_handler(ldmsd_req_ctxt_t reqc);
 static int verbosity_change_handler(ldmsd_req_ctxt_t reqc);
 static int version_handler(ldmsd_req_ctxt_t reqc);
@@ -223,9 +224,6 @@ static int updtr_action_handler(ldmsd_req_ctxt_t reqc);
 //
 //int failover_start_handler(ldmsd_req_ctxt_t req_ctxt);
 //int failover_stop_handler(ldmsd_req_ctxt_t req_ctxt);
-//
-//static int stream_publish_handler(ldmsd_req_ctxt_t req_ctxt);
-//static int stream_subscribe_handler(ldmsd_req_ctxt_t reqc);
 //
 //static int auth_del_handler(ldmsd_req_ctxt_t reqc);
 
@@ -281,6 +279,7 @@ static struct obj_handler_entry cmd_obj_handler_tbl[] = {
 		{ "set_route",	set_route_handler, 	XUG },
 		{ "set_udata",		set_udata_handler,	XUG },
 		{ "smplr_status",	smplr_status_handler,	XALL },
+		{ "stream_subscribe",	stream_subscribe_handler,	XUG },
 		{ "strgp_status",	strgp_status_handler,	XALL },
 		{ "updtr_status",	updtr_status_handler,	XALL },
 		{ "verbosity_change",	verbosity_change_handler, XUG },
@@ -721,182 +720,167 @@ out:
 	return rc;
 }
 
-extern void cleanup(int x, char *reason);
-int ldmsd_process_msg_request(ldmsd_rec_hdr_t req, ldmsd_cfg_xprt_t xprt)
+ldmsd_req_ctxt_t ldmsd_handle_record(ldmsd_rec_hdr_t rec, ldmsd_cfg_xprt_t xprt)
 {
 	ldmsd_req_ctxt_t reqc = NULL;
 	char *oom_errstr = "ldmsd out of memory";
-	char *repl_str;
 	int rc = 0;
-	json_parser_t parser;
-	size_t repl_str_len;
 	int req_ctxt_type = LDMSD_REQ_CTXT_REQ;
 	struct ldmsd_msg_key key;
-	errno = 0;
+	size_t data_len = rec->rec_len - sizeof(*rec);
+
+	if (LDMSD_MSG_TYPE_RESP == rec->type)
+		req_ctxt_type = LDMSD_REQ_CTXT_RSP;
+	else
+		req_ctxt_type = LDMSD_REQ_CTXT_REQ;
 
 	__msg_key_get(xprt, req->msg_no, &key);
 	ldmsd_req_ctxt_tree_lock(req_ctxt_type);
-	/*
-	 * Copy the data from this record to the tail of the buffer
-	 */
-	if (req->flags & LDMSD_REC_SOM_F) {
-		reqc = find_req_ctxt(&key, LDMSD_REQ_CTXT_REQ);
-		if (reqc) {
-			rc = ldmsd_send_error(reqc, EADDRINUSE,
-				"Duplicate message number %" PRIu32,
-				req->msg_no);
+
+	reqc = find_req_ctxt(&key, req_ctxt_type);
+
+	if (LDMSD_MSG_TYPE_RESP == rec->type) {
+		/* Response messages */
+		if (!reqc) {
+			ldmsd_log(LDMSD_LERROR, "Cannot find the original request of "
+					"a response number %d:%" PRIu64 "\n",
+					rec->key.msg_no, rec->key.conn_id);
+			rc = __ldmsd_send_error(xprt, &rec->key, NULL, ENOENT,
+				"Cannot find the original request of "
+				"a response number %d:%" PRIu64,
+				rec->key.msg_no, rec->key.conn_id);
 			if (rc == ENOMEM)
 				goto oom;
 			else
 				goto err;
 		}
-		reqc = __req_ctxt_alloc(&key, xprt, LDMSD_REQ_CTXT_REQ);
-		if (!reqc)
-			goto oom;
 	} else {
-		reqc = find_req_ctxt(&key, LDMSD_REQ_CTXT_REQ);
-		if (!reqc) {
-			rc = __ldmsd_send_error(xprt, req->msg_no, NULL, ENOENT,
-					"The message number %" PRIu32
-					" was not found.", req->msg_no);
-			ldmsd_log(LDMSD_LERROR, "The request ID %" PRIu32 ":%" PRIu64
-					" was not found.\n",
-					req->msg_no, key.conn_id);
-			goto err;
+		/* request & stream messages */
+		if (rec->flags & LDMSD_REC_SOM_F) {
+			if (reqc) {
+				rc = ldmsd_send_error(reqc, EADDRINUSE,
+					"Duplicate message number %d:%" PRIu64 "received",
+					key.msg_no, key.conn_id);
+				if (rc == ENOMEM)
+					goto oom;
+				else
+					goto err;
+			}
+			reqc = __req_ctxt_alloc(&key, xprt, LDMSD_REQ_CTXT_REQ);
+			if (!reqc)
+				goto oom;
+		} else {
+			if (!reqc) {
+				rc = __ldmsd_send_error(xprt, &rec->key, NULL, ENOENT,
+						"The message no %" PRIu32
+						" was not found.", key.msg_no);
+				ldmsd_log(LDMSD_LERROR, "The message no %" PRIu32 ":%" PRIu64
+						" was not found.\n",
+						key.msg_no, key.conn_id);
+				goto err;
+			}
 		}
 	}
-	repl_str = str_repl_env_vars((const char *)(req + 1));
-	if (!repl_str) {
-		reqc = NULL;
-		goto oom;
-	}
-	repl_str_len = strlen(repl_str);
-	if (reqc->recv_buf->len - reqc->recv_buf->off < repl_str_len) {
+
+	if (reqc->recv_buf->len - reqc->recv_buf->off < data_len) {
 		reqc->recv_buf = ldmsd_req_buf_realloc(reqc->recv_buf,
-					2 * (reqc->recv_buf->off + repl_str_len));
-		if (!reqc->recv_buf) {
-			reqc = NULL;
+					2 * (reqc->recv_buf->off + data_len));
+		if (!reqc->recv_buf)
 			goto oom;
-		}
 	}
-	memcpy(&reqc->recv_buf->buf[reqc->recv_buf->off], repl_str, repl_str_len);
-	free(repl_str);
-	reqc->recv_buf->off += repl_str_len;
+	memcpy(&reqc->recv_buf->buf[reqc->recv_buf->off], (char *)(rec + 1), data_len);
+	reqc->recv_buf->off += data_len;
 
 	ldmsd_req_ctxt_tree_unlock(req_ctxt_type);
 
-	if (!(req->flags & LDMSD_REC_EOM_F)) {
+	if (!(rec->flags & LDMSD_REC_EOM_F)) {
 		/*
 		 * LDMSD hasn't received the whole message.
 		 */
-		goto out;
+		return NULL;
 	}
+	return reqc;
+
+oom:
+	rc = ENOMEM;
+	ldmsd_log(LDMSD_LCRITICAL, "%s\n", oom_errstr);
+err:
+	errno = rc;
+	ldmsd_req_ctxt_tree_unlock(req_ctxt_type);
+	if (reqc)
+		ldmsd_req_ctxt_free(reqc);
+	return NULL;
+}
+
+extern void cleanup(int x, char *reason);
+int ldmsd_process_msg_request(ldmsd_req_ctxt_t reqc)
+{
+	json_parser_t parser;
+	int rc;
+	char *str_repl;
+
+	/* Replace environment variables */
+	str_repl = str_repl_env_vars(reqc->recv_buf->buf);
+	if (!str_repl) {
+		ldmsd_log(LDMSD_LCRITICAL, "Out of memory\n");
+		return ENOMEM;
+	}
+	free(reqc->recv_buf->buf);
+	reqc->recv_buf->buf = str_repl;
+	reqc->recv_buf->len = reqc->recv_buf->off = strlen(reqc->recv_buf->buf) + 1;
 
 	parser = json_parser_new(0);
-	if (!parser)
-		goto oom;
+	if (!parser) {
+		ldmsd_log(LDMSD_LCRITICAL, "Out of memory\n");
+		return ENOMEM;
+	}
+
 
 	rc = json_parse_buffer(parser, reqc->recv_buf->buf,
 			reqc->recv_buf->off, &reqc->json);
-
+	json_parser_free(parser);
 	if (rc) {
 		ldmsd_log(LDMSD_LCRITICAL, "Failed to parse a JSON object string\n");
-		__ldmsd_send_error(reqc->xprt, req->msg_no, reqc->send_buf, rc,
-				"Failed to parse a JSON object string");
-		goto err;
+		ldmsd_send_error(reqc, rc, "Failed to parse a JSON object string");
+		return rc;
 	}
 
 	rc = ldmsd_process_json_obj(reqc);
 
 	if (cleanup_requested)
 		cleanup(0, "user quit");
-out:
-	return rc;
-
-oom:
-	rc = ENOMEM;
-	ldmsd_log(LDMSD_LCRITICAL, "%s\n", oom_errstr);
-	__ldmsd_send_error(xprt, req->msg_no, NULL, rc, "%s", oom_errstr);
-err:
-	ldmsd_req_ctxt_tree_unlock(req_ctxt_type);
-	if (reqc)
-		ldmsd_req_ctxt_free(reqc);
 	return rc;
 }
 
-int ldmsd_process_msg_response(ldmsd_rec_hdr_t req, ldmsd_cfg_xprt_t xprt)
+int ldmsd_process_msg_response(ldmsd_req_ctxt_t reqc)
 {
-	ldmsd_req_ctxt_t reqc = NULL;
-	char *oom_errstr = "ldmsd out of memory";
-	char *repl_str;
-	int rc = 0;
+	int rc;
 	json_parser_t parser;
-	int req_ctxt_type = LDMSD_REQ_CTXT_RSP;
-	size_t repl_str_len;
-	struct ldmsd_msg_key key;
+	char *str_repl;
 
-	__msg_key_get(xprt, req->msg_no, &key);
-	errno = 0;
-	ldmsd_req_ctxt_tree_lock(req_ctxt_type);
-	/*
-	 * Use the key sent by the peer because this is a response
-	 * to a REQUEST message sent by this LDMSD.
-	 */
-	reqc = find_req_ctxt(&key, LDMSD_REQ_CTXT_RSP);
-	if (!reqc) {
-		ldmsd_log(LDMSD_LERROR, "Cannot find the original request of "
-				"a response number %d:%" PRIu64 "\n",
-				key.msg_no, key.conn_id);
-		rc = __ldmsd_send_error(xprt, req->msg_no, NULL, ENOENT,
-			"Cannot find the original request of "
-			"a response number %d:%" PRIu64,
-			key.msg_no, key.conn_id);
-		if (rc == ENOMEM)
-			goto oom;
-		else
-			goto err;
+	/* Replace environment variables */
+	str_repl = str_repl_env_vars(reqc->recv_buf->buf);
+	if (!str_repl) {
+		ldmsd_log(LDMSD_LCRITICAL, "Out of memory\n");
+		return ENOMEM;
 	}
-	ldmsd_req_ctxt_ref_get(reqc, "resp:lookup");
-	/*
-	 * Copy the data from this record to the tail of the receive buffer
-	 */
-	repl_str = str_repl_env_vars((const char *)(req + 1));
-	if (!repl_str) {
-		reqc = NULL;
-		goto oom;
-	}
-	repl_str_len = strlen(repl_str);
-	if (reqc->recv_buf->len - reqc->recv_buf->off < repl_str_len) {
-		reqc->recv_buf = ldmsd_req_buf_realloc(reqc->recv_buf,
-					2 * (reqc->recv_buf->off + repl_str_len));
-		if (!reqc->recv_buf)
-			goto oom;
-	}
-	memcpy(&reqc->recv_buf->buf[reqc->recv_buf->off], repl_str, repl_str_len);
-	free(repl_str);
-	reqc->recv_buf->off += repl_str_len;
-
-	ldmsd_req_ctxt_tree_unlock(req_ctxt_type);
-
-	if (!(req->flags & LDMSD_REC_EOM_F)) {
-		/*
-		 * LDMSD hasn't received the whole message.
-		 */
-		goto out;
-	}
+	free(reqc->recv_buf->buf);
+	reqc->recv_buf->buf = str_repl;
+	reqc->recv_buf->len = reqc->recv_buf->off = strlen(reqc->recv_buf->buf) + 1;
 
 	parser = json_parser_new(0);
-	if (!parser)
-		goto oom;
+	if (!parser) {
+		ldmsd_log(LDMSD_LCRITICAL, "Out of memory\n");
+		return ENOMEM;
+	}
 
 	rc = json_parse_buffer(parser, reqc->recv_buf->buf,
 			reqc->recv_buf->off, &reqc->json);
-
+	json_parser_free(parser);
 	if (rc) {
 		ldmsd_log(LDMSD_LCRITICAL, "Failed to parse a JSON object string\n");
-		__ldmsd_send_error(reqc->xprt, req->msg_no, reqc->send_buf, rc,
-				"Failed to parse a JSON object string");
-		goto err;
+		ldmsd_send_error(reqc, rc, "Failed to parse a JSON object string");
+		return rc;
 	}
 
 	if (reqc->resp_handler) {
@@ -905,17 +889,46 @@ int ldmsd_process_msg_response(ldmsd_rec_hdr_t req, ldmsd_cfg_xprt_t xprt)
 		rc = ldmsd_process_json_obj(reqc);
 	}
 
-	ldmsd_req_ctxt_ref_put(reqc, "resp:lookup");
-out:
 	return rc;
+}
 
-oom:
-	rc = ENOMEM;
-	ldmsd_log(LDMSD_LCRITICAL, "%s\n", oom_errstr);
-err:
-	ldmsd_req_ctxt_tree_unlock(req_ctxt_type);
-	if (reqc)
-		ldmsd_req_ctxt_ref_put(reqc, "resp:lookup");
+int ldmsd_process_msg_stream(ldmsd_req_ctxt_t reqc)
+{
+	size_t offset = 0;
+	int rc = 0;
+	char *stream_name, *data;
+	enum ldmsd_stream_type_e stream_type;
+	json_entity_t entity = NULL;
+	json_parser_t p = NULL;
+
+
+	__ldmsd_stream_extract_hdr(reqc->recv_buf->buf, &stream_name,
+					&stream_type, &data, &offset);
+
+	if (LDMSD_STREAM_JSON == stream_type) {
+		p = json_parser_new(0);
+		if (!p) {
+			ldmsd_log(LDMSD_LCRITICAL, "Out of memory\n");
+			return ENOMEM;
+		}
+		rc = json_parse_buffer(p, data,
+				reqc->recv_buf->off - offset, &entity);
+		if (rc) {
+			ldmsd_log(LDMSD_LERROR, "Failed to parse a JSON stream '%s'.\n",
+					stream_name);
+			goto out;
+		}
+	}
+
+	ldmsd_stream_deliver(stream_name, stream_type, data,
+					reqc->recv_buf->off - offset, entity);
+out:
+	if (p)
+		json_parser_free(p);
+	if (entity)
+		json_entity_free(entity);
+	ldmsd_req_ctxt_free(reqc);
+	/* Not sending any response back to the publisher */
 	return rc;
 }
 
@@ -1141,7 +1154,7 @@ int ldmsd_process_act_obj(ldmsd_req_ctxt_t reqc)
 	}
 
 	rc = handler->handler(reqc);
-	ldmsd_req_ctxt_free(reqc);
+//	ldmsd_req_ctxt_free(reqc);
 	return rc;
 
 }
@@ -1201,6 +1214,13 @@ int ldmsd_append_info_obj_hdr(ldmsd_req_ctxt_t reqc, const char *info_name)
 					"{\"type\":\"info\","
 					" \"name\":\"%s\","
 					" \"info\":", info_name);
+}
+
+int ldmsd_append_cmd_obj_hdr(ldmsd_req_ctxt_t reqc, const char *cmd_name)
+{
+	return ldmsd_append_request_va(reqc, LDMSD_REC_SOM_F,
+					"{\"type\":\"cmd_obj\","
+					"\"cmd\":\"%s\"", cmd_name);
 }
 
 int __find_perm(ldmsd_req_ctxt_t reqc, json_entity_t spec, int *perm_value)
@@ -5471,122 +5491,70 @@ out:
 	return rc;
 }
 
-//static int stream_publish_handler(ldmsd_req_ctxt_t reqc)
-//{
-//	char *stream_name;
-//	ldmsd_stream_type_t stream_type = LDMSD_STREAM_STRING;
-//	ldmsd_req_attr_t attr;
-//	json_parser_t parser;
-//	json_entity_t entity = NULL;
-//
-//	stream_name = ldmsd_req_attr_str_value_get_by_id(reqc, LDMSD_ATTR_NAME);
-//	if (!stream_name) {
-//		reqc->errcode = EINVAL;
-//		ldmsd_log(LDMSD_LERROR, "%s: The stream name is missing "
-//			  "in the config message\n", __func__);
-//		Snprintf(&reqc->recv_buf, &reqc->recv_len,
-//			       "The stream name is missing.");
-//		goto err_reply;
-//	}
-//
-//	/* Check for string */
-//	attr = ldmsd_req_attr_get_by_id(reqc->req_buf, LDMSD_ATTR_STRING);
-//	if (attr)
-//		goto out;
-//
-//	/* Check for JSon */
-//	attr = ldmsd_req_attr_get_by_id(reqc->req_buf, LDMSD_ATTR_JSON);
-//	if (attr) {
-//		parser = json_parser_new(0);
-//		if (!parser) {
-//			ldmsd_log(LDMSD_LERROR,
-//				  "%s: error creating JSon parser.\n", __func__);
-//			reqc->errcode = ENOMEM;
-//			Snprintf(&reqc->recv_buf, &reqc->recv_len,
-//				       "Could not create the JSon parser.");
-//			goto err_reply;
-//		}
-//		int rc = json_parse_buffer(parser,
-//					   (char*)attr->attr_value, attr->attr_len,
-//					   &entity);
-//		json_parser_free(parser);
-//		if (rc) {
-//			ldmsd_log(LDMSD_LERROR,
-//				  "%s: syntax error parsing JSon payload.\n", __func__);
-//			reqc->errcode = EINVAL;
-//			goto err_reply;
-//		}
-//		stream_type = LDMSD_STREAM_JSON;
-//	} else {
-//		Snprintf(&reqc->recv_buf, &reqc->recv_len,
-//				"No data provided.");
-//		reqc->errcode = EINVAL;
-//		goto err_reply;
-//	}
-//out:
-//	ldmsd_stream_deliver(stream_name, stream_type,
-//			     (char*)attr->attr_value, attr->attr_len, entity);
-//	free(stream_name);
-//	json_entity_free(entity);
-//	reqc->errcode = 0;
-//	ldmsd_send_req_response(reqc, NULL);
-//	return 0;
-//err_reply:
-//	if (stream_name)
-//		free(stream_name);
-//	ldmsd_send_req_response(reqc, reqc->recv_buf);
-//	return 0;
-//}
-//
-//static int __on_republish_resp(ldmsd_req_cmd_t rcmd)
-//{
-//	return 0;
-//}
-//
-//static int stream_republish_cb(ldmsd_stream_client_t c, void *ctxt,
-//			       ldmsd_stream_type_t stream_type,
-//			       const char *data, size_t data_len,
-//			       json_entity_t entity)
-//{
-//	ldms_t ldms = ldms_xprt_get(ctxt);
-//	int rc, attr_id = LDMSD_ATTR_STRING;
-//	const char *stream = ldmsd_stream_client_name(c);
-//	ldmsd_req_cmd_t rcmd = ldmsd_req_cmd_new(ldms, LDMSD_STREAM_PUBLISH_REQ,
-//						 NULL, __on_republish_resp, NULL);
-//	rc = ldmsd_req_cmd_attr_append_str(rcmd, LDMSD_ATTR_NAME, stream);
-//	if (rc)
-//		goto out;
-//	if (stream_type == LDMSD_STREAM_JSON)
-//		attr_id = LDMSD_ATTR_JSON;
-//	rc = ldmsd_req_cmd_attr_append_str(rcmd, attr_id, data);
-//	if (rc)
-//		goto out;
-//	rc = ldmsd_req_cmd_attr_term(rcmd);
-// out:
-//	return rc;
-//}
-//
-//static int stream_subscribe_handler(ldmsd_req_ctxt_t reqc)
-//
-//{
-//	char *stream_name;
-//
-//	stream_name = ldmsd_req_attr_str_value_get_by_id(reqc, LDMSD_ATTR_NAME);
-//	if (!stream_name) {
-//		reqc->errcode = EINVAL;
-//		Snprintf(&reqc->recv_buf, &reqc->recv_len,
-//			       "The stream name is missing.");
-//		goto send_reply;
-//	}
-//
-//	ldmsd_stream_subscribe(stream_name, stream_republish_cb, reqc->xprt->ldms.ldms);
-//	reqc->errcode = 0;
-//	Snprintf(&reqc->recv_buf, &reqc->recv_len, "OK");
-//send_reply:
-//	ldmsd_send_req_response(reqc, reqc->recv_buf);
-//	return 0;
-//}
-//
+static int stream_republish_cb(ldmsd_stream_client_t c, void *ctxt,
+			       ldmsd_stream_type_t stream_type,
+			       const char *data, size_t data_len,
+			       json_entity_t entity)
+{
+	int rc;
+	char *s;
+	size_t s_len;
+	jbuf_t jb = NULL;
+	const char *stream = ldmsd_stream_client_name(c);
+
+	if (data) {
+		s = (char *)data;
+		s_len = data_len;
+	} else {
+		jb = json_entity_dump(NULL, entity);
+		if (!jb) {
+			ldmsd_log(LDMSD_LCRITICAL, "Out of memory\n");
+			return ENOMEM;
+		}
+		s = jb->buf;
+		s_len = jb->buf_len;
+	}
+	rc = ldmsd_stream_publish((ldms_t)ctxt, stream, stream_type, s, s_len);
+	if (jb)
+		jbuf_free(jb);
+	return rc;
+}
+
+static int stream_subscribe_handler(ldmsd_req_ctxt_t reqc)
+
+{
+	json_entity_t spec, names, n;
+	char *stream_name;
+
+	spec = json_value_find(reqc->json, "spec");
+	if (!spec) {
+		return ldmsd_send_missing_attr_err(reqc,
+				"cmd_obj:stream_subscribe", "spec");
+	}
+
+	/* list of stream names */
+	names = json_value_find(spec, "names");
+	if (!names) {
+		return ldmsd_send_missing_attr_err(reqc,
+				"cmd_obj:stream_subscribe:spec", "names");
+	}
+	if (JSON_LIST_VALUE != json_entity_type(names)) {
+		return ldmsd_send_type_error(reqc,
+				"cmd_obj:stream_subscribe:spec:names", "a list of strings");
+	}
+
+	for (n = json_item_first(names); n; n = json_item_next(n)) {
+		if (JSON_STRING_VALUE != json_entity_type(n)) {
+			return ldmsd_send_type_error(reqc,
+					"cmd_obj:stream_subscribe:spec:names[]",
+					"a string");
+		}
+		stream_name = json_value_str(n)->str;
+		ldmsd_stream_subscribe(stream_name, stream_republish_cb, reqc->xprt->ldms.ldms);
+	}
+
+	return ldmsd_send_error(reqc, 0, NULL);
+}
 
 char __get_opt(char *name)
 {

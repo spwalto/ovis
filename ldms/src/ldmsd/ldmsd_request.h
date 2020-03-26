@@ -63,6 +63,7 @@ extern int ldmsd_req_debug;
 
 #define LDMSD_MSG_TYPE_REQ  1
 #define LDMSD_MSG_TYPE_RESP 2
+#define LDMSD_MSG_TYPE_STREAM 3
 
 /**
  * LDMSD messages are either requests or response. Each message may consist
@@ -167,6 +168,15 @@ extern int ldmsd_req_debug;
  *           		]
  * }
  * NOTE: The "name" attribute value must mapped to a handler.
+ *
+ * Stream object (STREAM_OBJ)
+ *
+ * {"type":"stream_obj",
+ *  "stream_name": <stream name string>,
+ *  "stream_type": <stream type string: "string" or "json">,
+ *  "data": <stream data (arbitrary JSON value type)>
+ * }
+ *
  */
 
 #pragma pack(push, 1)
@@ -320,8 +330,12 @@ void ldmsd_req_buf_free(ldmsd_req_buf_t buf);
 int ldmsd_send_err_rec_adv(ldmsd_cfg_xprt_t xprt, uint32_t msg_no, uint32_t rec_len);
 typedef int (*ldmsd_req_filter_fn)(ldmsd_req_ctxt_t reqc, void *ctxt);
 int ldmsd_process_json_obj(ldmsd_req_ctxt_t reqc);
-int ldmsd_process_msg_request(ldmsd_rec_hdr_t request, ldmsd_cfg_xprt_t xprt);
-int ldmsd_process_msg_response(ldmsd_rec_hdr_t request, ldmsd_cfg_xprt_t xprt);
+ldmsd_req_ctxt_t ldmsd_handle_record(ldmsd_rec_hdr_t rec, ldmsd_cfg_xprt_t xprt);
+int ldmsd_process_msg_request(ldmsd_req_ctxt_t reqc);
+int ldmsd_process_msg_response(ldmsd_req_ctxt_t reqc);
+int ldmsd_process_msg_stream(ldmsd_req_ctxt_t reqc);
+int ldmsd_process_msg_json_stream(ldmsd_req_ctxt_t reqc);
+
 
 int __ldmsd_send_error(ldmsd_cfg_xprt_t xprt, uint32_t msg_no,
 				ldmsd_req_buf_t _buf, uint32_t errcode,
@@ -448,5 +462,10 @@ int ldmsd_append_request(ldmsd_req_ctxt_t reqc, int msg_flags,
  *
  */
 int ldmsd_append_info_obj_hdr(ldmsd_req_ctxt_t reqc, const char *info_name);
+
+/**
+ * \brief Append the cmd_obj JSON header to the send_buf as a REQUEST message.
+ */
+int ldmsd_append_cmd_obj_hdr(ldmsd_req_ctxt_t reqc, const char *cmd_name);
 
 #endif /* LDMS_SRC_LDMSD_LDMSD_REQUEST_H_ */

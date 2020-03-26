@@ -414,6 +414,7 @@ int process_config_file(const char *path, int trust)
 	size_t hdr_len;
 	uint32_t cnt = 0;
 	struct ldmsd_rec_hdr_s *request;
+	ldmsd_req_ctxt_t reqc;
 
 	FILE *f = fopen(path, "r");
 	if (!f) {
@@ -501,7 +502,13 @@ int process_config_file(const char *path, int trust)
 		request->flags = LDMSD_REC_SOM_F | LDMSD_REC_EOM_F;
 		request->type = LDMSD_MSG_TYPE_REQ;
 		__config_file_msgno_get(file_no, cnt, &request->key);
-		rc = ldmsd_process_msg_request(request, xprt);
+		reqc = ldmsd_handle_record(request, xprt);
+		if (!reqc) {
+			rc = errno;
+			goto out;
+		}
+
+		rc = ldmsd_process_msg_request(reqc);
 		/* stop processing the config file if there is a config error */
 		if (xprt->file.errcode)
 			rc = (int)xprt->file.errcode;
@@ -883,6 +890,7 @@ void ldmsd_recv_msg(ldms_t x, char *data, size_t data_len)
 	ldmsd_rec_hdr_t rec = (ldmsd_rec_hdr_t)data;
 	char *errstr;
 	ldmsd_cfg_xprt_t xprt;
+	ldmsd_req_ctxt_t reqc;
 	int rc;
 
 	xprt = ldmsd_cfg_xprt_ldms_new(x);
@@ -900,19 +908,28 @@ void ldmsd_recv_msg(ldms_t x, char *data, size_t data_len)
 		goto out;
 	}
 
+	errno = 0;
+	reqc = ldmsd_handle_record(rec, xprt);
+	if (!reqc)
+		goto out;
+
+	ldmsd_req_ctxt_ref_get(reqc, "handle");
 	switch (rec->type) {
 	case LDMSD_MSG_TYPE_REQ:
-		rc = ldmsd_process_msg_request(rec, xprt);
+		rc = ldmsd_process_msg_request(reqc);
 		break;
 	case LDMSD_MSG_TYPE_RESP:
-		rc = ldmsd_process_msg_response(rec, xprt);
+		rc = ldmsd_process_msg_response(reqc);
+		break;
+	case LDMSD_MSG_TYPE_STREAM:
+		rc = ldmsd_process_msg_stream(reqc);
 		break;
 	default:
 		errstr = "ldmsd received an unrecognized request type";
 		ldmsd_log(LDMSD_LERROR, "%s\n", errstr);
 		goto err;
 	}
-
+	ldmsd_req_ctxt_ref_put(reqc, "handle");
 	if (rc) {
 		/*
 		 * Do nothing.
