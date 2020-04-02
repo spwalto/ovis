@@ -5095,6 +5095,186 @@ out:
 	return rc;
 }
 
+#define GREETING_STREAM "This is a raw stream."
+struct greeting_raw_stream {
+	size_t len;
+	char s[OVIS_FLEX];
+};
+
+struct greeting_stream_ctxt {
+	enum {
+		RAW = 1,
+		STRING = 2,
+		JSON = 3,
+	} type;
+};
+
+static int __greeting_stream_cb(ldmsd_stream_client_t c, void *ctxt,
+				       ldmsd_stream_type_t stream_type,
+				       const char *data, size_t data_len,
+				       json_entity_t entity)
+{
+	json_entity_t len, s;
+	struct greeting_stream_ctxt *gctxt = ctxt;
+	struct greeting_raw_stream *strm;
+	const char *type;
+
+	if (gctxt->type == RAW) {
+		type = "raw";
+		if (stream_type != LDMSD_STREAM_STRING) {
+			ldmsd_log(LDMSD_LERROR, "Greeting-stream: expecting "
+					"stream type '%s', but received '%s'.\n",
+					ldmsd_stream_type_enum2str(LDMSD_STREAM_STRING),
+					ldmsd_stream_type_enum2str(stream_type));
+			return 0;
+		}
+		strm = (struct greeting_raw_stream *)data;
+		strm->len = ntohl(strm->len);
+		if ((strm->len != strlen(GREETING_STREAM)) ||
+				(0 != strcmp(strm->s, GREETING_STREAM))) {
+			ldmsd_log(LDMSD_LERROR, "Greeting-stream: Received "
+					"an unexpected data: '%lu %s'\n",
+					strm->len, strm->s);
+			return 0;
+		}
+	} else if (gctxt->type == STRING) {
+		type = "string";
+		if (stream_type != LDMSD_STREAM_STRING) {
+			ldmsd_log(LDMSD_LERROR, "Greeting-stream: expecting "
+					"stream type '%s', but received '%s'.\n",
+					ldmsd_stream_type_enum2str(LDMSD_STREAM_STRING),
+					ldmsd_stream_type_enum2str(stream_type));
+			return 0;
+		}
+		if (0 != strncmp(data, GREETING_STREAM, data_len)) {
+			ldmsd_log(LDMSD_LERROR, "Greeting-stream: Received "
+					"an unexpected data: '%s'\n", data);
+			return 0;
+		}
+	} else {
+		type = "json";
+		if (stream_type != LDMSD_STREAM_JSON) {
+			ldmsd_log(LDMSD_LERROR, "Greeting-stream: expecting "
+					"stream type '%s', but received '%s'.\n",
+					ldmsd_stream_type_enum2str(LDMSD_STREAM_JSON),
+					ldmsd_stream_type_enum2str(stream_type));
+			return 0;
+		}
+		len = json_value_find(entity, "len");
+		s = json_value_find(entity, "str");
+		if ((0 != strcmp(json_value_str(s)->str, GREETING_STREAM)) ||
+			(strlen(GREETING_STREAM) != json_value_int(len))) {
+			ldmsd_log(LDMSD_LERROR, "Greeting-stream: Received "
+					"an unexpected data: '%s'\n", data);
+			return 0;
+		}
+	}
+	ldmsd_log(LDMSD_LERROR, "greeting-stream: %s: received correct data.\n", type);
+	free(ctxt);
+	return 0;
+}
+
+static int __greeting_stream_subscribe_handler(ldmsd_req_ctxt_t reqc, json_entity_t v)
+{
+	json_entity_t type;
+	char *type_s;
+	struct greeting_stream_ctxt *ctxt;
+
+	if (JSON_DICT_VALUE != json_entity_type(v)) {
+		return ldmsd_send_type_error(reqc,
+			"cmd_obj:greeting:stream_subscribe:value", "a dictionary");
+	}
+	type = json_value_find(v, "type");
+	if (!type) {
+		return ldmsd_send_missing_attr_err(reqc,
+				"cmd_obj:greeting:stream_subscribe:value", "type");
+	}
+	type_s = json_value_str(type)->str;
+
+	ctxt = malloc(sizeof(*ctxt));
+	if (!ctxt) {
+		ldmsd_log(LDMSD_LCRITICAL, "Out of memory\n");
+		return ENOMEM;
+	}
+
+	if (0 == strcmp(type_s, "raw"))
+		ctxt->type = RAW;
+	else if (0 == strcmp(type_s, "string"))
+		ctxt->type = STRING;
+	else if (0 == strcmp(type_s, "json"))
+		ctxt->type = JSON;
+	else {
+		free(ctxt);
+		return ldmsd_send_error(reqc, EINVAL, "type '%s' is invalid.", type_s);
+	}
+
+	ldmsd_stream_subscribe(type_s, __greeting_stream_cb, ctxt);
+	return ldmsd_send_error(reqc, 0, NULL);
+}
+
+static int __greeting_stream_publish_handler(ldmsd_req_ctxt_t reqc, json_entity_t v)
+{
+	int rc;
+	json_entity_t prdcr_name, type;
+	char *type_s;
+	ldmsd_prdcr_t prdcr;
+	struct greeting_raw_stream *strm;
+	size_t len = strlen(GREETING_STREAM);
+	ldmsd_req_buf_t buf;
+
+	buf = ldmsd_req_buf_alloc(256);
+	if (!buf) {
+		ldmsd_log(LDMSD_LCRITICAL, "Out of memory\n");
+		return ENOMEM;
+	}
+
+	prdcr_name = json_value_find(v, "producer");
+	if (!prdcr_name) {
+		return ldmsd_send_missing_attr_err(reqc, "greeting:stream_publish", "producer");
+	}
+
+	type = json_value_find(v, "type");
+	if (!type) {
+		return ldmsd_send_missing_attr_err(reqc, "greeting:stream_publish", "type");
+	}
+	type_s = json_value_str(type)->str;
+
+	prdcr = ldmsd_prdcr_find(json_value_str(prdcr_name)->str);
+	if (!prdcr) {
+		return ldmsd_send_error(reqc, ENOENT, "Producer %s not found.",
+				json_value_str(prdcr_name)->str);
+	}
+	ldmsd_prdcr_get(prdcr);
+
+	if (0 == strcmp("raw", type_s)) {
+		strm = (struct greeting_raw_stream *)buf->buf;
+		strm->len = htonl(len);
+		memcpy(strm->s, GREETING_STREAM, len + 1);
+
+		rc = ldmsd_stream_publish(prdcr->xprt, type_s,
+				LDMSD_STREAM_STRING,
+				(const char *)strm, sizeof(*strm) + len + 1);
+	} else if (0 == strcmp("string", type_s)) {
+		buf->off = snprintf(buf->buf, len + 1, "%s", GREETING_STREAM);
+		rc = ldmsd_stream_publish(prdcr->xprt, type_s,
+				LDMSD_STREAM_STRING, buf->buf, buf->off);
+	} else {
+		buf->off = snprintf(buf->buf, buf->len, "{\"len\":%lu,\"str\":\"%s\"}",
+						len, GREETING_STREAM);
+		rc = ldmsd_stream_publish(prdcr->xprt, type_s,
+				LDMSD_STREAM_JSON, buf->buf, buf->off);
+	}
+
+
+	if (rc) {
+		rc = ldmsd_send_error(reqc, rc, "Failed to publish.");
+	} else {
+		rc = ldmsd_send_error(reqc, 0, NULL);
+	}
+	ldmsd_prdcr_put(prdcr);
+	return rc;
+}
+
 static int greeting_handler(ldmsd_req_ctxt_t reqc)
 {
 	json_entity_t spec, mode, value;
@@ -5134,6 +5314,18 @@ static int greeting_handler(ldmsd_req_ctxt_t reqc)
 			goto out;
 		}
 		rc = __greeting_long_rsp_handler(reqc, value);
+	} else if (0 == strncmp(mode_s->str, "publish_stream", mode_s->str_len)) {
+		if (!value) {
+			rc = ldmsd_send_missing_attr_err(reqc, "greeting/publish_stream", "value");
+			goto out;
+		}
+		rc = __greeting_stream_publish_handler(reqc, value);
+	} else if (0 == strncmp(mode_s->str, "subscribe_stream", mode_s->str_len)) {
+		if (!value) {
+			rc = ldmsd_send_missing_attr_err(reqc, "greeting/subscribe_stream", "value");
+			goto out;
+		}
+		rc = __greeting_stream_subscribe_handler(reqc, value);
 	} else {
 		rc = ldmsd_send_error(reqc, ENOTSUP, "Not supported mode %s",
 								mode_s->str);
