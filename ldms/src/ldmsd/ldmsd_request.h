@@ -82,6 +82,15 @@ extern int ldmsd_req_debug;
  *
  * JSON objects
  *
+ * Daemon (DAEMON)
+ *
+ * The daemon object is a unique object that define an LDMS daemon's default behaviors, e.g.,
+ * logging, default authentication, the total memory used for set instances, etc.
+ *
+ * { "type": "daemon",
+ *   "spec": { most of the command-line options }
+ * }
+ *
  * Configuration objects (CFG_OBJ)
  * { "type": "cfg_obj",
  *   "cfg_obj" : <a string, e.g., "env", "daemon", "prdcr">,
@@ -112,10 +121,11 @@ extern int ldmsd_req_debug;
  *                ]
  * }
  *
- *
- * The "op" attribute is optional. The default is "create".
- *
  * Action objects (ACT_OBJ)
+ *
+ * Action objects are objects that cause a change to configuration object states.
+ * The supported actions are 'start', 'stop', 'delete' and 'update'
+ * Some configuration objects may not support all actions.
  *
  * { "type"   : "act_obj",
  *   "action" : <one of "start", "stop", "delete">,\
