@@ -196,6 +196,7 @@ static int updtr_handler(ldmsd_req_ctxt_t reqc);
  * Action object handlers
  */
 static int daemon_exit_handler(ldmsd_req_ctxt_t reqc);
+static int plugin_instance_action_handler(ldmsd_req_ctxt_t reqc);
 static int prdcr_action_handler(ldmsd_req_ctxt_t reqc);
 static int smplr_action_handler(ldmsd_req_ctxt_t reqc);
 static int set_udata_handler(ldmsd_req_ctxt_t req_ctxt);
@@ -283,6 +284,7 @@ static struct obj_handler_entry cmd_obj_handler_tbl[] = {
 
 static struct obj_handler_entry act_obj_handler_tbl[] = {
 		{ "daemon_exit",	daemon_exit_handler,	XUG },
+		{ "plugin_instance",	plugin_instance_action_handler,	XUG },
 		{ "prdcr",	prdcr_action_handler,	XUG },
 		{ "setgroup",	setgroup_action_handler,XUG },
 		{ "set_udata",	set_udata_handler,	XUG },
@@ -3983,7 +3985,6 @@ static int plugin_instance_handler(ldmsd_req_ctxt_t reqc)
 	}
 	name_s = json_value_str(name)->str;
 
-
 	plugin = json_value_find(spec, "plugin");
 	if (!plugin) {
 		plugin_s = name_s;
@@ -4104,45 +4105,36 @@ static int plugin_instance_handler(ldmsd_req_ctxt_t reqc)
 	return rc;
 }
 
-//static int plugn_term_handler(ldmsd_req_ctxt_t reqc)
-//{
-//	char *plugin_name, *attr_name;
-//	plugin_name = NULL;
-//
-//	attr_name = "name";
-//	plugin_name = ldmsd_req_attr_str_value_get_by_id(reqc, LDMSD_ATTR_NAME);
-//	if (!plugin_name)
-//		goto einval;
-//
-//	reqc->errcode = ldmsd_term_plugin(plugin_name);
-//	if (reqc->errcode == 0) {
-//		goto send_reply;
-//	} else if (reqc->errcode == ENOENT) {
-//		Snprintf(&reqc->recv_buf, &reqc->recv_len,
-//				"plugin '%s' not found.", plugin_name);
-//	} else if (reqc->errcode == EINVAL) {
-//		Snprintf(&reqc->recv_buf, &reqc->recv_len,
-//				"The specified plugin '%s' has "
-//				"active users and cannot be terminated.",
-//				plugin_name);
-//	} else {
-//		Snprintf(&reqc->recv_buf, &reqc->recv_len,
-//				"Failed to terminate the plugin '%s'.",
-//				plugin_name);
-//	}
-//	goto send_reply;
-//
-//einval:
-//	reqc->errcode = EINVAL;
-//	Snprintf(&reqc->recv_buf, &reqc->recv_len,
-//			"The attribute '%s' is required by term.", attr_name);
-//send_reply:
-//	ldmsd_send_req_response(reqc, reqc->recv_buf);
-//	if (plugin_name)
-//		free(plugin_name);
-//	return 0;
-//}
-//
+static int plugin_instance_action_handler(ldmsd_req_ctxt_t reqc)
+{
+	int rc;
+	json_entity_t action, names, name, regex;
+	char *name_s, *action_s;
+
+	action = json_value_find(reqc->json, "action");
+	action_s = json_value_str(action)->str;
+	names = json_value_find(reqc->json, "names");
+	regex = json_value_find(reqc->json, "regex");
+
+	if (0 == strncmp(action_s, "delete", 6)) {
+		for (name = json_item_first(names); name;
+				name = json_item_next(name)) {
+			name_s = json_value_str(name)->str;
+			rc = ldmsd_term_plugin(name_s);
+			if (rc == ENOENT) {
+				rc = ldmsd_send_error(reqc, rc,
+					"plugin '%s' not found.", name_s);
+			} else if (rc != 0){
+				rc = ldmsd_send_error(reqc, rc,
+					"Failed to terminate the plugin '%s'.",
+						name_s);
+			}
+		}
+	} else if (0 == strncmp(action_s, "update", 6)) {
+
+	}
+}
+
 //static int plugn_config_handler(ldmsd_req_ctxt_t reqc)
 //{
 //	char *name, *config_attr, *attr_name;
