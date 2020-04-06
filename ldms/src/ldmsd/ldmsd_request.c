@@ -195,6 +195,7 @@ static int updtr_handler(ldmsd_req_ctxt_t reqc);
 /*
  * Action object handlers
  */
+static int auth_action_handler(ldmsd_req_ctxt_t reqc);
 static int daemon_exit_handler(ldmsd_req_ctxt_t reqc);
 static int plugin_instance_action_handler(ldmsd_req_ctxt_t reqc);
 static int prdcr_action_handler(ldmsd_req_ctxt_t reqc);
@@ -283,6 +284,7 @@ static struct obj_handler_entry cmd_obj_handler_tbl[] = {
 };
 
 static struct obj_handler_entry act_obj_handler_tbl[] = {
+		{ "auth",	auth_action_handler,	XUG },
 		{ "daemon_exit",	daemon_exit_handler,	XUG },
 		{ "plugin_instance",	plugin_instance_action_handler,	XUG },
 		{ "prdcr",	prdcr_action_handler,	XUG },
@@ -4105,6 +4107,7 @@ static int plugin_instance_handler(ldmsd_req_ctxt_t reqc)
 	return rc;
 }
 
+extern int ldmsd_term_plugin(const char *name);
 static int plugin_instance_action_handler(ldmsd_req_ctxt_t reqc)
 {
 	int rc;
@@ -4115,6 +4118,11 @@ static int plugin_instance_action_handler(ldmsd_req_ctxt_t reqc)
 	action_s = json_value_str(action)->str;
 	names = json_value_find(reqc->json, "names");
 	regex = json_value_find(reqc->json, "regex");
+
+	if (regex) {
+		return ldmsd_send_error(reqc, ENOTSUP,
+			"act_obj:updtr does not support 'regex'");
+	}
 
 	if (0 == strncmp(action_s, "delete", 6)) {
 		for (name = json_item_first(names); name;
@@ -4130,9 +4138,13 @@ static int plugin_instance_action_handler(ldmsd_req_ctxt_t reqc)
 						name_s);
 			}
 		}
-	} else if (0 == strncmp(action_s, "update", 6)) {
-
+	} else {
+		rc = ldmsd_send_error(reqc, ENOTSUP, "plugin instance: action "
+				"'%s' not supported.", action_s);
 	}
+	if (rc)
+		return rc;
+	return ldmsd_send_error(reqc, 0, NULL);
 }
 
 //static int plugn_config_handler(ldmsd_req_ctxt_t reqc)
@@ -7089,46 +7101,51 @@ out:
 	return rc;
 }
 
-//static int auth_del_handler(ldmsd_req_ctxt_t reqc)
-//{
-//	const char *attr_name;
-//	char *name = NULL;
-//	struct ldmsd_sec_ctxt sctxt;
-//
-//	name = ldmsd_req_attr_str_value_get_by_id(reqc, LDMSD_ATTR_NAME);
-//	if (!name) {
-//		attr_name = "name";
-//		goto attr_required;
-//	}
-//
-//	ldmsd_sec_ctxt_get(&sctxt);
-//	reqc->errcode = ldmsd_auth_del(name, &sctxt);
-//	switch (reqc->errcode) {
-//	case EACCES:
-//		snprintf(reqc->line_buf, reqc->line_len, "Permission denied");
-//		break;
-//	case ENOENT:
-//		snprintf(reqc->line_buf, reqc->line_len,
-//			 "'%s' authentication domain not found", name);
-//		break;
-//	default:
-//		snprintf(reqc->line_buf, reqc->line_len,
-//			 "Failed to delete authentication domain '%s', "
-//			 "error: %d", name, reqc->errcode);
-//		break;
-//	}
-//
-//	goto send_reply;
-//
-//attr_required:
-//	reqc->errcode = EINVAL;
-//	(void) snprintf(reqc->line_buf, reqc->line_len,
-//			"Attribute '%s' is required", attr_name);
-//	goto send_reply;
-//send_reply:
-//	ldmsd_send_req_response(reqc, reqc->line_buf);
-//	/* cleanup */
-//	if (name)
-//		free(name);
-//	return 0;
-//}
+static int auth_action_handler(ldmsd_req_ctxt_t reqc)
+{
+	int rc;
+	json_entity_t action, names, name, regex;
+	char *name_s, *action_s;
+	struct ldmsd_sec_ctxt sctxt;
+
+	action = json_value_find(reqc->json, "action");
+	action_s = json_value_str(action)->str;
+	names = json_value_find(reqc->json, "names");
+	regex = json_value_find(reqc->json, "regex");
+
+	if (regex) {
+		return ldmsd_send_error(reqc, ENOTSUP,
+				"act_obj:smplr: 'regex' not supported. "
+				"All the name in 'names' were processed.");
+	}
+
+	ldmsd_req_ctxt_sec_get(reqc, &sctxt);
+
+	if (0 == strncmp(action_s, "delete", 6)) {
+		for (name = json_item_first(names); name;
+				name = json_item_next(name)) {
+			name_s = json_value_str(name)->str;
+			rc = ldmsd_auth_del(name_s, &sctxt);
+			switch (rc) {
+			case 0:
+				break;
+			case EACCES:
+				return ldmsd_send_error(reqc, rc,
+					"auth '%s': action '%s': Permission denied",
+					name_s, action_s);
+			case ENOENT:
+				return ldmsd_send_error(reqc, rc,
+					 "authentication domain '%s' not found "
+					 "- action '%s'", name_s, action_s);
+			default:
+				return ldmsd_send_error(reqc, rc,
+					 "Failed to delete authentication domain '%s'",
+					 name_s);
+			}
+		}
+	} else {
+		return ldmsd_send_error(reqc, ENOTSUP, "Authentication action "
+						"'%s' not supported.", action_s);
+	}
+	return ldmsd_send_error(reqc, 0, NULL);
+}
