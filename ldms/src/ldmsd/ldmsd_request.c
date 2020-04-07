@@ -242,9 +242,6 @@ static int handler_entry_comp(const void *a, const void *b)
 	return strcmp(_a->name, _b->name);
 }
 
-/*
- * TODO: Fill in the flag field of all obj_handler_entry in all tables.
- */
 static struct obj_handler_entry cfg_obj_handler_tbl[] = {
 		{ "auth",		auth_handler,			XUG },
 		{ "env",		env_handler,			XUG },
@@ -255,11 +252,6 @@ static struct obj_handler_entry cfg_obj_handler_tbl[] = {
 		{ "smplr",		smplr_handler,			XUG },
 		{ "strgp",		strgp_handler,			XUG },
 		{ "updtr",		updtr_handler,			XUG },
-//		{ "prdcr",	prdcr_add_handler },
-//		{ "updtr",	updtr_add_handler },
-//		{ "strgp",	strgp_add_handler },
-//		{ "setgroup",	setgroup_add_handler },
-//		{ "failover",	failover_config_handler }
 };
 
 static struct obj_handler_entry cmd_obj_handler_tbl[] = {
@@ -267,7 +259,7 @@ static struct obj_handler_entry cmd_obj_handler_tbl[] = {
 		{ "example", 	example_handler, 	XALL },
 		{ "export_config",	export_config_handler,	XUG | LDMSD_PERM_FAILOVER_ALLOWED },
 		{ "greeting",	greeting_handler,	XALL },
-		{ "include",	include_handler,	XUG },
+		{ "include",	include_handler,	XUG },	/* TODO: This is a special one */
 		{ "plugin_list",	plugin_list_handler,	XALL },
 		{ "plugin_query",	plugin_query_handler,	XALL },
 		{ "plugin_sets",	plugin_sets_handler,	XALL },
