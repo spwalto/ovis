@@ -124,51 +124,77 @@ extern int ldmsd_req_debug;
  * Action objects (ACT_OBJ)
  *
  * Action objects are objects that cause a change to configuration object states.
- * The supported actions are 'start', 'stop', 'delete' and 'update'
+ * The supported actions are 'start', 'stop', 'delete' and 'update'.
  * Some configuration objects may not support all actions.
  *
+ * The 'spec' attribute is used only with the 'update' action.
+ *
  * { "type"   : "act_obj",
- *   "action" : <one of "start", "stop", "delete">,\
+ *   "action" : <one of "start", "stop", "delete", "update">,
  *   "cfg_obj": <a cfgobj type, e.g., prdcr, smplr, updtr>
  *   "names"  : <list of cfgobj names>,
- *   "regex"  : <list of cfgobj name regex>
+ *   "regex"  : <list of cfgobj name regex>,
+ *   "spec": { dictionary of cfg_obj-specific attribute-value pairs. }
  * }
- * Example
+ *
+ * Examples:
  * { "type" : "act_obj",
  *   "action": "start",
  *   "cfg_obj": "prdcr",
  *   "names": [ "nid01", "nid02" ],
  *   "regex": [ "nid00*" ]
  * }
+ *
+ * { "type": "act_obj",
+ *   "action": "update",
+ *   "cfg_obj": "smplr",
+ *   "names": [ "vmstat_smplr", "meminfo_smplr" ],
+ *   "spec": { "interval": "2sec" }
+ * }
  */
 #define LDMSD_ACT_OBJ_START  1
 #define LDMSD_ACT_OBJ_STOP   2
 #define LDMSD_ACT_OBJ_DELETE 3
 /**
- * Command objects (CMD_OBJ)
+ * Command objects (CMD)
  *
- * { "type": "cmd_obj",
+ * { "type": "cmd",
  *   "cmd" : <command name string, e.g., "prdcr_status">,
  *   "spec" : <a dictionary containing the command-specific attribute value pairs>
  * }
  *
- * Error objects (ERR_OBJ)
+ * Error objects (ERR)
  *
  * { "type": "err",
  *   "errcode": <error code number, including 0 means no error>,
  *   "msg": <error message string>,
  * }
  * NOTE: The attribute "msg" may be omitted in the case that
- * the error code contains enough information.
+ * the error code contains enough information or the errcode is 0.
  *
- * Record Length Advice objects (REC_ADV_OBJ)
+ * Examples:
+ * { "type": "err",
+ *   "errcode": EINVAL,
+ *   "msg": "cfg_obj:prdcr 'compute1': 'host' is missing"
+ * }
  *
- * { "type": "rec_adv",
+ * { "type": "err",
+ *   "errcode": 0
+ * }
+ *
+ * Record Length Advice (REC_LEN_ADV)
+ * REC_LEN_ADV is a special error when LDMSD receives a message that the
+ * record length is larger than the maximum message size the underlying transport
+ * supports.
+ *
+ * { "type": "rec_len_adv",
  *   "errcode": E2BIG,
  *   "adv_len": <transport's max record length>
  * }
  *
- * Information object (INFO_OBJ)
+ * Information (INFO)
+ * INFO contains just information, e.g., producer status, LDMSD versions, etc.
+ * INFO usually are response to a CMD request.
  *
  * { "type": "info",
  *   "name": <a string identifying what information is being sent, e.g., "prdcr_status">,
@@ -177,16 +203,6 @@ extern int ldmsd_req_debug;
  *           		  { "prdcr": "A2","host":"nid02","xprt":"sock" }, ...
  *           		]
  * }
- * NOTE: The "name" attribute value must mapped to a handler.
- *
- * Stream object (STREAM_OBJ)
- *
- * {"type":"stream_obj",
- *  "stream_name": <stream name string>,
- *  "stream_type": <stream type string: "string" or "json">,
- *  "data": <stream data (arbitrary JSON value type)>
- * }
- *
  */
 
 #pragma pack(push, 1)
