@@ -851,20 +851,20 @@ static inline void __log_sent_req(ldmsd_cfg_xprt_t xprt, ldmsd_rec_hdr_t req)
 	struct ldmsd_rec_hdr_s hdr;
 	hdr.type = ntohl(req->type);
 	hdr.flags = ntohl(req->flags);
-	hdr.key.msg_no = ntohl(req->key.msg_no);
+	hdr.msg_no = ntohl(req->msg_no);
 	hdr.rec_len = ntohl(req->rec_len);
 	switch (hdr.type) {
 	case LDMSD_MSG_TYPE_REQ:
 		ldmsd_lall("sending %s msg_no: %d:%lu, flags: %#o, "
 			   "rec_len: %u\n",
 			   "AAAAAAAAAAA", /* TODO: fix this */
-			   hdr.key.msg_no, (uint64_t)xprt->xprt,
+			   hdr.msg_no, (uint64_t)(unsigned long)xprt->xprt,
 			   hdr.flags, hdr.rec_len);
 		break;
 	case LDMSD_MSG_TYPE_RESP:
 		ldmsd_lall("sending RESP msg_no: %d, rsp_err: %d, flags: %#o, "
 			   "rec_len: %u\n",
-			   hdr.key.msg_no,
+			   hdr.msg_no,
 			   256, /* TODO: fix this */
 			   hdr.flags, hdr.rec_len);
 		break;
@@ -895,7 +895,7 @@ void ldmsd_recv_msg(ldms_t x, char *data, size_t data_len)
 
 	if (rec->rec_len > xprt->max_msg) {
 		/* Send the record length advice */
-		rc = ldmsd_send_err_rec_adv(xprt, &rec->key, xprt->max_msg);
+		rc = ldmsd_send_err_rec_adv(xprt, rec->msg_no, xprt->max_msg);
 		if (rc)
 			goto oom;
 		goto out;
@@ -931,7 +931,7 @@ oom:
 	errstr = "ldmsd out of memory";
 	ldmsd_log(LDMSD_LCRITICAL, "%s\n", errstr);
 err:
-	__ldmsd_send_error(xprt, &rec->key, NULL, rc, errstr);
+	__ldmsd_send_error(xprt, rec->msg_no, NULL, rc, errstr);
 	ldmsd_cfg_xprt_ref_put(xprt, "create");
 	return;
 }

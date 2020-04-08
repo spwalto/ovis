@@ -22,12 +22,6 @@ COMMON_LIBADD = $(CORE)/libldms.la $(LDMSD)/libldmsd_stream.la \
 #ldmsd_stream_subscribe_LDADD = $(CORE)/libldms.la $(LDMSD)/librequest.la $(LDMSD)/libldmsd_stream.la
 #ldmsd_stream_subscribe_LDFLAGS = $(AM_LDFLAGS) -ljson_util -pthread -lovis_util
 
-sbin_PROGRAMS += ldmsd_json_protocol
-ldmsd_json_protocol_SOURCES = ldmsd_json_protocol.c
-ldmsd_json_protocol_CFLAGS = $(AM_CFLAGS)
-ldmsd_json_protocol_LDADD = $(CORE)/libldms.la $(LDMSD)/librequest.la
-ldmsd_json_protocol_LDFLAGS = $(AM_LDFLAGS) -ljson_util -pthread
-
 sbin_PROGRAMS += ldmsd_json_msg
 ldmsd_json_msg_SOURCES = ldmsd_json_msg.c
 ldmsd_json_msg_CFLAGS = $(AM_CFLAGS)

@@ -118,14 +118,14 @@ int ldmsd_append_msg_buffer(void *xprt, size_t max_msg, struct ldmsd_msg_key *ke
 			/* Record is full, send it on it's way */
 			req_buff->type = msg_type;
 			req_buff->flags = flags;
-			req_buff->key = *key;
+			req_buff->msg_no = key->msg_no;
 			req_buff->rec_len = buf->off;
 			ldmsd_hton_rec_hdr(req_buff);
 			rc = send_fn(xprt, (char *)req_buff, ntohl(req_buff->rec_len));
 			if (rc) {
 				/* The content in reqc->rep_buf hasn't been sent. */
 				ldmsd_log(LDMSD_LERROR, "failed to send the reply of "
-						"the config request %d from "
+						"the config message number %d from "
 						"config xprt id %" PRIu64 "\n",
 						key->msg_no, key->conn_id);
 				return rc;
@@ -166,16 +166,14 @@ void ldmsd_ntoh_rec_hdr(ldmsd_rec_hdr_t req)
 {
 	req->type = ntohl(req->type);
 	req->flags = ntohl(req->flags);
-	req->key.msg_no = ntohl(req->key.msg_no);
-	req->key.conn_id = be64toh(req->key.conn_id);
+	req->msg_no = ntohl(req->msg_no);
 	req->rec_len = ntohl(req->rec_len);
 }
 
 void ldmsd_hton_rec_hdr(ldmsd_rec_hdr_t req)
 {
 	req->flags = htonl(req->flags);
-	req->key.msg_no = htonl(req->key.msg_no);
-	req->key.conn_id = htobe64(req->key.conn_id);
+	req->msg_no = htonl(req->msg_no);
 	req->rec_len = htonl(req->rec_len);
 	req->type = htonl(req->type);
 }

@@ -367,19 +367,19 @@ void __req_ctxt_del(ldmsd_req_ctxt_t reqc)
 	free(reqc);
 }
 
-void __msg_local_key_get(ldmsd_cfg_xprt_t xprt, ldmsd_msg_key_t rem_key,
-						ldmsd_msg_key_t lcl_key_)
+void __msg_key_get(ldmsd_cfg_xprt_t xprt, uint32_t msg_no,
+						ldmsd_msg_key_t key_)
 {
-	lcl_key_->msg_no = rem_key->msg_no;
+	key_->msg_no = msg_no;
 	if (xprt->type == LDMSD_CFG_XPRT_LDMS) {
 		/*
 		 * Don't use the cfg_xprt directly because
 		 * a new cfg_xprt get allocated
 		 * every time LDMSD receives a record.
 		 */
-		lcl_key_->conn_id = (uint64_t)(unsigned long)xprt->ldms.ldms;
+		key_->conn_id = (uint64_t)(unsigned long)xprt->ldms.ldms;
 	} else {
-		lcl_key_->conn_id = (uint64_t)(unsigned long)xprt;
+		key_->conn_id = (uint64_t)(unsigned long)xprt;
 	}
 }
 
@@ -409,14 +409,8 @@ __req_ctxt_alloc(ldmsd_msg_key_t key, ldmsd_cfg_xprt_t xprt, int type)
 	reqc->xprt = xprt;
 
 	ref_init(&reqc->ref, "create", (ref_free_fn_t)__req_ctxt_del, reqc);
-
-	if (LDMSD_REQ_CTXT_REQ == type) {
-		reqc->rem_key = *key;
-		__msg_local_key_get(xprt, key, &reqc->lcl_key);
-	} else {
-		reqc->lcl_key = reqc->rem_key = *key;
-	}
-	rbn_init(&reqc->rbn, &reqc->lcl_key);
+	reqc->key = *key;
+	rbn_init(&reqc->rbn, &reqc->key);
 	reqc->type = type;
 	if (LDMSD_REQ_CTXT_RSP == type) {
 		rbt_ins(&rsp_msg_tree, &reqc->rbn);
@@ -486,7 +480,7 @@ int ldmsd_append_response_va(ldmsd_req_ctxt_t reqc, int msg_flags, const char *f
 	int rc;
 	va_list ap;
 	va_start(ap, fmt);
-	rc = __ldmsd_append_buffer_va(reqc->xprt, &reqc->rem_key, reqc->send_buf,
+	rc = __ldmsd_append_buffer_va(reqc->xprt, &reqc->key, reqc->send_buf,
 					msg_flags, LDMSD_MSG_TYPE_RESP, fmt, ap);
 	va_end(ap);
 	return rc;
@@ -495,7 +489,7 @@ int ldmsd_append_response_va(ldmsd_req_ctxt_t reqc, int msg_flags, const char *f
 int ldmsd_append_response(ldmsd_req_ctxt_t reqc, int msg_flags,
 				const char *data, size_t data_len)
 {
-	return __ldmsd_append_buffer(reqc->xprt, &reqc->rem_key, reqc->send_buf,
+	return __ldmsd_append_buffer(reqc->xprt, &reqc->key, reqc->send_buf,
 			msg_flags, LDMSD_MSG_TYPE_RESP, data, data_len);
 }
 
@@ -504,7 +498,7 @@ int ldmsd_append_request_va(ldmsd_req_ctxt_t reqc, int msg_flags, const char *fm
 	int rc;
 	va_list ap;
 	va_start(ap, fmt);
-	rc = __ldmsd_append_buffer_va(reqc->xprt, &reqc->rem_key, reqc->send_buf,
+	rc = __ldmsd_append_buffer_va(reqc->xprt, &reqc->key, reqc->send_buf,
 			msg_flags, LDMSD_MSG_TYPE_REQ, fmt, ap);
 	va_end(ap);
 	return rc;
@@ -513,7 +507,7 @@ int ldmsd_append_request_va(ldmsd_req_ctxt_t reqc, int msg_flags, const char *fm
 int ldmsd_append_request(ldmsd_req_ctxt_t reqc, int msg_flags,
 				const char *data, size_t data_len)
 {
-	return __ldmsd_append_buffer(reqc->xprt, &reqc->rem_key, reqc->send_buf,
+	return __ldmsd_append_buffer(reqc->xprt, &reqc->key, reqc->send_buf,
 			msg_flags, LDMSD_MSG_TYPE_REQ, data, data_len);
 }
 
@@ -562,14 +556,16 @@ int __send_error(ldmsd_cfg_xprt_t xprt, struct ldmsd_msg_key *key,
  *
  * Call the function only once to construct and send an error.
  */
-int __ldmsd_send_error(ldmsd_cfg_xprt_t xprt, struct ldmsd_msg_key *key,
+int __ldmsd_send_error(ldmsd_cfg_xprt_t xprt, uint32_t msg_no,
 				ldmsd_req_buf_t _buf, uint32_t errcode,
 				char *errmsg_fmt, ...)
 {
 	va_list errmsg_ap;
 	ldmsd_req_buf_t buf;
+	struct ldmsd_msg_key key;
 	int rc = 0;
 
+	__msg_key_get(xprt, msg_no, &key);
 	if (_buf) {
 		buf = _buf;
 	} else {
@@ -579,7 +575,7 @@ int __ldmsd_send_error(ldmsd_cfg_xprt_t xprt, struct ldmsd_msg_key *key,
 	}
 
 	va_start(errmsg_ap, errmsg_fmt);
-	rc = __send_error(xprt, key, buf, errcode, errmsg_fmt, errmsg_ap);
+	rc = __send_error(xprt, &key, buf, errcode, errmsg_fmt, errmsg_ap);
 	if (!_buf)
 		ldmsd_req_buf_free(buf);
 	va_end(errmsg_ap);
@@ -605,7 +601,7 @@ int ldmsd_send_error(ldmsd_req_ctxt_t reqc, uint32_t errcode, char *errmsg_fmt, 
 	 */
 	ldmsd_req_buf_reset(reqc->send_buf);
 	va_start(errmsg_ap, errmsg_fmt);
-	rc = __send_error(reqc->xprt, &reqc->rem_key, reqc->send_buf, errcode,
+	rc = __send_error(reqc->xprt, &reqc->key, reqc->send_buf, errcode,
 					errmsg_fmt, errmsg_ap);
 	va_end(errmsg_ap);
 	return rc;
@@ -640,17 +636,17 @@ int __ldmsd_send_missing_mandatory_attr(ldmsd_req_ctxt_t reqc,
 	ldmsd_log(LDMSD_LERROR, "'%s' (%s) is missing from "
 			"the message number %d:%" PRIu64,
 			missing, obj_type,
-			reqc->rem_key.msg_no, reqc->rem_key.conn_id);
+			reqc->key.msg_no, reqc->key.conn_id);
 	rc = ldmsd_send_error(reqc, EINVAL,
 			"'%s' (%s) is missing from "
 			"the message number %d:%" PRIu64,
 			missing, obj_type,
-			reqc->rem_key.msg_no, reqc->rem_key.conn_id);
+			reqc->key.msg_no, reqc->key.conn_id);
 	return rc;
 }
 
 int
-ldmsd_send_err_rec_adv(ldmsd_cfg_xprt_t xprt, ldmsd_msg_key_t key, uint32_t rec_len)
+ldmsd_send_err_rec_adv(ldmsd_cfg_xprt_t xprt, uint32_t msg_no, uint32_t rec_len)
 {
 	size_t cnt, hdr_sz, len;
 	int rc;
@@ -678,7 +674,7 @@ ldmsd_send_err_rec_adv(ldmsd_cfg_xprt_t xprt, ldmsd_msg_key_t key, uint32_t rec_
 						   " \"spec\": {\"errcode\":%d,"
 						   "\"rec_len\":%d}}",
 						   E2BIG, rec_len);
-	hdr->key = *key;
+	hdr->msg_no = msg_no;
 	hdr->rec_len = cnt + hdr_sz;
 	hdr->type = LDMSD_MSG_TYPE_RESP;
 	hdr->flags = LDMSD_REC_SOM_F | LDMSD_REC_EOM_F;
@@ -708,7 +704,7 @@ int ldmsd_process_msg_request(ldmsd_rec_hdr_t req, ldmsd_cfg_xprt_t xprt)
 	struct ldmsd_msg_key key;
 	errno = 0;
 
-	__msg_local_key_get(xprt, &req->key, &key);
+	__msg_key_get(xprt, req->msg_no, &key);
 	ldmsd_req_ctxt_tree_lock(req_ctxt_type);
 	/*
 	 * Copy the data from this record to the tail of the buffer
@@ -717,25 +713,25 @@ int ldmsd_process_msg_request(ldmsd_rec_hdr_t req, ldmsd_cfg_xprt_t xprt)
 		reqc = find_req_ctxt(&key, LDMSD_REQ_CTXT_REQ);
 		if (reqc) {
 			rc = ldmsd_send_error(reqc, EADDRINUSE,
-				"Duplicate message number %d:%" PRIu64 "received",
-				req->key.msg_no, req->key.conn_id);
+				"Duplicate message number %" PRIu32,
+				req->msg_no);
 			if (rc == ENOMEM)
 				goto oom;
 			else
 				goto err;
 		}
-		reqc = __req_ctxt_alloc(&req->key, xprt, LDMSD_REQ_CTXT_REQ);
+		reqc = __req_ctxt_alloc(&key, xprt, LDMSD_REQ_CTXT_REQ);
 		if (!reqc)
 			goto oom;
 	} else {
 		reqc = find_req_ctxt(&key, LDMSD_REQ_CTXT_REQ);
 		if (!reqc) {
-			rc = __ldmsd_send_error(xprt, &req->key, NULL, ENOENT,
-					"The message no %" PRIu32
-					" was not found.", req->key.msg_no);
-			ldmsd_log(LDMSD_LERROR, "The message no %" PRIu32 ":%" PRIu64
+			rc = __ldmsd_send_error(xprt, req->msg_no, NULL, ENOENT,
+					"The message number %" PRIu32
+					" was not found.", req->msg_no);
+			ldmsd_log(LDMSD_LERROR, "The request ID %" PRIu32 ":%" PRIu64
 					" was not found.\n",
-					req->key.msg_no, req->key.conn_id);
+					req->msg_no, key.conn_id);
 			goto err;
 		}
 	}
@@ -775,7 +771,7 @@ int ldmsd_process_msg_request(ldmsd_rec_hdr_t req, ldmsd_cfg_xprt_t xprt)
 
 	if (rc) {
 		ldmsd_log(LDMSD_LCRITICAL, "Failed to parse a JSON object string\n");
-		__ldmsd_send_error(reqc->xprt, &req->key, reqc->send_buf, rc,
+		__ldmsd_send_error(reqc->xprt, req->msg_no, reqc->send_buf, rc,
 				"Failed to parse a JSON object string");
 		goto err;
 	}
@@ -787,7 +783,7 @@ out:
 oom:
 	rc = ENOMEM;
 	ldmsd_log(LDMSD_LCRITICAL, "%s\n", oom_errstr);
-	__ldmsd_send_error(xprt, &req->key, NULL, rc, "%s", oom_errstr);
+	__ldmsd_send_error(xprt, req->msg_no, NULL, rc, "%s", oom_errstr);
 err:
 	ldmsd_req_ctxt_tree_unlock(req_ctxt_type);
 	if (reqc)
@@ -804,23 +800,24 @@ int ldmsd_process_msg_response(ldmsd_rec_hdr_t req, ldmsd_cfg_xprt_t xprt)
 	json_parser_t parser;
 	int req_ctxt_type = LDMSD_REQ_CTXT_RSP;
 	size_t repl_str_len;
+	struct ldmsd_msg_key key;
 
+	__msg_key_get(xprt, req->msg_no, &key);
 	errno = 0;
-
 	ldmsd_req_ctxt_tree_lock(req_ctxt_type);
 	/*
 	 * Use the key sent by the peer because this is a response
 	 * to a REQUEST message sent by this LDMSD.
 	 */
-	reqc = find_req_ctxt(&req->key, LDMSD_REQ_CTXT_RSP);
+	reqc = find_req_ctxt(&key, LDMSD_REQ_CTXT_RSP);
 	if (!reqc) {
 		ldmsd_log(LDMSD_LERROR, "Cannot find the original request of "
 				"a response number %d:%" PRIu64 "\n",
-				req->key.msg_no, req->key.conn_id);
-		rc = __ldmsd_send_error(xprt, &req->key, NULL, ENOENT,
+				key.msg_no, key.conn_id);
+		rc = __ldmsd_send_error(xprt, req->msg_no, NULL, ENOENT,
 			"Cannot find the original request of "
 			"a response number %d:%" PRIu64,
-			req->key.msg_no, req->key.conn_id);
+			key.msg_no, key.conn_id);
 		if (rc == ENOMEM)
 			goto oom;
 		else
@@ -864,7 +861,7 @@ int ldmsd_process_msg_response(ldmsd_rec_hdr_t req, ldmsd_cfg_xprt_t xprt)
 
 	if (rc) {
 		ldmsd_log(LDMSD_LCRITICAL, "Failed to parse a JSON object string\n");
-		__ldmsd_send_error(reqc->xprt, &req->key, reqc->send_buf, rc,
+		__ldmsd_send_error(reqc->xprt, req->msg_no, reqc->send_buf, rc,
 				"Failed to parse a JSON object string");
 		goto err;
 	}
@@ -898,7 +895,7 @@ int ldmsd_process_err_obj(ldmsd_req_ctxt_t reqc)
 	if (!errcode) {
 		ldmsd_log(LDMSD_LERROR, "Msg ID %d:%" PRIu64 ": "
 				"The response err_obj has no errcode.\n",
-				reqc->lcl_key.msg_no, reqc->lcl_key.conn_id);
+				reqc->key.msg_no, reqc->key.conn_id);
 		return 0;
 	}
 	if (json_value_int(errcode) != 0) {
@@ -909,7 +906,7 @@ int ldmsd_process_err_obj(ldmsd_req_ctxt_t reqc)
 			s = NULL;
 		ldmsd_log(LDMSD_LERROR, "Msg ID %d:%" PRIu64 ": received "
 				"an error response '%" PRIu64 "': '%s'.\n",
-				reqc->lcl_key.msg_no, reqc->lcl_key.conn_id,
+				reqc->key.msg_no, reqc->key.conn_id,
 				json_value_int(errcode), s);
 	}
 	ldmsd_req_ctxt_free(reqc);
@@ -977,20 +974,20 @@ int ldmsd_process_json_obj(ldmsd_req_ctxt_t reqc)
 	if (!type) {
 		ldmsd_log(LDMSD_LERROR, "The 'type' attribute is missing from "
 				"message number %d:%" PRIu64 "\n",
-				reqc->lcl_key.msg_no, reqc->lcl_key.conn_id);
+				reqc->key.msg_no, reqc->key.conn_id);
 		rc = ldmsd_send_error(reqc, EINVAL,
 				"The 'type' attribute is missing from "
 				"message number %d:%" PRIu64 "\n",
-				reqc->rem_key.msg_no, reqc->rem_key.conn_id);
+				reqc->key.msg_no, reqc->key.conn_id);
 		goto out;
 	}
 	if (JSON_STRING_VALUE != json_entity_type(type)) {
 		ldmsd_log(LDMSD_LERROR, "message number %d:%" PRIu64
 				": The 'type' attribute is not a string.\n",
-				reqc->lcl_key.msg_no, reqc->lcl_key.conn_id);
+				reqc->key.msg_no, reqc->key.conn_id);
 		rc = ldmsd_send_error(reqc, EINVAL, "message number %d:%" PRIu64
 				": The 'type' attribute is not a string.",
-				reqc->rem_key.msg_no, reqc->rem_key.conn_id);
+				reqc->key.msg_no, reqc->key.conn_id);
 		goto out;;
 	}
 	type_s = json_value_str(type)->str;
@@ -1007,10 +1004,10 @@ int ldmsd_process_json_obj(ldmsd_req_ctxt_t reqc)
 	} else {
 		ldmsd_log(LDMSD_LERROR, "Message number %d:%" PRIu64
 				"has an unrecognized object type '%s'\n",
-				reqc->lcl_key.msg_no, reqc->lcl_key.conn_id, type_s);
+				reqc->key.msg_no, reqc->key.conn_id, type_s);
 		rc = ldmsd_send_error(reqc, ENOTSUP, "message number %d:%" PRIu64
 				" has ba unrecognized object type '%s'.",
-				reqc->rem_key.msg_no, reqc->rem_key.conn_id, type_s);
+				reqc->key.msg_no, reqc->key.conn_id, type_s);
 	}
 out:
 	return rc;

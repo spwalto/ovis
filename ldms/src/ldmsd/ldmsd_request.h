@@ -179,7 +179,7 @@ typedef struct ldmsd_msg_key {
 typedef struct ldmsd_rec_hdr_s {
 	uint32_t type;			/* Request type LDMSD_MSG_TYPE_REQ, LDMSD_MSG_TYPE_RESP */
 	uint32_t flags;			/* EOM==1 means this is the last record for this message */
-	struct ldmsd_msg_key key;	/* Unique for each request */
+	uint32_t msg_no;		/* Unique message number of the peer */
 	uint32_t rec_len;		/* Record length in bytes including this header */
 } *ldmsd_rec_hdr_t;
 #pragma pack(pop)
@@ -254,15 +254,9 @@ typedef struct ldmsd_req_ctxt {
 	 * connecting to the peer.
 	 */
 	/*
-	 * The key in REQUEST messages sent by a peer and
-	 * in RESPONSE messages sent by this LDMSD.
+	 * The key used in the message trees
 	 */
-	struct ldmsd_msg_key rem_key;
-	/*
-	 * The key used in the message trees and
-	 * in REQUEST messages sent by this LDMSD.
-	 */
-	struct ldmsd_msg_key lcl_key;
+	struct ldmsd_msg_key key;
 	struct rbn rbn;
 	struct ref_s ref;
 
@@ -321,13 +315,13 @@ void ldmsd_req_buf_free(ldmsd_req_buf_t buf);
  * \param msg_no The message number
  * \param rec_len The record length
  */
-int ldmsd_send_err_rec_adv(ldmsd_cfg_xprt_t xprt, ldmsd_msg_key_t key, uint32_t rec_len);
+int ldmsd_send_err_rec_adv(ldmsd_cfg_xprt_t xprt, uint32_t msg_no, uint32_t rec_len);
 typedef int (*ldmsd_req_filter_fn)(ldmsd_req_ctxt_t reqc, void *ctxt);
 int ldmsd_process_json_obj(ldmsd_req_ctxt_t reqc);
 int ldmsd_process_msg_request(ldmsd_rec_hdr_t request, ldmsd_cfg_xprt_t xprt);
 int ldmsd_process_msg_response(ldmsd_rec_hdr_t request, ldmsd_cfg_xprt_t xprt);
 
-int __ldmsd_send_error(ldmsd_cfg_xprt_t xprt, struct ldmsd_msg_key *key,
+int __ldmsd_send_error(ldmsd_cfg_xprt_t xprt, uint32_t msg_no,
 				ldmsd_req_buf_t _buf, uint32_t errcode,
 				char *errmsg_fmt, ...);
 

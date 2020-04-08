@@ -152,13 +152,14 @@ static void assert_mode(const char *expecting, json_str_t mode_s)
 	}
 }
 
-static msg_ctxt_t msg_ctxt_alloc(ldms_t x, ldmsd_msg_key_t key)
+static msg_ctxt_t msg_ctxt_alloc(ldms_t x, uint32_t msg_no)
 {
 	msg_ctxt_t mctxt = calloc(1, sizeof(*mctxt));
 	if (!mctxt) {
 		oom_exit();
 	}
-	mctxt->key = *key;
+	mctxt->key.msg_no = msg_no;
+	mctxt->key.conn_id = (uint64_t)(unsigned long)x;
 
 	mctxt->recv_buf = ldmsd_req_buf_alloc(ldms_xprt_msg_max(x));
 	if (!mctxt->recv_buf) {
@@ -249,7 +250,7 @@ void __append_send_buffer(ldms_t x, ldmsd_msg_key_t key, ldmsd_req_buf_t buf,
 			/* Record is full, send it on it's way */
 			req_buff->type = msg_type;
 			req_buff->flags = flags;
-			req_buff->key = *key;
+			req_buff->msg_no = key->msg_no;
 			req_buff->rec_len = buf->off;
 			ldmsd_hton_rec_hdr(req_buff);
 			rc = ldms_xprt_send(x, (char *)req_buff, buf->off);
@@ -613,7 +614,7 @@ static msg_ctxt_t process_records(ldms_t x, ldmsd_rec_hdr_t hdr)
 	msgc = msg_ctxt_find(&hdr->key);
 
 	if (hdr->flags & LDMSD_REC_SOM_F) {
-		msgc = msg_ctxt_alloc(x, &hdr->key);
+		msgc = msg_ctxt_alloc(x, &hdr->msg_no);
 		if (!msgc)
 			oom_exit();
 		msgc->x = x;
