@@ -472,19 +472,19 @@ void cleanup(int x, const char *reason)
 }
 
 /** return a file pointer or a special syslog pointer */
-FILE *ldmsd_open_log()
+FILE *ldmsd_open_log(const char *path)
 {
 	FILE *f;
 	int rc;
 	char *errstr;
-	if (strcasecmp(cmd_line_args.log_path, "syslog")==0) {
+	if (strcasecmp(path, "syslog")==0) {
 		ldmsd_log(LDMSD_LDEBUG, "Switching to syslog.\n");
 		f = LDMSD_LOG_SYSLOG;
 		openlog(progname, LOG_NDELAY|LOG_PID, LOG_DAEMON);
 		return f;
 	}
 
-	f = fopen_perm(cmd_line_args.log_path, "a", LDMSD_DEFAULT_FILE_PERM);
+	f = fopen_perm(path, "a", LDMSD_DEFAULT_FILE_PERM);
 	if (!f) {
 		ldmsd_log(LDMSD_LERROR, "Could not open the log file named '%s'\n",
 						cmd_line_args.log_path);
@@ -1670,10 +1670,15 @@ int main(int argc, char *argv[])
 	extern struct ldmsd_deferred_pi_config_q deferred_pi_config_q;
 	TAILQ_INIT(&deferred_pi_config_q);
 
-	cmd_line_args.verbosity = LDMSD_VERBOSITY_DEFAULT;
-	cmd_line_args.banner = -1;
+	/*
+	 * TODO: create all cfgobjs in the 'daemon' schema
+	 */
+	ldmsd_init();
 
 	/* Process the options given at the command line. */
+	/*
+	 * TODO: update the cfgobj of the 'daemon' schema.
+	 */
 	opterr = 0;
 	while ((op = getopt(argc, argv, FMT)) != -1) {
 		switch (op) {

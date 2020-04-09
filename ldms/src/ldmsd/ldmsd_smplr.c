@@ -528,3 +528,85 @@ int ldmsd_smplr_oneshot(char *smplr_name, char *ts, ldmsd_sec_ctxt_t sctxt)
 	return rc;
 }
 
+json_entity_t default_target = [ "interval", "offset", ...];
+json_entity_t ldmsd_smplr_query(ldmsd_cfgobj_t obj, json_entity_t target, ldmsd_req_buf_t buf)
+{
+	int rc, i;
+	json_entity_t t, query;
+	char *tgt;
+	size_t len;
+	ldmsd_smplr_t smplr = (ldmsd_smplr_t)obj;
+
+	query = ldmsd_cfgobj_query_result_new();
+	if (!query)
+		goto oom;
+
+
+
+	if (target) {
+		for (t = json_item_first(target); t; t = json_item_next(t)) {
+			tgt = json_value_str(t)->str;
+			len = json_value_str(t)->str_len;
+			if (0 == strncmp(tgt, "interval", len)) {
+				rc = ldmsd_cfgobj_query_attr_add(query, tgt, JSON_STRING_VALUE,
+						ldmsd_time_us2str(smplr->interval_us));
+			} else if (0 == strncmp(tgt, "offset", len)) {
+				rc = ldmsd_cfgobj_query_attr_add(query, tgt, JSON_INT_VALUE,
+						smplr->offset_us);
+			} else if (0 == strncmp(tgt, "synchronous", len)) {
+				rc = ldmsd_cfgobj_query_attr_add(query, tgt, JSON_BOOL_VALUE,
+						smplr->synchronous);
+			} else {
+				/* cfgobj base attributes */
+				rc = ldmsd_cfgobj_query_base_attr_add(obj, query, tgt);
+			}
+			if (rc) {
+				if (rc == ENOENT) {
+					snprintf(buf->buf, buf->len, "Attribute '%s' "
+							"doesn't exist.", tgt);
+				} else {
+					snprintf(buf->buf, buf->len, "Failed to obtain "
+							"the value of attribute '%s'.", tgt);
+				}
+				goto err;
+			}
+		}
+	} else {
+
+		query = json_build(JSON_INT, "interval", smplr->interval_us,
+				   JSON_INT, "offset", smplr->offset_us,
+				   JSON_BOOL, "sychronous", smplr->synchronous,
+				   );
+
+		if ((rc = ldmsd_cfgobj_query_attr_add(query, "interval", JSON_INT_VALUE,
+				ldmsd_time_us2str(smplr->interval_us)))) {
+			snprintf(buf->buf, buf->len, "Failed to obtain "
+					"the value of attribute 'interval'.");
+			goto err;
+		}
+		if ((rc = ldmsd_cfgobj_query_attr_add(query, "offset", JSON_INT_VALUE,
+				ldmsd_time_us2str(smplr->offset_us)))) {
+			snprintf(buf->buf, buf->len, "Failed to obtain "
+					"the value of attribute 'offset'.");
+			goto err;
+		}
+		if ((rc = ldmsd_cfgobj_query_attr_add(query, "synchronous",
+				JSON_BOOL_VALUE, smplr->synchronous))) {
+			snprintf(buf->buf, buf->len, "Failed to obtain "
+					"the value of attribute 'synchronous'.");
+			goto err;
+		}
+		if ((rc = ldmsd_cfgobj_query_base_attr_add(obj, query, NULL))) {
+			snprintf(buf->buf, buf->len, "Failed to obtain the values of all attributes.");
+			goto err;
+		}
+	}
+	return query;
+oom:
+	rc = ENOMEM;
+err:
+	errno = rc;
+	if (query)
+		json_entity_free(query);
+	return NULL;
+}

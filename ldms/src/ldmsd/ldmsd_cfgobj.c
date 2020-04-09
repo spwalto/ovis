@@ -89,6 +89,12 @@ pthread_mutex_t setgrp_tree_lock = PTHREAD_MUTEX_INITIALIZER;
 struct rbt auth_tree = RBT_INITIALIZER(cfgobj_cmp);
 pthread_mutex_t auth_tree_lock = PTHREAD_MUTEX_INITIALIZER;
 
+struct rbt env_tree = RBT_INITIALIZER(cfgobj_cmp);
+pthread_mutex_t env_tree_lock = PTHREAD_MUTEX_INITIALIZER;
+
+struct rbt daemon_tree = RBT_INITIALIZER(cfgobj_cmp);
+pthread_mutex_t daemon_tree_lock = PTHREAD_MUTEX_INITIALIZER;
+
 pthread_mutex_t *cfgobj_locks[] = {
 	[LDMSD_CFGOBJ_PRDCR] = &prdcr_tree_lock,
 	[LDMSD_CFGOBJ_UPDTR] = &updtr_tree_lock,
@@ -97,6 +103,8 @@ pthread_mutex_t *cfgobj_locks[] = {
 	[LDMSD_CFGOBJ_LISTEN] = &listen_tree_lock,
 	[LDMSD_CFGOBJ_SETGRP] = &setgrp_tree_lock,
 	[LDMSD_CFGOBJ_AUTH]   = &auth_tree_lock,
+	[LDMSD_CFGOBJ_ENV]   = &env_tree_lock,
+	[LDMSD_CFGOBJ_DAEMON] = &daemon_tree_lock,
 };
 
 struct rbt *cfgobj_trees[] = {
@@ -107,6 +115,8 @@ struct rbt *cfgobj_trees[] = {
 	[LDMSD_CFGOBJ_LISTEN] = &listen_tree,
 	[LDMSD_CFGOBJ_SETGRP] = &setgrp_tree,
 	[LDMSD_CFGOBJ_AUTH]   = &auth_tree,
+	[LDMSD_CFGOBJ_ENV]   = &env_tree,
+	[LDMSD_CFGOBJ_DAEMON] = &daemon_tree,
 };
 
 void ldmsd_cfgobj_init(void)
@@ -118,6 +128,46 @@ void ldmsd_cfgobj_init(void)
 	rbt_init(&listen_tree, cfgobj_cmp);
 	rbt_init(&setgrp_tree, cfgobj_cmp);
 	rbt_init(&auth_tree,   cfgobj_cmp);
+	rbt_init(&env_tree, cfgobj_cmp);
+	rbt_init(&daemon_tree, cfgobj_cmp);
+}
+
+struct cfgobj_type_entry {
+	const char *s;
+	enum ldmsd_cfgobj_type e;
+};
+
+static int cfgobj_type_entry_comp(void *a, void *b)
+{
+	struct cfgobj_type_entry *a_, *b_;
+	a_ = (struct cfgobj_type_entry *)a;
+	b_ = (struct cfgobj_type_entry *)b;
+	return strcmp(a_->s, b_->s);
+}
+
+const char *ldmsd_cfgobj_types[] = {
+		[LDMSD_CFGOBJ_AUTH]	= "auth",
+		[LDMSD_CFGOBJ_ENV]	= "env",
+		[LDMSD_CFGOBJ_DAEMON]	= "daemon",
+		NULL,
+};
+
+static struct cfgobj_type_entry cfgobj_type_tbl[] = {
+		{ "auth",	LDMSD_CFGOBJ_AUTH },
+		{ "env",	LDMSD_CFGOBJ_ENV },
+		{ "daemon",	LDMSD_CFGOBJ_DAEMON },
+		/* TODO: populate this table */
+};
+
+enum ldmsd_cfgobj_type ldmsd_cfgobj_type_str2enum(const char *s)
+{
+	struct cfgobj_type_entry *entry;
+
+	entry = bsearch(s, cfgobj_type_tbl, ARRAY_SIZE(cfgobj_type_tbl),
+				sizeof(*entry), cfgobj_type_entry_comp);
+	if (!entry)
+		return -1;
+	return entry->e;
 }
 
 void ldmsd_cfgobj___del(ldmsd_cfgobj_t obj)
@@ -150,9 +200,14 @@ ldmsd_cfgobj_t ldmsd_cfgobj_new_with_auth(const char *name,
 					  ldmsd_cfgobj_type_t type,
 					  size_t obj_size,
 					  ldmsd_cfgobj_del_fn_t __del,
+					  ldmsd_cfgobj_update_fn_t update,
+					  ldmsd_cfgobj_delete_fn_t delete,
+					  ldmsd_cfgobj_query_fn_t query,
+					  ldmsd_cfgobj_export_fn_t export,
 					  uid_t uid,
 					  gid_t gid,
-					  int perm)
+					  int perm,
+					  short enabled)
 {
 	ldmsd_cfgobj_t obj = NULL;
 
@@ -180,6 +235,7 @@ ldmsd_cfgobj_t ldmsd_cfgobj_new_with_auth(const char *name,
 	obj->uid = uid;
 	obj->gid = gid;
 	obj->perm = perm;
+	obj->enabled = enabled;
 
 	pthread_mutex_init(&obj->lock, NULL);
 	pthread_mutex_lock(&obj->lock);
@@ -293,4 +349,234 @@ ldmsd_cfgobj_t ldmsd_cfgobj_next(ldmsd_cfgobj_t obj)
 out:
 	ldmsd_cfgobj_put(obj);	/* Drop the next reference */
 	return nobj;
+}
+
+/*
+ * *** Must be called with `cfgobj_locks[type]` held.
+ */
+ldmsd_cfgobj_t ldmsd_cfgobj_next_re(ldmsd_cfgobj_t obj, regex_t regex)
+{
+	int rc;
+	for ( ; obj; obj = ldmsd_cfgobj_next(obj)) {
+		rc = regexec(&regex, obj->name, 0, NULL, 0);
+		if (rc)
+			break;
+	}
+	return obj;
+}
+
+json_entity_t ldmsd_cfgobj_query_result_new()
+{
+	json_entity_t obj;
+
+	if (!(obj = json_entity_new(JSON_DICT_VALUE)))
+		goto oom;
+	return obj;
+oom:
+	ldmsd_log(LDMSD_LCRITICAL, "Out of memory\n");
+	return NULL;
+}
+
+int ldmsd_cfgobj_query_attr_add(json_entity_t query, const char *name, enum json_value_e type, ...)
+{
+	json_entity_t n, v, a;
+	va_list ap;
+
+	if (!(n = json_entity_new(JSON_STRING_VALUE, name)))
+		return ENOMEM;
+
+	va_start(ap, type);
+	switch (type) {
+	case JSON_BOOL_VALUE:
+		v = json_entity_new(type, va_arg(ap, int));
+		if (!v)
+			return ENOMEM;
+		break;
+	case JSON_DICT_VALUE:
+		v = va_arg(ap, json_entity_t);
+		if (!v)
+			v = json_entity_new(type);
+		break;
+	case JSON_FLOAT_VALUE:
+		v = json_entity_new(type, va_arg(ap, double));
+		break;
+	case JSON_INT_VALUE:
+		v = json_entity_new(type, va_arg(ap, uint64_t));
+		break;
+	case JSON_STRING_VALUE:
+		v = json_entity_new(type, va_arg(ap, char *));
+		break;
+	case JSON_ATTR_VALUE:
+	default:
+		return EINVAL;
+	}
+	va_end(ap);
+	if (!v)
+		return ENOMEM;
+	a = json_entity_new(JSON_ATTR_VALUE, n, v);
+	if (a)
+		return ENOMEM;
+	json_attr_add(query, a);
+	return 0;
+}
+
+typedef int (*attr_add_fn)(ldmsd_cfgobj_t obj, json_entity_t query);
+struct base_attr_add_entry {
+	const char *attr_name;
+	attr_add_fn fn;
+};
+
+int base_attr_add_entry_cmp(void *a, void *b)
+{
+	struct base_attr_add_entry *a_ = (struct base_attr_add_entry *)a;
+	struct base_attr_add_entry *b_ = (struct base_attr_add_entry *)b;
+	return strcmp(a_->attr_name, b_->attr_name);
+}
+
+int type_attr_add(ldmsd_cfgobj_t obj, json_entity_t query)
+{
+	return ldmsd_cfgobj_query_attr_add(query, "type",
+			JSON_STRING_VALUE, ldmsd_cfgobj_types[obj->type]);
+}
+
+int ref_count_attr_add(ldmsd_cfgobj_t obj, json_entity_t query)
+{
+	return ldmsd_cfgobj_query_attr_add(query, "ref_count",
+				JSON_INT_VALUE, obj->ref_count);
+}
+
+int enabled_attr_add(ldmsd_cfgobj_t obj, json_entity_t query)
+{
+	return ldmsd_cfgobj_query_attr_add(query, "enabled", JSON_BOOL_VALUE, obj->enabled);
+}
+
+int uid_attr_add(ldmsd_cfgobj_t obj, json_entity_t query)
+{
+	return ldmsd_cfgobj_query_attr_add(query, "uid", JSON_INT_VALUE, obj->uid);
+}
+
+int gid_attr_add(ldmsd_cfgobj_t obj, json_entity_t query)
+{
+	return ldmsd_cfgobj_query_attr_add(query, "gid", JSON_INT_VALUE, obj->gid);
+}
+
+int perm_attr_add(ldmsd_cfgobj_t obj, json_entity_t query)
+{
+	char perm_s[8];
+	snprintf(perm_s, 8, "%o", obj->perm);
+	return ldmsd_cfgobj_query_attr_add(query, "perm", JSON_STRING_VALUE, perm_s);
+}
+
+static struct base_attr_add_entry base_attr_add_tbl[] = {
+		{ "enabled",	enabled_attr_add },
+		{ "gid",	gid_attr_add },
+		{ "perm",	perm_attr_add },
+		{ "ref_count",	ref_count_attr_add },
+		{ "type",	type_attr_add },
+		{ "uid",	uid_attr_add },
+		NULL
+};
+
+int ldmsd_cfgobj_query_base_attr_add(ldmsd_cfgobj_t obj, json_entity_t query,
+							const char *tgt)
+{
+	int rc, i = 0;
+	json_entity_t t;
+	struct base_attr_add_entry *handler;
+
+	if (tgt) {
+		handler = bsearch(tgt, base_attr_add_tbl,
+				ARRAY_SIZE(base_attr_add_tbl),
+				sizeof(struct base_attr_add_entry),
+				base_attr_add_entry_cmp);
+		if (!handler)
+			return ENOENT;
+		rc = handler->fn(obj, query);
+		if (rc)
+			return rc;
+	} else {
+		handler = base_attr_add_tbl[i++];
+		while (handler) {
+			rc = handler->fn(obj, query);
+			if (rc)
+				return rc;
+			handler = base_attr_add_tbl[i++];
+		}
+	}
+	return 0;
+}
+
+json_entity_t ldmsd_cfgobj_export_result_new(ldmsd_cfgobj_type_t type)
+{
+	json_entity_t obj, n, v, a;
+
+	if (!(obj = json_entity_new(JSON_DICT_VALUE)))
+		goto oom;
+	if (!(n = json_entity_new(JSON_STRING_VALUE, "schema")))
+		goto oom;
+	if (!(v = json_entity_new(JSON_STRING_VALUE, cfgobj_type_tbl[type])))
+		goto oom;
+	if (!(a = json_entity_new(JSON_ATTR_VALUE, n, v)))
+		goto oom;
+	json_attr_add(obj, a);
+	return obj;
+oom:
+	return NULL;
+}
+
+//(TYPE, n, v, TYPE, n, v, TYP, n, v, ...)
+
+json_entity_t fn(va_list ap)
+{
+	json_entity_t obj, x;
+
+	obj = json_entity_new(JSON_DICT_VALUE);
+	if (!obj)
+		return NULL;
+	enum json_value_e type;
+	switch (type) {
+	case JSON_BOOL_VALUE:
+		x = json_entity_new(type, va_arg(ap, int));
+		break;
+	case JSON_FLOAT_VALUE:
+		x = json_entity_new(type, va_arg(ap, double));
+		break;
+	case JSON_INT_VALUE:
+		x = json_entity_new(type, va_arg(ap, uint64_t));
+		break;
+	case JSON_STRING_VALUE:
+		x = json_entity_new(type, va_arg(ap, char *));
+		break;
+	case JSON_DICT_VALUE:
+		break;
+	case JSON_LIST_VALUE:
+		break;
+
+	default:
+		break;
+	}
+}
+
+json_entity_t ldmsd_cfgobj_query_build(const char *name, ...)
+{
+	va_list ap;
+	enum json_value_e type;
+	json_entity_t obj, x;
+
+	obj = json_entity_new(JSON_DICT_VALUE);
+	if (!obj)
+		goto err;
+
+	va_start(ap, name);
+attr:
+	n = va_arg(ap, const char *);
+	type = va_arg(ap, enum json_value_e);
+
+
+	va_end(ap);
+	return obj;
+err:
+	if (obj)
+		json_entity_free(obj);
+	return NULL;
 }

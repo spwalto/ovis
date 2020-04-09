@@ -1009,4 +1009,3 @@ int ldmsd_prdcr_subscribe_regex(const char *prdcr_regex, char *stream_name,
 	regfree(&regex);
 	return 0;
 }
-

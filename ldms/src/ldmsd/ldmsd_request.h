@@ -75,134 +75,27 @@ extern int ldmsd_req_debug;
  * +---------------------------------------------------------+
  * | ldmsd_rec_hdr_s                                         |
  * +---------------------------------------------------------+
- * | String bytes (substring of a JSON-formatted string)     |
- * | length is rec_len - sizeof(ldmsd_rec_hdr_s)             |
+ * | payload                                                 |
  * S                                                         S
  * +---------------------------------------------------------+
  *
- * JSON objects
+ *                Configuration Record Format
+ * +---------------------------------------------------------+
+ * | ldmsd_rec_hdr_s                                         |
+ * +---------------------------------------------------------+
+ * | a substring of a JSON-formatted string.                 |
+ * S                                                         S
+ * +---------------------------------------------------------+
  *
- * Daemon (DAEMON)
- *
- * The daemon object is a unique object that define an LDMS daemon's default behaviors, e.g.,
- * logging, default authentication, the total memory used for set instances, etc.
- *
- * { "type": "daemon",
- *   "spec": { most of the command-line options }
- * }
- *
- * Configuration objects (CFG_OBJ)
- * { "type": "cfg_obj",
- *   "cfg_obj" : <a string, e.g., "env", "daemon", "prdcr">,
- *   "op"      : <one of "create", "update">
- *   "spec"    : <cfg_obj type-specific attribute-value pairs>,
- *   "instances": [ list of instances that will use the same spec ]
- * }
- * Examples
- * { "type": "cfg_obj",
- *   "cfg_obj" : "prdcr",
- *   "spec"    : { "xprt": "sock",
- *                 "port": 10001,
- *                 "reconnect_interval": "30min"
- *               },
- *    "instances": [ { "name": "nid01", "host": "nid01" },
- *                   { "name": "nid02", "host": "nid02" }
- *                 ]
- * }
- *
- * { "type": "cfg_obj",
- *   "cfg_obj" : "smplr",
- *   "spec"    : {"sample_interval" : "1sec",
- *                "sample_offset"   " 0
- *               },
- *   "instances": [ { "name": "meminfo_smplr",
- *                    "plugin_instance": "meminfo_inst"
- *                  }
- *                ]
- * }
- *
- * Action objects (ACT_OBJ)
- *
- * Action objects are objects that cause a change to configuration object states.
- * The supported actions are 'start', 'stop', 'delete' and 'update'.
- * Some configuration objects may not support all actions.
- *
- * The 'spec' attribute is used only with the 'update' action.
- *
- * { "type"   : "act_obj",
- *   "action" : <one of "start", "stop", "delete", "update">,
- *   "cfg_obj": <a cfgobj type, e.g., prdcr, smplr, updtr>
- *   "names"  : <list of cfgobj names>,
- *   "regex"  : <list of cfgobj name regex>,
- *   "spec": { dictionary of cfg_obj-specific attribute-value pairs. }
- * }
- *
- * Examples:
- * { "type" : "act_obj",
- *   "action": "start",
- *   "cfg_obj": "prdcr",
- *   "names": [ "nid01", "nid02" ],
- *   "regex": [ "nid00*" ]
- * }
- *
- * { "type": "act_obj",
- *   "action": "update",
- *   "cfg_obj": "smplr",
- *   "names": [ "vmstat_smplr", "meminfo_smplr" ],
- *   "spec": { "interval": "2sec" }
- * }
- */
-#define LDMSD_ACT_OBJ_START  1
-#define LDMSD_ACT_OBJ_STOP   2
-#define LDMSD_ACT_OBJ_DELETE 3
-/**
- * Command objects (CMD)
- *
- * { "type": "cmd",
- *   "cmd" : <command name string, e.g., "prdcr_status">,
- *   "spec" : <a dictionary containing the command-specific attribute value pairs>
- * }
- *
- * Error objects (ERR)
- *
- * { "type": "err",
- *   "errcode": <error code number, including 0 means no error>,
- *   "msg": <error message string>,
- * }
- * NOTE: The attribute "msg" may be omitted in the case that
- * the error code contains enough information or the errcode is 0.
- *
- * Examples:
- * { "type": "err",
- *   "errcode": EINVAL,
- *   "msg": "cfg_obj:prdcr 'compute1': 'host' is missing"
- * }
- *
- * { "type": "err",
- *   "errcode": 0
- * }
- *
- * Record Length Advice (REC_LEN_ADV)
- * REC_LEN_ADV is a special error when LDMSD receives a message that the
- * record length is larger than the maximum message size the underlying transport
- * supports.
- *
- * { "type": "rec_len_adv",
- *   "errcode": E2BIG,
- *   "adv_len": <transport's max record length>
- * }
- *
- * Information (INFO)
- * INFO contains just information, e.g., producer status, LDMSD versions, etc.
- * INFO usually are response to a CMD request.
- *
- * { "type": "info",
- *   "name": <a string identifying what information is being sent, e.g., "prdcr_status">,
- *   "info": <a JSON-formatted string, e.g.,
- *           		[ { "prdcr": "A1","host":"nid01","xprt":"sock" },
- *           		  { "prdcr": "A2","host":"nid02","xprt":"sock" }, ...
- *           		]
- * }
+ *                Stream Record Format
+ * +---------------------------------------------------------+
+ * | ldmsd_rec_hdr_s                                         |
+ * +---------------------------------------------------------+
+ * | ldmsd_stream_hdr                                        |
+ * +---------------------------------------------------------+
+ * | stream payload                                          |
+ * S                                                         S
+ * +---------------------------------------------------------+
  */
 
 #pragma pack(push, 1)
@@ -360,8 +253,6 @@ ldmsd_req_ctxt_t ldmsd_handle_record(ldmsd_rec_hdr_t rec, ldmsd_cfg_xprt_t xprt)
 int ldmsd_process_msg_request(ldmsd_req_ctxt_t reqc);
 int ldmsd_process_msg_response(ldmsd_req_ctxt_t reqc);
 int ldmsd_process_msg_stream(ldmsd_req_ctxt_t reqc);
-int ldmsd_process_msg_json_stream(ldmsd_req_ctxt_t reqc);
-
 
 int __ldmsd_send_error(ldmsd_cfg_xprt_t xprt, uint32_t msg_no,
 				ldmsd_req_buf_t _buf, uint32_t errcode,

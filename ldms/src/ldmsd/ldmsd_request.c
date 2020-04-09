@@ -142,69 +142,61 @@ void ldmsd_req_ctxt_sec_get(ldmsd_req_ctxt_t rctxt, ldmsd_sec_ctxt_t sctxt)
 	}
 }
 
-typedef int (*ldmsd_obj_handler_t)(ldmsd_req_ctxt_t reqc);
-struct request_handler_entry {
-	int req_id;
-	ldmsd_obj_handler_t handler;
-	int flag; /* Lower 12 bit (mask 0777) for request permisson.
-		   * The rest is reserved for ldmsd_request use. */
-};
-
-struct obj_handler_entry {
-	const char *name;
-	ldmsd_obj_handler_t handler;
-	int flag; /* Lower 12 bit (mask 0777) for request permission.
-	   * The rest is reserved for ldmsd_request use. */
-};
-
-/*
- * Command object handlers
- */
-static int daemon_status_handler(ldmsd_req_ctxt_t reqc);
-static int example_handler(ldmsd_req_ctxt_t req_ctxt);
-static int greeting_handler(ldmsd_req_ctxt_t req_ctxt);
-static int include_handler(ldmsd_req_ctxt_t req_ctxt);
-static int plugin_list_handler(ldmsd_req_ctxt_t reqc);
-static int plugin_query_handler(ldmsd_req_ctxt_t reqc);
-static int plugin_sets_handler(ldmsd_req_ctxt_t reqc);
-static int plugin_status_handler(ldmsd_req_ctxt_t reqc);
-static int plugin_usage_handler(ldmsd_req_ctxt_t reqc);
-static int prdcr_set_status_handler(ldmsd_req_ctxt_t reqc);
-static int prdcr_status_handler(ldmsd_req_ctxt_t reqc);
-static int set_route_handler(ldmsd_req_ctxt_t req_ctxt);
-static int smplr_status_handler(ldmsd_req_ctxt_t reqc);
-static int strgp_status_handler(ldmsd_req_ctxt_t reqc);
-static int stream_subscribe_handler(ldmsd_req_ctxt_t reqc);
-static int updtr_status_handler(ldmsd_req_ctxt_t reqc);
-static int version_handler(ldmsd_req_ctxt_t reqc);
-static int export_config_handler(ldmsd_req_ctxt_t reqc);
-
-/*
- * Configuration object handlers
- */
-static int auth_handler(ldmsd_req_ctxt_t reqc);
-static int env_handler(ldmsd_req_ctxt_t reqc);
-static int listen_handler(ldmsd_req_ctxt_t reqc);
-static int plugin_instance_handler(ldmsd_req_ctxt_t reqc);
-static int prdcr_handler(ldmsd_req_ctxt_t reqc);
-static int setgroup_handler(ldmsd_req_ctxt_t reqc);
-static int smplr_handler(ldmsd_req_ctxt_t req_ctxt);
-static int strgp_handler(ldmsd_req_ctxt_t reqc);
-static int updtr_handler(ldmsd_req_ctxt_t reqc);
-
-/*
- * Action object handlers
- */
-static int auth_action_handler(ldmsd_req_ctxt_t reqc);
-static int daemon_exit_handler(ldmsd_req_ctxt_t reqc);
-static int plugin_instance_action_handler(ldmsd_req_ctxt_t reqc);
-static int prdcr_action_handler(ldmsd_req_ctxt_t reqc);
-static int smplr_action_handler(ldmsd_req_ctxt_t reqc);
-static int set_udata_handler(ldmsd_req_ctxt_t req_ctxt);
-static int setgroup_action_handler(ldmsd_req_ctxt_t reqc);
-static int strgp_action_handler(ldmsd_req_ctxt_t reqc);
-static int updtr_action_handler(ldmsd_req_ctxt_t reqc);
-static int verbosity_change_handler(ldmsd_req_ctxt_t reqc);
+//struct obj_handler_entry {
+//	const char *name;
+//	ldmsd_obj_handler_t handler;
+//	int flag; /* Lower 12 bit (mask 0777) for request permission.
+//	   * The rest is reserved for ldmsd_request use. */
+//};
+//
+///*
+// * Command object handlers
+// */
+//static int daemon_status_handler(ldmsd_req_ctxt_t reqc);
+//static int example_handler(ldmsd_req_ctxt_t req_ctxt);
+//static int greeting_handler(ldmsd_req_ctxt_t req_ctxt);
+//static int include_handler(ldmsd_req_ctxt_t req_ctxt);
+//static int plugin_list_handler(ldmsd_req_ctxt_t reqc);
+//static int plugin_query_handler(ldmsd_req_ctxt_t reqc);
+//static int plugin_sets_handler(ldmsd_req_ctxt_t reqc);
+//static int plugin_status_handler(ldmsd_req_ctxt_t reqc);
+//static int plugin_usage_handler(ldmsd_req_ctxt_t reqc);
+//static int prdcr_set_status_handler(ldmsd_req_ctxt_t reqc);
+//static int prdcr_status_handler(ldmsd_req_ctxt_t reqc);
+//static int set_route_handler(ldmsd_req_ctxt_t req_ctxt);
+//static int smplr_status_handler(ldmsd_req_ctxt_t reqc);
+//static int strgp_status_handler(ldmsd_req_ctxt_t reqc);
+//static int stream_subscribe_handler(ldmsd_req_ctxt_t reqc);
+//static int updtr_status_handler(ldmsd_req_ctxt_t reqc);
+//static int version_handler(ldmsd_req_ctxt_t reqc);
+//static int export_config_handler(ldmsd_req_ctxt_t reqc);
+//
+///*
+// * Configuration object handlers
+// */
+//static int auth_handler(ldmsd_req_ctxt_t reqc);
+//static int env_handler(ldmsd_req_ctxt_t reqc);
+//static int listen_handler(ldmsd_req_ctxt_t reqc);
+//static int plugin_instance_handler(ldmsd_req_ctxt_t reqc);
+//static int prdcr_handler(ldmsd_req_ctxt_t reqc);
+//static int setgroup_handler(ldmsd_req_ctxt_t reqc);
+//static int smplr_handler(ldmsd_req_ctxt_t req_ctxt);
+//static int strgp_handler(ldmsd_req_ctxt_t reqc);
+//static int updtr_handler(ldmsd_req_ctxt_t reqc);
+//
+///*
+// * Action object handlers
+// */
+//static int auth_action_handler(ldmsd_req_ctxt_t reqc);
+//static int daemon_exit_handler(ldmsd_req_ctxt_t reqc);
+//static int plugin_instance_action_handler(ldmsd_req_ctxt_t reqc);
+//static int prdcr_action_handler(ldmsd_req_ctxt_t reqc);
+//static int smplr_action_handler(ldmsd_req_ctxt_t reqc);
+//static int set_udata_handler(ldmsd_req_ctxt_t req_ctxt);
+//static int setgroup_action_handler(ldmsd_req_ctxt_t reqc);
+//static int strgp_action_handler(ldmsd_req_ctxt_t reqc);
+//static int updtr_action_handler(ldmsd_req_ctxt_t reqc);
+//static int verbosity_change_handler(ldmsd_req_ctxt_t reqc);
 
 //static int oneshot_handler(ldmsd_req_ctxt_t req_ctxt);
 //static int logrotate_handler(ldmsd_req_ctxt_t req_ctxt);
@@ -242,51 +234,552 @@ static int handler_entry_comp(const void *a, const void *b)
 	return strcmp(_a->name, _b->name);
 }
 
-static struct obj_handler_entry cfg_obj_handler_tbl[] = {
-		{ "auth",		auth_handler,			XUG },
-		{ "env",		env_handler,			XUG },
-		{ "listen",		listen_handler,			XUG },
-		{ "plugin_instance",	plugin_instance_handler,	XUG },
-		{ "prdcr",		prdcr_handler,			XUG },
-		{ "setgroup",		setgroup_handler,		XUG },
-		{ "smplr",		smplr_handler,			XUG },
-		{ "strgp",		strgp_handler,			XUG },
-		{ "updtr",		updtr_handler,			XUG },
+//static struct obj_handler_entry cfg_obj_handler_tbl[] = {
+//		{ "auth",		auth_handler,			XUG },
+//		{ "env",		env_handler,			XUG },
+//		{ "listen",		listen_handler,			XUG },
+//		{ "plugin_instance",	plugin_instance_handler,	XUG },
+//		{ "prdcr",		prdcr_handler,			XUG },
+//		{ "setgroup",		setgroup_handler,		XUG },
+//		{ "smplr",		smplr_handler,			XUG },
+//		{ "strgp",		strgp_handler,			XUG },
+//		{ "updtr",		updtr_handler,			XUG },
+//};
+//
+//static struct obj_handler_entry cmd_obj_handler_tbl[] = {
+//		{ "daemon_status",	daemon_status_handler,	XALL },
+//		{ "example", 	example_handler, 	XALL },
+//		{ "export_config",	export_config_handler,	XUG | LDMSD_PERM_FAILOVER_ALLOWED },
+//		{ "greeting",	greeting_handler,	XALL },
+//		{ "include",	include_handler,	XUG },	/* TODO: This is a special one */
+//		{ "plugin_list",	plugin_list_handler,	XALL },
+//		{ "plugin_query",	plugin_query_handler,	XALL },
+//		{ "plugin_sets",	plugin_sets_handler,	XALL },
+//		{ "plugin_status",	plugin_status_handler,	XALL },
+//		{ "plugin_usage",	plugin_usage_handler,	XALL },
+//		{ "prdcr_set_status",	prdcr_set_status_handler, XALL },
+//		{ "prdcr_status",	prdcr_status_handler,	XALL },
+//		{ "set_route",	set_route_handler, 	XUG },
+//		{ "smplr_status",	smplr_status_handler,	XALL },
+//		{ "stream_subscribe",	stream_subscribe_handler,	XUG },
+//		{ "strgp_status",	strgp_status_handler,	XALL },
+//		{ "updtr_status",	updtr_status_handler,	XALL },
+//		{ "version",	version_handler,		XALL },
+//};
+//
+//static struct obj_handler_entry act_obj_handler_tbl[] = {
+//		{ "auth",	auth_action_handler,	XUG },
+//		{ "daemon_exit",	daemon_exit_handler,	XUG },
+//		{ "plugin_instance",	plugin_instance_action_handler,	XUG },
+//		{ "prdcr",	prdcr_action_handler,	XUG },
+//		{ "setgroup",	setgroup_action_handler,XUG },
+//		{ "set_udata",	set_udata_handler,	XUG },
+//		{ "smplr", 	smplr_action_handler,	XUG },
+//		{ "strgp",	strgp_action_handler,	XUG },
+//		{ "updtr",	updtr_action_handler,	XUG },
+//		{ "verbosity_change",	verbosity_change_handler, XUG },
+//};
+
+typedef int (*ldmsd_obj_handler_t)(ldmsd_req_ctxt_t reqc);
+struct request_handler_entry {
+	const char *request;
+	ldmsd_obj_handler_t handler;
+	int flag; /* Lower 12 bit (mask 0777) for request permission.
+		   * The rest is reserved for ldmsd_request use. */
 };
 
-static struct obj_handler_entry cmd_obj_handler_tbl[] = {
-		{ "daemon_status",	daemon_status_handler,	XALL },
-		{ "example", 	example_handler, 	XALL },
-		{ "export_config",	export_config_handler,	XUG | LDMSD_PERM_FAILOVER_ALLOWED },
-		{ "greeting",	greeting_handler,	XALL },
-		{ "include",	include_handler,	XUG },	/* TODO: This is a special one */
-		{ "plugin_list",	plugin_list_handler,	XALL },
-		{ "plugin_query",	plugin_query_handler,	XALL },
-		{ "plugin_sets",	plugin_sets_handler,	XALL },
-		{ "plugin_status",	plugin_status_handler,	XALL },
-		{ "plugin_usage",	plugin_usage_handler,	XALL },
-		{ "prdcr_set_status",	prdcr_set_status_handler, XALL },
-		{ "prdcr_status",	prdcr_status_handler,	XALL },
-		{ "set_route",	set_route_handler, 	XUG },
-		{ "smplr_status",	smplr_status_handler,	XALL },
-		{ "stream_subscribe",	stream_subscribe_handler,	XUG },
-		{ "strgp_status",	strgp_status_handler,	XALL },
-		{ "updtr_status",	updtr_status_handler,	XALL },
-		{ "version",	version_handler,		XALL },
+int ldmsd_cfgobj_create_handler(ldmsd_req_ctxt_t reqc);
+int ldmsd_cfgobj_update_handler(ldmsd_req_ctxt_t reqc);
+int ldmsd_cfgobj_delete_handler(ldmsd_req_ctxt_t reqc);
+int ldmsd_cfgobj_query_handler(ldmsd_req_ctxt_t reqc);
+int ldmsd_cfgobj_export_handler(ldmsd_req_ctxt_t reqc);
+
+static struct request_handler_entry request_handler_tbl[] = {
+		{ "create",	ldmsd_cfgobj_create_handler,	XUG },
+		{ "delete",	ldmsd_cfgobj_delete_handler,	XUG },
+		{ "export",	ldmsd_cfgobj_export_handler,	XUG },
+		{ "query",	ldmsd_cfgobj_query_handler,	XALL },
+		{ "update",	ldmsd_cfgobj_update_handler,	XUG },
 };
 
-static struct obj_handler_entry act_obj_handler_tbl[] = {
-		{ "auth",	auth_action_handler,	XUG },
-		{ "daemon_exit",	daemon_exit_handler,	XUG },
-		{ "plugin_instance",	plugin_instance_action_handler,	XUG },
-		{ "prdcr",	prdcr_action_handler,	XUG },
-		{ "setgroup",	setgroup_action_handler,XUG },
-		{ "set_udata",	set_udata_handler,	XUG },
-		{ "smplr", 	smplr_action_handler,	XUG },
-		{ "strgp",	strgp_action_handler,	XUG },
-		{ "updtr",	updtr_action_handler,	XUG },
-		{ "verbosity_change",	verbosity_change_handler, XUG },
+struct schema_handler_entry {
+	const char *schema;
+	ldmsd_cfgobj_create_fn_t create;
+	ldmsd_cfgobj_delete_fn_t delete;
 };
+
+static struct schema_handler_entry schema_handler_tbl[] = {
+		[LDMSD_CFGOBJ_ENV] = { ldmsd_env_create, ldmsd_env_delete },
+};
+
+static json_entity_t ldmsd_reply_new(const char *req_name, int msg_no)
+{
+	json_entity_t obj, n, v, attr;
+	int i;
+	obj = NULL;
+
+	if (!(obj = json_entity_new(JSON_DICT_VALUE)))
+		goto oom;
+	if (!(v = json_entity_new(JSON_STRING_VALUE, req_name)))
+		goto oom;
+	if (!(attr = json_entity_new(JSON_ATTR_VALUE, "reply", v)))
+		goto oom;
+	json_attr_add(obj, attr);
+
+	if (!(v = json_entity_new(JSON_INT_VALUE, msg_no)))
+		goto oom;
+	if (!(attr = json_entity_new(JSON_ATTR_VALUE, "id", v)))
+		goto oom;
+	json_attr_add(obj, attr);
+
+	if (!(v = json_entity_new(JSON_INT_VALUE, 0)))
+		goto oom;
+	if (!(attr = json_entity_new(JSON_ATTR_VALUE, "status", v)))
+		goto oom;
+	json_attr_add(obj, attr);
+
+	if (!(v = json_entity_new(JSON_STRING_VALUE, "")))
+		goto oom;
+	if (!(attr = json_entity_new(JSON_ATTR_VALUE, "msg", v)))
+		goto oom;
+	json_attr_add(obj, attr);
+
+	if (!(v = json_entity_new(JSON_DICT_VALUE)))
+		goto oom;
+	if (!(attr = json_entity_new(JSON_DICT_VALUE, "result", v)))
+		goto oom;
+	json_attr_add(obj, attr);
+
+
+	return obj;
+oom:
+	if (obj)
+		json_entity_free(obj);
+	return NULL;
+}
+
+int ldmsd_reply_result_add(json_entity_t reply, const char *key, int status,
+					const char *msg, json_entity_t value)
+{
+	json_entity_t result, obj, n, v, attr;
+
+	result = json_value_find(reply, "result");
+
+	/*
+	 * TODO: I would like to propose a change to json_entity_new(JSON_ATTR_VALUE, ...)
+	 *
+	 * Instead of the 2nd parameter a json_entity_t, the code will be shorter
+	 * if the 2nd parameter is a const char * which is the attribute name.
+	 *
+	 * if (!(obj = json_entity_new(JSON_DICT_VALUE)))
+	 * 	goto oom;
+	 * if (!(attr = json_entity_new(JSON_ATTR_VALUE, key, obj)))
+	 * 	goto oom;
+	 */
+
+	if (!(obj = json_entity_new(JSON_DICT_VALUE)))
+		goto oom;
+	if (!(attr = json_entity_new(JSON_ATTR_VALUE, key, obj)))
+		goto oom;
+	json_attr_add(result, attr);
+
+	json_attr_new(json_string_obj, json_entity)
+
+	if (!(v = json_entity_new(JSON_INT_VALUE, status)))
+		goto oom;
+	if (!(attr = json_entity_new(JSON_ATTR_VALUE, "status", v)))
+		goto oom;
+	json_attr_add(obj, attr);
+
+	if (msg) {
+		if (!(v = json_entity_new(JSON_STRING_VALUE, msg)))
+			goto oom;
+		if (!(attr = json_entity_new(JSON_ATTR_VALUE, "msg", v)))
+			goto oom;
+		json_attr_add(obj, attr);
+	}
+
+	if (value) {
+		if (!(attr = json_entity_new(JSON_ATTR_VALUE, "value", value)))
+			goto oom;
+		json_attr_add(obj, attr);
+	}
+
+	return 0;
+oom:
+	return ENOMEM;
+}
+
+int ldmsd_send_reply(ldmsd_req_buf_t reqc, json_entity_t reply)
+{
+	jbuf_t jb;
+	int rc;
+	jb = json_entity_dump(NULL, reply);
+	if (!jb) {
+		ldmsd_log(LDMSD_LCRITICAL, "Out of memory\n");
+		return ENOMEM;
+	}
+	rc = ldmsd_append_response(reqc, LDMSD_REC_SOM_F | LDMSD_REC_EOM_F,
+							jb->buf, jb->cursor);
+	return rc;
+}
+
+int ldmsd_send_error_reply(ldmsd_req_buf_t reqc, json_entity_t reply, int errcode, const char *msg)
+{
+	(void)json_attr_mod(reply, "status", errno);
+	(void)json_attr_mod(reply, "msg", msg);
+	return ldmsd_send_reply(reqc, reply);
+}
+
+static int ldmsd_cfgobj_create_handler(ldmsd_req_ctxt_t reqc)
+{
+	int rc, is_enabled;
+	json_entity_t schema, key, value, dft, name, v, reply, enabled;
+	char *schema_s, *name_s;
+	struct schema_handler_entry *handler;
+	ldmsd_cfgobj_type_t type;
+	struct ldmsd_sec_ctxt sctxt;
+	ldmsd_req_ctxt_sec_get(reqc, &sctxt);
+
+	schema = json_value_find(reqc->json, "schema");
+	schema_s = json_value_str(schema)->str;
+	type = ldmsd_cfgobj_type_str2enum(schema_s);
+
+	enabled = json_value_find(reqc->json, "enabled");
+	if (enabled)
+		is_enabled = json_value_bool(enabled);
+	else
+		is_enabled = 0;
+	key = json_value_find(reqc->json, "key");
+	dft = json_value_find(reqc->json, "default");
+	value = json_value_find(reqc->json, "value");
+
+	reply = ldmsd_reply_new("create", reqc->key.msg_no);
+	if (!reply)
+		goto oom;
+
+	handler = schema_handler_tbl[type];
+
+	if (!handler) {
+		snprintf(reqc->recv_buf->buf,
+				"Schema '%s' not supported.", schema_s);
+		rc = ldmsd_send_error_reply(reqc, reply, ENOTSUP, reqc->recv_buf->buf);
+		return rc;
+	}
+
+	for (name = json_item_first(key), v = json_item_first(value); name, v;
+			name = json_item_next(name), v = json_item_next(v)) {
+		name_s = json_value_str(name)->str;
+		/* reuse the buffer */
+		ldmsd_req_buf_reset(reqc->recv_buf);
+		rc = handler->create(name_s, is_enabled, dft, v,
+					sctxt.crd.uid, sctxt.crd.gid,
+					LDMSD_CFGOBJ_CREATE_PERM_DEFAULT,
+					reqc->recv_buf);
+		rc = ldmsd_reply_result_add(reply, name_s, rc, reqc->recv_buf->buf, NULL);
+		if (rc)
+			goto oom;
+	}
+	return ldmsd_send_reply(reqc, reply);
+oom:
+	ldmsd_log(LDMSD_LCRITICAL, "Out of memory\n");
+	return ENOMEM;
+}
+
+static int ldmsd_cfgobj_update_handler(ldmsd_req_ctxt_t reqc)
+{
+	int rc;
+	short is_enabled;
+	ldmsd_cfgobj_t obj;
+	json_entity_t schema, enabled, key, name, value, dft, v, re, reply;
+	char *schema_s, *name_s, *regex_s;
+	enum ldmsd_cfgobj_type cfgobj_type;
+	regex_t regex;
+
+	schema = json_value_find(reqc->json, "schema");
+	schema_s = json_value_str(schema)->str;
+	enabled = json_value_find(reqc->json, "enabled");
+	if (enabled)
+		is_enabled = json_value_bool(enabled);
+
+	reply = ldmsd_reply_new("update", reqc->key.msg_no);
+	if (!reply)
+		goto oom;
+
+	cfgobj_type = ldmsd_cfgobj_type_str2enum(schema_s);
+	if (cfgobj_type < 0) {
+		snprintf(reqc->recv_buf->buf, reqc->recv_buf->len,
+				"Invalid schema '%s'.", schema_s);
+		return ldmsd_send_error_reply(reqc, reply, EINVAL, reqc->recv_buf->buf);
+	}
+
+	/* iterate through the key list */
+	for (name = json_item_first(key), v = json_item_first(value);
+		name, v; name = json_item_next(name), v = json_itme_next(v)) {
+		name_s = json_value_str(name)->str;
+		obj = ldmsd_cfgobj_find(name_s, cfgobj_type);
+		if (!obj) {
+			snprintf(reqc->recv_buf->buf, reqc->recv_buf->len,
+							"'%s' not found.", name_s);
+			rc = ldmsd_reply_result_add(reply, name_s, ENOENT,
+						reqc->recv_buf->buf, NULL);
+			if (rc)
+				goto oom;
+		}
+		ldmsd_cfgobj_lock(obj);
+		ldmsd_req_buf_reset(reqc->recv_buf);
+		rc = obj->update(obj, is_enabled, dft, v, reqc->recv_buf);
+		rc = ldmsd_reply_result_add(reply, name_s, rc, reqc->recv_buf->buf, NULL);
+		if (rc)
+			goto oom;
+		ldmsd_cfgobj_unlock(obj);
+	}
+
+	/* iterate through the re list */
+	for (v = json_item_first(re); v; v = json_item_next(v)) {
+		regex_s = json_value_str(v)->str;
+		memset(regex, 0, sizeof(*regex));
+		rc = regcomp(regex, regex_s, REG_EXTENDED | REG_NOSUB);
+		if (rc) {
+			ldmsd_req_buf_reset(reqc->recv_buf); /* reuse the receive buffer */
+			reqc->recv_buf->off = snprintf(reqc->recv_buf->buf, reqc->recv_buf->buf,
+								"Failed to compile regex '%s'.",
+								regex_s);
+			(void) regerror(rc, regex, &reqc->recv_buf->buf[reqc->recv_buf->off],
+					reqc->recv_buf->len - reqc->recv_buf->off);
+			return ldmsd_send_error_reply(reqc, reply, rc, reqc->recv_buf->buf);
+		}
+
+		obj = ldmsd_cfgobj_first(cfgobj_type);
+		while (obj) {
+			obj = ldmsd_cfgobj_next_re(obj, regex);
+			ldmsd_req_buf_reset(reqc->recv_buf);
+			rc = obj->update(obj, reqc->recv_buf);
+			rc = ldmsd_reply_result_add(reply, obj->name, rc,
+						reqc->recv_buf->buf, NULL);
+			if (rc)
+				goto oom;
+		}
+	}
+	return ldmsd_send_reply(reqc, reply);
+oom:
+	ldmsd_log(LDMSD_LCRITICAL, "Out of memory\n");
+	return ENOMEM;
+}
+
+static int ldmsd_cfgobj_delete_handler(ldmsd_req_ctxt_t reqc)
+{
+	int rc;
+	ldmsd_cfgobj_t obj;
+	json_entity_t schema, key, item, value, dft, v, re, reply;
+	char *schema_s, *name_s, *regex_s;
+	enum ldmsd_cfgobj_type cfgobj_type;
+	regex_t regex;
+
+	schema = json_value_find(reqc->json, "schema");
+	schema_s = json_value_str(schema)->str;
+
+	reply = ldmsd_reply_new("delete", reqc->key.msg_no);
+	if (!reply)
+		goto oom;
+
+	cfgobj_type = ldmsd_cfgobj_type_str2enum(schema_s);
+	if (cfgobj_type < 0) {
+		snprintf(reqc->recv_buf->buf, reqc->recv_buf->len,
+				"schema '%s' is invalid.", schema_s);
+		return ldmsd_send_error_reply(reqc, reply, EINVAL, reqc->recv_buf->buf);
+	}
+
+	/* Iterate through the name list */
+	for (item = json_item_first(key), v = json_item_first(value);
+		item, v; item = json_item_next(item), v = json_itme_next(v)) {
+		name_s = json_value_str(item)->str;
+		obj = ldmsd_cfgobj_find(name_s, cfgobj_type);
+		if (!obj) {
+			snprintf(reqc->recv_buf->buf, reqc->recv_buf->len,
+						"'%s' not found.", name_s);
+			rc = ldmsd_reply_result_add(reply, name_s, ENOENT,
+						reqc->recv_buf->buf, NULL);
+
+			if (rc)
+				goto oom;
+			continue;
+		}
+		ldmsd_req_buf_reset(reqc->recv_buf);
+		rc = obj->delete(obj, reqc->recv_buf);
+		rc = ldmsd_reply_result_add(reply, name_s, rc,
+					reqc->recv_buf->buf, NULL);
+		if (rc)
+			goto oom;
+	}
+
+	/* iterate through the re list */
+	for (item = json_item_first(re); item; item = json_item_first(item)) {
+		regex_s = json_value_str(item)->str;
+		memset(regex, 0, sizeof(*regex));
+		rc = regcomp(regex, regex_s, REG_EXTENDED | REG_NOSUB);
+		if (rc) {
+			ldmsd_req_buf_reset(reqc->recv_buf); /* reuse the receive buffer */
+			reqc->recv_buf->off = snprintf(reqc->recv_buf->buf, reqc->recv_buf->buf,
+								"Failed to compile regex '%s'.",
+								regex_s);
+			(void) regerror(rc, regex, &reqc->recv_buf->buf[reqc->recv_buf->off],
+					reqc->recv_buf->len - reqc->recv_buf->off);
+			return ldmsd_send_error_reply(reqc, reply, rc, reqc->recv_buf->buf);
+		}
+
+		obj = ldmsd_cfgobj_first(cfgobj_type);
+		while (obj) {
+			obj = ldmsd_cfgobj_next_re(obj, regex);
+			ldmsd_req_buf_reset(reqc->recv_buf);
+			rc = obj->delete(obj, reqc->recv_buf);
+			rc = ldmsd_reply_result_add(reply, obj->name, rc,
+							reqc->recv_buf->buf, NULL);
+			if (rc)
+				goto oom;
+		}
+	}
+	return ldmsd_send_reply(reqc, reply);
+oom:
+	ldmsd_log(LDMSD_LCRITICAL, "Out of memory\n");
+	return ENOMEM;
+}
+
+static int ldmsd_cfgobj_query_handler(ldmsd_req_ctxt_t reqc)
+{
+	int rc;
+	ldmsd_cfgobj_t obj;
+	json_entity_t schema, key, item, target, query, reply, name, val, result;
+	char *schema_s, *name_s, *regex_s;
+	schema_s = name_s = regex_s = NULL;
+	enum ldmsd_cfgobj_type type, each_type;
+	struct schema_handler_entry *handler;
+	int is_list_cfogbjs;
+
+	schema = json_value_find(reqc->json, "schema");
+	if (schema) {
+		schema_s = json_value_str(schema)->str;
+		type = ldmsd_cfgobj_type_str2enum(schema_s);
+	}
+	target = json_value_find(reqc->json, "target");
+	is_list_cfogbjs = !json_list_len(target);
+	key = json_value_find(reqc->json, "key");
+
+	/* prepare the reply */
+	reply = ldmsd_reply_new();
+	if (!reply) {
+		ldmsd_log(LDMSD_LCRITICAL, "Out of memory\n");
+		return ENOMEM;
+	}
+
+	for (each_type = LDMSD_CFGOBJ_FIRST; each_type < LDMSD_CFGOBJ_LAST; each_type++) {
+		if (schema && (type != each_type))
+			continue;
+		if (key) {
+			for (item = json_item_first(key); item; item = json_item_next(item)) {
+				name_s = json_value_str(item)->str;
+				obj = ldmsd_cfgobj_find(name_s, each_type);
+				if (obj && is_list_cfogbjs) {
+					rc = ldmsd_reply_result_add(reply, name_s, 0,
+									NULL, NULL);
+				} else if (!obj && !is_list_cfogbjs) {
+					snprintf(reqc->recv_buf->buf, reqc->recv_buf->len,
+							"'%s' not found.", name_s);
+					rc = ldmsd_reply_result_add(reply, name_s, ENOENT,
+							reqc->recv_buf->buf, NULL);
+				} else if (obj) {
+					ldmsd_req_buf_reset(reqc->recv_buf);
+//					errno = 0;
+					query = obj->query(obj, target, reqc->recv_buf);
+					rc = ldmsd_reply_result_add(reply, name_s,
+						errno, reqc->recv_buf->buf, query);
+				}
+				if (rc)
+					goto oom;
+			}
+		} else {
+			for (obj = ldmsd_cfgobj_first(each_type); obj;
+					obj = ldmsd_cfgobj_next(obj)) {
+				if (obj && is_list_cfogbjs) {
+					rc = ldmsd_reply_result_add(reply, name_s, 0,
+									NULL, NULL);
+				} else if (!obj && !is_list_cfogbjs) {
+					snprintf(reqc->recv_buf->buf, reqc->recv_buf->len,
+							"'%s' not found.", name_s);
+					rc = ldmsd_reply_result_add(reply, name_s, ENOENT,
+							reqc->recv_buf->buf, NULL);
+				} else if (obj) {
+					ldmsd_req_buf_reset(reqc->recv_buf);
+					errno = 0;
+					query = obj->query(obj, target, reqc->recv_buf);
+					rc = ldmsd_reply_result_add(reply, name_s,
+						errno, reqc->recv_buf->buf, query);
+				}
+				if (rc)
+					goto oom;
+			}
+		}
+	}
+	return ldmsd_send_reply(reqc, reply);
+oom:
+	ldmsd_log(LDMSD_LCRITICAL, "Out of memory\n");
+	return ENOMEM;
+}
+
+static int ldmsd_cfgobj_export_handler(ldmsd_req_ctxt_t reqc)
+{
+	int rc, i;
+	json_entity_t target, result, ent, item, reply;
+	ldmsd_cfgobj_t obj;
+	int type;
+	jbuf_t jb;
+	enum ldmsd_cfgobj_type list[LDMSD_CFGOBJ_LAST] = {0};
+
+	reply = ldmsd_reply_new("export", reqc->key.msg_no);
+	if (!reply)
+		goto oom;
+
+	target = json_value_find(reqc->json, "target");
+	if (!target) {
+		for (i = 0, type = LDMSD_CFGOBJ_FIRST;
+			i < LDMSD_CFGOBJ_LAST, type < LDMSD_CFGOBJ_LAST; i++, type++) {
+				list[i] = type;
+		}
+	} else {
+		for (i = 0, item = json_item_first(target); i < LDMSD_CFGOBJ_LAST, item;
+				i++, item = json_item_next(item)) {
+			list[i] = ldmsd_cfgobj_type_str2enum(json_value_str(item)->str);
+			if (list[i] < 0) {
+				snprintf(reqc->recv_buf->buf, reqc->recv_buf->len,
+						"schama '%s' is invalid.",
+						json_value_str(item)->str);
+				return ldmsd_send_error_reply(reqc, reply, EINVAL,
+								reqc->recv_buf->buf);
+			}
+		}
+	}
+
+	for (i = 0; i < LDMSD_CFGOBJ_LAST; i++) {
+		if (!list[i])
+			break;
+		ldmsd_cfg_lock(list[i]);
+		for (obj = ldmsd_cfgobj_first(list[i]); obj; obj = ldmsd_cfgobj_next(obj)) {
+			ldmsd_req_buf_reset(reqc->recv_buf);
+			errno = 0;
+			ent = obj->export(obj, reqc->recv_buf);
+			rc = ldmsd_reply_result_add(reply, obj->name, errno,
+							reqc->recv_buf->buf, ent);
+			if (rc)
+				goto oom;
+		}
+		ldmsd_cfg_unlock(list[i]);
+	}
+	return ldmsd_send_reply(reqc, reply);
+oom:
+	rc = ENOMEM;
+	ldmsd_log(LDMSD_LCRITICAL, "Out of memory.\n")
+	return rc;
+}
 
 /*
  * The process request function takes records and collects
@@ -674,6 +1167,7 @@ ldmsd_send_err_rec_adv(ldmsd_cfg_xprt_t xprt, uint32_t msg_no, uint32_t rec_len)
 	int rc;
 	char *buf;
 	ldmsd_rec_hdr_t hdr;
+	json_entity_t reply;
 
 	hdr_sz = sizeof(struct ldmsd_rec_hdr_s);
 	len = hdr_sz + 1024;
@@ -681,37 +1175,10 @@ ldmsd_send_err_rec_adv(ldmsd_cfg_xprt_t xprt, uint32_t msg_no, uint32_t rec_len)
 	buf = calloc(1, len);
 	if (!buf)
 		return ENOMEM;
-	hdr = (ldmsd_rec_hdr_t)buf;
-	cnt = snprintf(&buf[hdr_sz], len - hdr_sz, "{\"rsp\":\"rec_adv\","
-						   " \"spec\": {\"errcode\":%d,"
-						   "\"rec_len\":%d}}",
-						   E2BIG, rec_len);
-	if (cnt >= len - hdr_sz) {
-		free(buf);
-		buf = malloc(len + cnt);
-		if (!buf)
-			return ENOMEM;
-	}
-	cnt = snprintf(&buf[hdr_sz], len - hdr_sz, "{\"rsp\":\"rec_adv\","
-						   " \"spec\": {\"errcode\":%d,"
-						   "\"rec_len\":%d}}",
-						   E2BIG, rec_len);
-	hdr->msg_no = msg_no;
-	hdr->rec_len = cnt + hdr_sz;
-	hdr->type = LDMSD_MSG_TYPE_RESP;
-	hdr->flags = LDMSD_REC_SOM_F | LDMSD_REC_EOM_F;
-	ldmsd_hton_rec_hdr(hdr);
-	rc = xprt->send_fn(xprt, (char *)hdr, cnt + hdr_sz);
-	if (rc) {
-		/* The content in reqc->rep_buf hasn't been sent. */
-		ldmsd_log(LDMSD_LERROR, "failed to send the record length advice "
-				"to the ldms xprt 0x%p\n", xprt->ldms.ldms);
-		goto out;
-	}
-out:
-	if (buf)
-		free(buf);
-	return rc;
+
+	reply = ldmsd_reply_new("rec_adv", msg_no);
+
+	return ldmsd_send_error_reply(..., reply, E2BIG, "The maximum length is '%" PRIU32, rec_len);
 }
 
 ldmsd_req_ctxt_t ldmsd_handle_record(ldmsd_rec_hdr_t rec, ldmsd_cfg_xprt_t xprt)
@@ -812,6 +1279,7 @@ int ldmsd_process_msg_request(ldmsd_req_ctxt_t reqc)
 	json_parser_t parser;
 	int rc;
 	char *str_repl;
+	ldmsd_obj_handler_t handler;
 
 	/* Replace environment variables */
 	str_repl = str_repl_env_vars(reqc->recv_buf->buf);
@@ -1459,52 +1927,43 @@ static int ldmsd_process_daemon_obj(ldmsd_req_ctxt_t reqc)
 
 int ldmsd_process_json_obj(ldmsd_req_ctxt_t reqc)
 {
-	json_entity_t type;
+	json_entity_t req_type;
 	char *type_s;
 	int rc = 0;
+	struct request_handler_entry *handler;
 
-	type = json_value_find(reqc->json, "type");
-	if (!type) {
-		ldmsd_log(LDMSD_LERROR, "The 'type' attribute is missing from "
+	req_type = json_value_find(reqc->json, "request");
+	if (!req_type) {
+		ldmsd_log(LDMSD_LERROR, "The 'request' attribute is missing from "
 				"message number %d:%" PRIu64 "\n",
-				reqc->lcl_key.msg_no, reqc->lcl_key.conn_id);
-		rc = ldmsd_send_error(reqc, EINVAL,
-				"The 'type' attribute is missing from "
+				reqc->key.msg_no, reqc->key.conn_id);
+		return ldmsd_send_error(reqc, EINVAL,
+				"The 'request' attribute is missing from "
 				"message number %d:%" PRIu64 "\n",
-				reqc->rem_key.msg_no, reqc->rem_key.conn_id);
-		goto out;
+				reqc->key.msg_no, reqc->key.conn_id);
 	}
-	if (JSON_STRING_VALUE != json_entity_type(type)) {
+	if (JSON_STRING_VALUE != json_entity_type(req_type)) {
 		ldmsd_log(LDMSD_LERROR, "message number %d:%" PRIu64
-				": The 'type' attribute is not a string.\n",
-				reqc->lcl_key.msg_no, reqc->lcl_key.conn_id);
-		rc = ldmsd_send_error(reqc, EINVAL, "message number %d:%" PRIu64
-				": The 'type' attribute is not a string.",
-				reqc->rem_key.msg_no, reqc->rem_key.conn_id);
-		goto out;;
+				": The 'request' attribute is not a string.\n",
+				reqc->key.msg_no, reqc->key.conn_id);
+		return ldmsd_send_error(reqc, EINVAL, "message number %d:%" PRIu64
+				": The 'request' attribute is not a string.",
+				reqc->key.msg_no, reqc->key.conn_id);
 	}
-	type_s = json_value_str(type)->str;
-	if (0 == strncmp("cfg_obj", type_s, 7)) {
-		rc = ldmsd_process_cfg_obj(reqc);
-	} else if (0 == strncmp("act_obj", type_s, 7)) {
-		rc = ldmsd_process_act_obj(reqc);
-	} else if (0 == strncmp("cmd_obj", type_s, 7)) {
-		rc = ldmsd_process_cmd_obj(reqc);
-	} else if (0 == strncmp("daemon_obj", type_s, 10)) {
-		rc = ldmsd_process_daemon_obj(reqc);
-	} else if (0 == strncmp("err_obj", type_s, 7)) {
-		rc = ldmsd_process_err_obj(reqc);
-	} else if (0 == strncmp("info_obj", type_s, 7)) {
-		rc = process_unexpected_info_obj(reqc);
-	} else {
+	type_s = json_value_str(req_type)->str;
+
+	handler = bsearch(type_s, request_handler_tbl,
+			ARRAY_SIZE(request_handler_tbl),
+			sizeof(*handler), handler_entry_comp);
+	if (!handler) {
 		ldmsd_log(LDMSD_LERROR, "Message number %d:%" PRIu64
 				"has an unrecognized object type '%s'\n",
-				reqc->lcl_key.msg_no, reqc->lcl_key.conn_id, type_s);
-		rc = ldmsd_send_error(reqc, ENOTSUP, "message number %d:%" PRIu64
+				reqc->key.msg_no, reqc->key.conn_id, type_s);
+		return ldmsd_send_error(reqc, ENOTSUP, "message number %d"
 				" has ba unrecognized object type '%s'.",
-				reqc->rem_key.msg_no, reqc->rem_key.conn_id, type_s);
+				reqc->key.msg_no, type_s);
 	}
-out:
+	rc = handler->handler(reqc);
 	return rc;
 }
 
@@ -4099,7 +4558,7 @@ static int plugin_instance_handler(ldmsd_req_ctxt_t reqc)
 	return rc;
 }
 
-extern int ldmsd_term_plugin(const char *name);
+extern int ldmsd_term_plugin(const char *req_name);
 static int plugin_instance_action_handler(ldmsd_req_ctxt_t reqc)
 {
 	int rc;

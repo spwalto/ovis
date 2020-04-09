@@ -208,17 +208,56 @@ typedef struct ldmsd_sec_ctxt {
 } *ldmsd_sec_ctxt_t;
 
 typedef enum ldmsd_cfgobj_type {
-	LDMSD_CFGOBJ_PRDCR = 1,
+	LDMSD_CFGOBJ_FIRST = 1,
+	LDMSD_CFGOBJ_PRDCR = LDMSD_CFGOBJ_FIRST,
 	LDMSD_CFGOBJ_UPDTR,
 	LDMSD_CFGOBJ_STRGP,
 	LDMSD_CFGOBJ_SMPLR,
 	LDMSD_CFGOBJ_LISTEN,
 	LDMSD_CFGOBJ_SETGRP,
 	LDMSD_CFGOBJ_AUTH,
+	LDMSD_CFGOBJ_ENV,
+	LDMSD_CFGOBJ_DAEMON,
+	LDMSD_CFGOBJ_LAST,
 } ldmsd_cfgobj_type_t;
+
+#define LDMSD_CFGOBJ_CREATE_PERM_DEFAULT 0770
 
 struct ldmsd_cfgobj;
 typedef void (*ldmsd_cfgobj_del_fn_t)(struct ldmsd_cfgobj *);
+typedef int (*ldmsd_cfgobj_create_fn_t)(const char *name, /* cfgobj name */
+					short enabled,
+					json_entity_t dft, /* default attribute values */
+					json_entity_t spc, /* attribute values specific for this obj */
+					uid_t uid, gid_t gid,
+					int perm,
+					ldmsd_req_buf_t buf); /* buffer for error messages */
+typedef int (*ldmsd_cfgobj_update_fn_t)(struct ldmsd_cfgobj *obj,
+					short enabled, /* 0 means disabled, 1 means enabled, -1 means no changes. */
+					json_entity_t dft,
+					json_entity_t spc,
+					ldmsd_req_buf_t buf);
+typedef int (*ldmsd_cfgobj_delete_fn_t)(struct ldmsd_cfgobj *);
+
+/*
+ * \brief query a specific set of attributes or all attributes of a config object
+ *
+ * If \c target is NULL, all attributes will be queried.
+ *
+ * \param obj a config object
+ * \param target a list of attributes.
+ * \param buf a buffer to contain an error message.
+ *
+ * \return a JSON dictionary of which the attributes are
+ *  - attributes listed in \c target or all attributes.
+ *    NULL is returned on error and errno must be set.ldmsd_
+ */
+typedef json_entity_t (*ldmsd_cfgobj_query_fn_t)(json_entity_t obj,
+						json_entity_t target,
+						ldmsd_req_buf_t buf);
+typedef json_entity_t (*ldmsd_cfgobj_export_fn_t)();
+typedef int (*ldmsd_cfgobj_start_fn_t)(struct ldmsd_cfgobj *);
+typedef int (*ldmsd_cfgobj_stop_fn_t)(struct ldmsd_cfgobj *);
 
 #define LDMSD_PERM_UEX 0100
 #define LDMSD_PERM_UWR 0200
@@ -243,13 +282,41 @@ typedef struct ldmsd_cfgobj {
 	char *name;		/* Unique object name */
 	uint32_t ref_count;
 	ldmsd_cfgobj_type_t type;
-	ldmsd_cfgobj_del_fn_t __del;
+	ldmsd_cfgobj_del_fn_t __del; /* This is called when the ref_count reaches 0 */
+
+	short enabled;
+	/* These callbacks are called upon receiving a configuration request. */
+	ldmsd_cfgobj_update_fn_t update;
+	ldmsd_cfgobj_delete_fn_t delete; /* This is called when there is a delete request. The object may not be freed right away. */
+	ldmsd_cfgobj_query_fn_t query;
+	ldmsd_cfgobj_export_fn_t export;
+
 	struct rbn rbn;
 	pthread_mutex_t lock;
 	uid_t uid;
 	gid_t gid;
 	int perm;
 } *ldmsd_cfgobj_t;
+
+/*
+ * TODO: (remove this)
+ *
+ * What are the use case of env request?
+ * - in V4 environment variables are used as variables in configuration files.
+ * - ????
+ *
+ * Environment variables shouldn't be used as variables in configuration files anymore.
+ */
+typedef struct ldmsd_env {
+	struct ldmsd_cfgobj obj;
+	const char *name;
+	const char *value;
+} *ldmsd_env_t;
+
+typedef struct ldmsd_daemon {
+	struct ldmsd_cfgobj obj;
+	json_entity_t attr;
+} *ldmsd_daemon_t;
 
 typedef struct ldmsd_smplr {
 	struct ldmsd_cfgobj obj;
@@ -757,6 +824,7 @@ char *ldmsd_get_max_mem_sz_str();
 #pragma weak ldmsd_get_max_mem_sz_str
 
 /** Configuration object management */
+enum ldmsd_cfgobj_type ldmsd_cfgobj_type_str2enum(const char *s);
 void ldmsd_cfgobj___del(ldmsd_cfgobj_t obj);
 void ldmsd_cfgobj_init(void);
 void ldmsd_cfg_lock(ldmsd_cfgobj_type_t type);
@@ -769,15 +837,21 @@ ldmsd_cfgobj_t ldmsd_cfgobj_new_with_auth(const char *name,
 					  ldmsd_cfgobj_type_t type,
 					  size_t obj_size,
 					  ldmsd_cfgobj_del_fn_t __del,
+					  ldmsd_cfgobj_update_fn_t update,
+					  ldmsd_cfgobj_delete_fn_t delete,
+					  ldmsd_cfgobj_query_fn_t query,
+					  ldmsd_cfgobj_export_fn_t export,
 					  uid_t uid,
 					  gid_t gid,
-					  int perm);
+					  int perm,
+					  short enabled);
 ldmsd_cfgobj_t ldmsd_cfgobj_get(ldmsd_cfgobj_t obj);
 void ldmsd_cfgobj_put(ldmsd_cfgobj_t obj);
 int ldmsd_cfgobj_refcount(ldmsd_cfgobj_t obj);
 ldmsd_cfgobj_t ldmsd_cfgobj_find(const char *name, ldmsd_cfgobj_type_t type);
 void ldmsd_cfgobj_del(const char *name, ldmsd_cfgobj_type_t type);
 ldmsd_cfgobj_t ldmsd_cfgobj_first(ldmsd_cfgobj_type_t type);
+ldmsd_cfgobj_t ldmsd_cfgobj_next_re(ldmsd_cfgobj_t obj, regex_t regex);
 ldmsd_cfgobj_t ldmsd_cfgobj_next(ldmsd_cfgobj_t obj);
 int ldmsd_cfgobj_access_check(ldmsd_cfgobj_t obj, int acc, ldmsd_sec_ctxt_t ctxt);
 

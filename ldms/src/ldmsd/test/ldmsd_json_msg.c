@@ -699,14 +699,12 @@ static json_entity_t rsp_multiple_records(json_entity_t spec)
 	}
 	json_entity_t attr, name, value;
 
-	name = json_entity_new(JSON_STRING_VALUE, "mode");
 	value = json_entity_new(JSON_STRING_VALUE, "rsp_multi_rec");
-	attr = json_entity_new(JSON_ATTR_VALUE, name, value);
+	attr = json_entity_new(JSON_ATTR_VALUE, "mode", value);
 	json_attr_add(spec, attr);
 
-	name = json_entity_new(JSON_STRING_VALUE, "value");
 	value = json_entity_new(JSON_INT_VALUE, num_rec);
-	attr = json_entity_new(JSON_ATTR_VALUE, name, value);
+	attr = json_entity_new(JSON_ATTR_VALUE, "value", value);
 	json_attr_add(spec, attr);
 
 	return spec;
@@ -716,14 +714,12 @@ static json_entity_t echo(json_entity_t spec)
 {
 	json_entity_t name, value, attr;
 
-	name = json_entity_new(JSON_STRING_VALUE, "mode");
 	value = json_entity_new(JSON_STRING_VALUE, "echo");
-	attr = json_entity_new(JSON_ATTR_VALUE, name, value);
+	attr = json_entity_new(JSON_ATTR_VALUE, "mode", value);
 	json_attr_add(spec, attr);
 
-	name = json_entity_new(JSON_STRING_VALUE, "value");
 	value = json_entity_new(JSON_LIST_VALUE);
-	attr = json_entity_new(JSON_ATTR_VALUE, name, value);
+	attr = json_entity_new(JSON_ATTR_VALUE, "value", value);
 	json_attr_add(spec, attr);
 
 	name = json_entity_new(JSON_STRING_VALUE, "Hello!");
@@ -744,25 +740,21 @@ static json_entity_t ping_pong(json_entity_t spec)
 	else
 		mode_value = "5";
 
-	name = json_entity_new(JSON_STRING_VALUE, "mode");
 	value = json_entity_new(JSON_STRING_VALUE, "ping_pong");
-	attr = json_entity_new(JSON_ATTR_VALUE, name, value);
+	attr = json_entity_new(JSON_ATTR_VALUE, "mode", value);
 	json_attr_add(spec, attr);
 
-	name = json_entity_new(JSON_STRING_VALUE, "value");
 	dict = json_entity_new(JSON_DICT_VALUE);
-	attr = json_entity_new(JSON_ATTR_VALUE, name, dict);
+	attr = json_entity_new(JSON_ATTR_VALUE, "value", dict);
 	json_attr_add(spec, attr);
 
-	name = json_entity_new(JSON_STRING_VALUE, "word");
 	value = json_entity_new(JSON_STRING_VALUE, "0");
-	attr = json_entity_new(JSON_ATTR_VALUE, name, value);
+	attr = json_entity_new(JSON_ATTR_VALUE, "word", value);
 	json_attr_add(dict, attr);
 
 	if (num_round > 1) {
-		name = json_entity_new(JSON_STRING_VALUE, "more");
 		value = json_entity_new(JSON_BOOL_VALUE, 1);
-		attr = json_entity_new(JSON_ATTR_VALUE, name, value);
+		attr = json_entity_new(JSON_ATTR_VALUE, "more", value);
 		json_attr_add(dict, attr);
 	}
 
@@ -789,19 +781,16 @@ static json_entity_t long_rsp(json_entity_t spec, size_t max_msg)
 	}
 	len = atoi(mode_value);
 
-	name = json_entity_new(JSON_STRING_VALUE, "mode");
 	value = json_entity_new(JSON_STRING_VALUE, "long_rsp");
-	attr = json_entity_new(JSON_ATTR_VALUE, name, value);
+	attr = json_entity_new(JSON_ATTR_VALUE, "mode", value);
 	json_attr_add(spec, attr);
 
-	name = json_entity_new(JSON_STRING_VALUE, "value");
 	dict = json_entity_new(JSON_DICT_VALUE);
-	attr = json_entity_new(JSON_ATTR_VALUE, name, dict);
+	attr = json_entity_new(JSON_ATTR_VALUE, "value", dict);
 	json_attr_add(spec, attr);
 
-	name = json_entity_new(JSON_STRING_VALUE, "length");
 	value = json_entity_new(JSON_INT_VALUE, len);
-	attr = json_entity_new(JSON_ATTR_VALUE, name, value);
+	attr = json_entity_new(JSON_ATTR_VALUE, "ength", value);
 	json_attr_add(dict, attr);
 
 	msg = malloc(len + 1);
@@ -879,19 +868,16 @@ static void start_test(ldms_t x)
 		oom_exit();
 
 	obj = json_entity_new(JSON_DICT_VALUE);
-	name = json_entity_new(JSON_STRING_VALUE, "type");
 	value = json_entity_new(JSON_STRING_VALUE, "cmd_obj");
-	attr = json_entity_new(JSON_ATTR_VALUE, name, value);
+	attr = json_entity_new(JSON_ATTR_VALUE, "type", value);
 	json_attr_add(obj, attr);
 
-	name = json_entity_new(JSON_STRING_VALUE, "cmd");
 	value = json_entity_new(JSON_STRING_VALUE, "greeting");
-	attr = json_entity_new(JSON_ATTR_VALUE, name, value);
+	attr = json_entity_new(JSON_ATTR_VALUE, "cmd", value);
 	json_attr_add(obj, attr);
 
 	spec = json_entity_new(JSON_DICT_VALUE);
-	name = json_entity_new(JSON_STRING_VALUE, "spec");
-	attr = json_entity_new(JSON_ATTR_VALUE, name, spec);
+	attr = json_entity_new(JSON_ATTR_VALUE, "spec", spec);
 	json_attr_add(obj, attr);
 
 	switch (test_mode) {
