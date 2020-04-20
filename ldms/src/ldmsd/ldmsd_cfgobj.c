@@ -524,59 +524,83 @@ oom:
 	return NULL;
 }
 
-//(TYPE, n, v, TYPE, n, v, TYP, n, v, ...)
-
-json_entity_t fn(va_list ap)
+json_entity_t __dict_new(va_list ap);
+json_entity_t __attr_value_new(enum json_value_e type, va_list ap)
 {
-	json_entity_t obj, x;
-
-	obj = json_entity_new(JSON_DICT_VALUE);
-	if (!obj)
-		return NULL;
-	enum json_value_e type;
+	json_entity_t v, item;
 	switch (type) {
 	case JSON_BOOL_VALUE:
-		x = json_entity_new(type, va_arg(ap, int));
+		v = json_entity_new(type, va_arg(ap, int));
 		break;
 	case JSON_FLOAT_VALUE:
-		x = json_entity_new(type, va_arg(ap, double));
+		v = json_entity_new(type, va_arg(ap, double));
 		break;
 	case JSON_INT_VALUE:
-		x = json_entity_new(type, va_arg(ap, uint64_t));
+		v = json_entity_new(type, va_arg(ap, uint64_t));
 		break;
 	case JSON_STRING_VALUE:
-		x = json_entity_new(type, va_arg(ap, char *));
+		v = json_entity_new(type, va_arg(ap, char *));
 		break;
 	case JSON_DICT_VALUE:
+		v = __dict_new(ap);
 		break;
 	case JSON_LIST_VALUE:
+		v = json_entity_new(type);
+		if (!v)
+			return NULL;
+		type = va_arg(ap, int);
+		while (type >= 0) { /* -1 means the end of the ap list, -2 means the end of the list */
+			item = __attr_value_new(type, ap);
+			json_item_add(v, item);
+			type = va_arg(ap, int);
+		}
 		break;
-
 	default:
+		/*
+		 * TODO: handle this
+		 */
 		break;
 	}
+	return v;
 }
 
-json_entity_t ldmsd_cfgobj_query_build(const char *name, ...)
+json_entity_t __dict_new(va_list ap)
+{
+	json_entity_t d, v, a;
+	enum json_value_e type;
+	const char *n;
+
+	d = json_entity_new(JSON_DICT_VALUE);
+	if (!d)
+		return NULL;
+
+	type = va_arg(ap, int);
+	while (type >= 0) {
+		/* attribute name */
+		n = va_arg(ap, const char *);
+		/* attribute value */
+		v = __attr_value_new(type, ap);
+		if (!v)
+			goto err;
+		/* attribute */
+		a = json_entity_new(JSON_ATTR_VALUE, n, v);
+		if (!a)
+			goto err;
+		json_attr_add(d, a);
+		type = va_arg(ap, int); /* -1 means the end of variable list */
+	}
+	return d;
+err:
+	json_entity_free(d);
+	return NULL;
+}
+
+json_entity_t ldmsd_cfgobj_dict_bulk(char *fake, ...)
 {
 	va_list ap;
-	enum json_value_e type;
-	json_entity_t obj, x;
-
-	obj = json_entity_new(JSON_DICT_VALUE);
-	if (!obj)
-		goto err;
-
-	va_start(ap, name);
-attr:
-	n = va_arg(ap, const char *);
-	type = va_arg(ap, enum json_value_e);
-
-
+	json_entity_t obj;
+	va_start(ap, fake);
+	obj = __dict_new(ap);
 	va_end(ap);
 	return obj;
-err:
-	if (obj)
-		json_entity_free(obj);
-	return NULL;
 }

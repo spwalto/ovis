@@ -284,11 +284,9 @@ out:
 	return rc;
 }
 
-static void __config_file_msgno_get(uint64_t file_no, uint32_t obj_cnt,
-						struct ldmsd_msg_key *key_)
+static void __config_file_msgno_get(uint64_t file_no, uint32_t obj_cnt, uint32_t *msg_no)
 {
-	key_->msg_no = obj_cnt;
-	key_->conn_id = file_no;
+	*msg_no = obj_cnt;
 }
 
 //static uint16_t __config_file_msgno2lineno(uint32_t msgno)
@@ -501,7 +499,7 @@ int process_config_file(const char *path, int trust)
 		request->rec_len = jbuf->cursor;
 		request->flags = LDMSD_REC_SOM_F | LDMSD_REC_EOM_F;
 		request->type = LDMSD_MSG_TYPE_REQ;
-		__config_file_msgno_get(file_no, cnt, &request->key);
+		__config_file_msgno_get(file_no, cnt, &request->msg_no);
 		reqc = ldmsd_handle_record(request, xprt);
 		if (!reqc) {
 			rc = errno;

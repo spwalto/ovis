@@ -1126,7 +1126,8 @@ ldmsd_listen_t ldmsd_listen_new(char *xprt, unsigned short port, char *host, cha
 	listen = (struct ldmsd_listen *)
 		ldmsd_cfgobj_new_with_auth(name, LDMSD_CFGOBJ_LISTEN,
 				sizeof *listen, ldmsd_listen___del,
-				getuid(), getgid(), 0550); /* No one can alter it */
+				NULL, NULL, NULL, NULL, /* TODO: fill this out */
+				getuid(), getgid(), 0550, 0); /* No one can alter it */
 	if (!listen)
 		return NULL;
 
@@ -1248,7 +1249,7 @@ int ldmsd_process_cmd_line_arg(char opt, char *value)
 			 * if the syntax check flag is turned on.
 			 */
 			if (!ldmsd_is_check_syntax())
-				log_fp = ldmsd_open_log();
+				log_fp = ldmsd_open_log(cmd_line_args.log_path);
 		}
 		break;
 	case 'm':

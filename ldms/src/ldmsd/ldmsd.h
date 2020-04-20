@@ -66,6 +66,7 @@
 #include <ev/ev.h>
 #include <ovis_event/ovis_event.h>
 #include <ovis_util/util.h>
+#include <json/json_util.h>
 #include "ldms.h"
 #include "ref.h"
 
@@ -224,6 +225,7 @@ typedef enum ldmsd_cfgobj_type {
 #define LDMSD_CFGOBJ_CREATE_PERM_DEFAULT 0770
 
 struct ldmsd_cfgobj;
+typedef struct ldmsd_req_buf (*ldmsd_req_buf_t);
 typedef void (*ldmsd_cfgobj_del_fn_t)(struct ldmsd_cfgobj *);
 typedef int (*ldmsd_cfgobj_create_fn_t)(const char *name, /* cfgobj name */
 					short enabled,
@@ -237,7 +239,7 @@ typedef int (*ldmsd_cfgobj_update_fn_t)(struct ldmsd_cfgobj *obj,
 					json_entity_t dft,
 					json_entity_t spc,
 					ldmsd_req_buf_t buf);
-typedef int (*ldmsd_cfgobj_delete_fn_t)(struct ldmsd_cfgobj *);
+typedef int (*ldmsd_cfgobj_delete_fn_t)(struct ldmsd_cfgobj *, ldmsd_req_buf_t buf);
 
 /*
  * \brief query a specific set of attributes or all attributes of a config object
@@ -252,12 +254,10 @@ typedef int (*ldmsd_cfgobj_delete_fn_t)(struct ldmsd_cfgobj *);
  *  - attributes listed in \c target or all attributes.
  *    NULL is returned on error and errno must be set.ldmsd_
  */
-typedef json_entity_t (*ldmsd_cfgobj_query_fn_t)(json_entity_t obj,
+typedef json_entity_t (*ldmsd_cfgobj_query_fn_t)(struct ldmsd_cfgobj *obj,
 						json_entity_t target,
 						ldmsd_req_buf_t buf);
-typedef json_entity_t (*ldmsd_cfgobj_export_fn_t)();
-typedef int (*ldmsd_cfgobj_start_fn_t)(struct ldmsd_cfgobj *);
-typedef int (*ldmsd_cfgobj_stop_fn_t)(struct ldmsd_cfgobj *);
+typedef json_entity_t (*ldmsd_cfgobj_export_fn_t)(struct ldmsd_cfgobj *obj, ldmsd_req_buf_t buf);
 
 #define LDMSD_PERM_UEX 0100
 #define LDMSD_PERM_UWR 0200
@@ -312,6 +312,9 @@ typedef struct ldmsd_env {
 	const char *name;
 	const char *value;
 } *ldmsd_env_t;
+
+int ldmsd_env_create(const char *name, short enabled, json_entity_t dft, json_entity_t spc,
+				uid_t uid, gid_t gid, int perm, ldmsd_req_buf_t buf);
 
 typedef struct ldmsd_daemon {
 	struct ldmsd_cfgobj obj;
