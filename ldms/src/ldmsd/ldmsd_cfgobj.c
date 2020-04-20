@@ -371,144 +371,35 @@ ldmsd_cfgobj_t ldmsd_cfgobj_next_re(ldmsd_cfgobj_t obj, regex_t regex)
 	return obj;
 }
 
-json_entity_t ldmsd_cfgobj_query_result_new()
+json_entity_t ldmsd_cfgobj_query_new(ldmsd_cfgobj_t obj)
 {
-	json_entity_t obj;
+	json_entity_t result, d;
+	char perm_s[16];
 
-	if (!(obj = json_entity_new(JSON_DICT_VALUE)))
-		goto oom;
-	return obj;
+	snprintf(perm_s, 16, "%o", obj->perm);
+	d = ldmsd_json_dict_build(NULL, obj->name, JSON_DICT_VALUE,
+		"type", JSON_STRING_VALUE, ldmsd_cfgobj_types[obj->type],
+		"ref_count", JSON_INT_VALUE, obj->ref_count,
+		"enabled", JSON_BOOL_VALUE, obj->enabled,
+		"uid", JSON_INT_VALUE, obj->uid,
+		"gid", JSON_INT_VALUE, obj->gid,
+		"perm", JSON_STRING_VALUE, perm_s);
+
+	return d;
 oom:
 	ldmsd_log(LDMSD_LCRITICAL, "Out of memory\n");
 	return NULL;
 }
 
-int ldmsd_cfgobj_query_attr_add(json_entity_t query, const char *name, enum json_value_e type, ...)
+int ldmsd_cfgobj_query_attr_add(json_entity_t query, ...)
 {
-	json_entity_t n, v, a;
 	va_list ap;
 
-	if (!(n = json_entity_new(JSON_STRING_VALUE, name)))
-		return ENOMEM;
-
-	va_start(ap, type);
-	switch (type) {
-	case JSON_BOOL_VALUE:
-		v = json_entity_new(type, va_arg(ap, int));
-		if (!v)
-			return ENOMEM;
-		break;
-	case JSON_DICT_VALUE:
-		v = va_arg(ap, json_entity_t);
-		if (!v)
-			v = json_entity_new(type);
-		break;
-	case JSON_FLOAT_VALUE:
-		v = json_entity_new(type, va_arg(ap, double));
-		break;
-	case JSON_INT_VALUE:
-		v = json_entity_new(type, va_arg(ap, uint64_t));
-		break;
-	case JSON_STRING_VALUE:
-		v = json_entity_new(type, va_arg(ap, char *));
-		break;
-	case JSON_ATTR_VALUE:
-	default:
-		return EINVAL;
-	}
+	va_start(ap, query);
+	query = __dict_new(query, ap);
 	va_end(ap);
-	if (!v)
+	if (!query)
 		return ENOMEM;
-	a = json_entity_new(JSON_ATTR_VALUE, n, v);
-	if (a)
-		return ENOMEM;
-	json_attr_add(query, a);
-	return 0;
-}
-
-typedef int (*attr_add_fn)(ldmsd_cfgobj_t obj, json_entity_t query);
-struct base_attr_add_entry {
-	const char *attr_name;
-	attr_add_fn fn;
-};
-
-int base_attr_add_entry_cmp(const void *a, const void *b)
-{
-	struct base_attr_add_entry *a_ = (struct base_attr_add_entry *)a;
-	struct base_attr_add_entry *b_ = (struct base_attr_add_entry *)b;
-	return strcmp(a_->attr_name, b_->attr_name);
-}
-
-int type_attr_add(ldmsd_cfgobj_t obj, json_entity_t query)
-{
-	return ldmsd_cfgobj_query_attr_add(query, "type",
-			JSON_STRING_VALUE, ldmsd_cfgobj_types[obj->type]);
-}
-
-int ref_count_attr_add(ldmsd_cfgobj_t obj, json_entity_t query)
-{
-	return ldmsd_cfgobj_query_attr_add(query, "ref_count",
-				JSON_INT_VALUE, obj->ref_count);
-}
-
-int enabled_attr_add(ldmsd_cfgobj_t obj, json_entity_t query)
-{
-	return ldmsd_cfgobj_query_attr_add(query, "enabled", JSON_BOOL_VALUE, obj->enabled);
-}
-
-int uid_attr_add(ldmsd_cfgobj_t obj, json_entity_t query)
-{
-	return ldmsd_cfgobj_query_attr_add(query, "uid", JSON_INT_VALUE, obj->uid);
-}
-
-int gid_attr_add(ldmsd_cfgobj_t obj, json_entity_t query)
-{
-	return ldmsd_cfgobj_query_attr_add(query, "gid", JSON_INT_VALUE, obj->gid);
-}
-
-int perm_attr_add(ldmsd_cfgobj_t obj, json_entity_t query)
-{
-	char perm_s[8];
-	snprintf(perm_s, 8, "%o", obj->perm);
-	return ldmsd_cfgobj_query_attr_add(query, "perm", JSON_STRING_VALUE, perm_s);
-}
-
-static struct base_attr_add_entry base_attr_add_tbl[] = {
-		{ "enabled",	enabled_attr_add },
-		{ "gid",	gid_attr_add },
-		{ "perm",	perm_attr_add },
-		{ "ref_count",	ref_count_attr_add },
-		{ "type",	type_attr_add },
-		{ "uid",	uid_attr_add },
-		{ NULL },
-};
-
-int ldmsd_cfgobj_query_base_attr_add(ldmsd_cfgobj_t obj, json_entity_t query,
-							const char *tgt)
-{
-	int rc, i = 0;
-	struct base_attr_add_entry *handler;
-
-	if (tgt) {
-		handler = (struct base_attr_add_entry *)bsearch(tgt,
-				base_attr_add_tbl,
-				ARRAY_SIZE(base_attr_add_tbl),
-				sizeof(struct base_attr_add_entry),
-				base_attr_add_entry_cmp);
-		if (!handler)
-			return ENOENT;
-		rc = handler->fn(obj, query);
-		if (rc)
-			return rc;
-	} else {
-		handler = &base_attr_add_tbl[i++];
-		while (handler) {
-			rc = handler->fn(obj, query);
-			if (rc)
-				return rc;
-			handler = &base_attr_add_tbl[i++];
-		}
-	}
 	return 0;
 }
 
@@ -528,85 +419,4 @@ json_entity_t ldmsd_cfgobj_export_result_new(ldmsd_cfgobj_type_t type)
 	return obj;
 oom:
 	return NULL;
-}
-
-json_entity_t __dict_new(va_list ap);
-json_entity_t __attr_value_new(enum json_value_e type, va_list ap)
-{
-	json_entity_t v, item;
-	switch (type) {
-	case JSON_BOOL_VALUE:
-		v = json_entity_new(type, va_arg(ap, int));
-		break;
-	case JSON_FLOAT_VALUE:
-		v = json_entity_new(type, va_arg(ap, double));
-		break;
-	case JSON_INT_VALUE:
-		v = json_entity_new(type, va_arg(ap, uint64_t));
-		break;
-	case JSON_STRING_VALUE:
-		v = json_entity_new(type, va_arg(ap, char *));
-		break;
-	case JSON_DICT_VALUE:
-		v = __dict_new(ap);
-		break;
-	case JSON_LIST_VALUE:
-		v = json_entity_new(type);
-		if (!v)
-			return NULL;
-		type = va_arg(ap, int);
-		while (type >= 0) { /* -1 means the end of the ap list, -2 means the end of the list */
-			item = __attr_value_new(type, ap);
-			json_item_add(v, item);
-			type = va_arg(ap, int);
-		}
-		break;
-	default:
-		/*
-		 * TODO: handle this
-		 */
-		break;
-	}
-	return v;
-}
-
-json_entity_t __dict_new(va_list ap)
-{
-	json_entity_t d, v, a;
-	enum json_value_e type;
-	const char *n;
-
-	d = json_entity_new(JSON_DICT_VALUE);
-	if (!d)
-		return NULL;
-
-	type = va_arg(ap, int);
-	while (type >= 0) {
-		/* attribute name */
-		n = va_arg(ap, const char *);
-		/* attribute value */
-		v = __attr_value_new(type, ap);
-		if (!v)
-			goto err;
-		/* attribute */
-		a = json_entity_new(JSON_ATTR_VALUE, n, v);
-		if (!a)
-			goto err;
-		json_attr_add(d, a);
-		type = va_arg(ap, int); /* -1 means the end of variable list */
-	}
-	return d;
-err:
-	json_entity_free(d);
-	return NULL;
-}
-
-json_entity_t ldmsd_cfgobj_dict_bulk(char *fake, ...)
-{
-	va_list ap;
-	json_entity_t obj;
-	va_start(ap, fake);
-	obj = __dict_new(ap);
-	va_end(ap);
-	return obj;
 }

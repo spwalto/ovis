@@ -864,6 +864,7 @@ ldmsd_cfgobj_t ldmsd_cfgobj_first(ldmsd_cfgobj_type_t type);
 ldmsd_cfgobj_t ldmsd_cfgobj_next_re(ldmsd_cfgobj_t obj, regex_t regex);
 ldmsd_cfgobj_t ldmsd_cfgobj_next(ldmsd_cfgobj_t obj);
 int ldmsd_cfgobj_access_check(ldmsd_cfgobj_t obj, int acc, ldmsd_sec_ctxt_t ctxt);
+json_entity_t ldmsd_json_dict_build(char *fake, ...);
 
 #define LDMSD_CFGOBJ_FOREACH(obj, type) \
 	for ((obj) = ldmsd_cfgobj_first(type); (obj);  \
