@@ -1011,7 +1011,7 @@ int ldmsd_append_request(ldmsd_req_ctxt_t reqc, int msg_flags,
 			msg_flags, LDMSD_MSG_TYPE_REQ, data, data_len);
 }
 
-int __send_error(ldmsd_cfg_xprt_t xprt, struct ldmsd_msg_key *key,
+int __send_error(ldmsd_cfg_xprt_t xprt, struct ldmsd_msg_key *key, const char *name,
 				ldmsd_req_buf_t buf, uint32_t errcode,
 				const char *errmsg_fmt, va_list errmsg_ap)
 {
@@ -1148,24 +1148,48 @@ int __ldmsd_send_missing_mandatory_attr(ldmsd_req_ctxt_t reqc,
 int
 ldmsd_send_err_rec_adv(ldmsd_cfg_xprt_t xprt, uint32_t msg_no, uint32_t rec_len)
 {
-	size_t hdr_sz, len;
-	char *buf;
-	json_entity_t reply;
+	struct ldmsd_msg_key key;
+	json_entity_t reply = NULL;
+	ldmsd_req_buf_t buf = NULL;
+	jbuf_t jb = NULL;
+	int rc;
+	char msg[128];
 
-	hdr_sz = sizeof(struct ldmsd_rec_hdr_s);
-	len = hdr_sz + 1024;
+	__msg_key_get(xprt, msg_no, &key);
 
-	buf = calloc(1, len);
-	if (!buf)
-		return ENOMEM;
+	buf = ldmsd_req_buf_alloc(xprt->max_msg);
+	if (!buf) {
+		rc = ENOMEM;
+		goto out;
+	}
 
 	reply = ldmsd_reply_new("rec_adv", msg_no);
+	if (!reply) {
+		rc = ENOMEM;
+		goto out;
+	}
 
-	/*
-	 * TODO: finish below
-	 */
-//	return ldmsd_send_error_reply(reqc, reply, E2BIG, "The maximum length is '%" PRIU32, rec_len);
-	return 0;
+	snprintf(msg, 128, "The maximum length is '%" PRIu32, rec_len);
+	json_attr_mod(reply, "errno", E2BIG);
+	json_attr_mod(reply, "msg", msg);
+
+	jb = json_entity_dump(NULL, reply);
+	if (!jb) {
+		rc = ENOMEM;
+		goto out;
+	}
+
+	rc = __ldmsd_append_buffer(xprt, &key, buf,
+				LDMSD_REC_EOM_F | LDMSD_REC_SOM_F,
+				LDMSD_MSG_TYPE_RESP, jb->buf, jb->cursor);
+out:
+	if (buf)
+		ldmsd_req_buf_free(buf);
+	if (reply)
+		json_entity_free(reply);
+	if (jb)
+		jbuf_free(jb);
+	return rc;
 }
 
 ldmsd_req_ctxt_t ldmsd_handle_record(ldmsd_rec_hdr_t rec, ldmsd_cfg_xprt_t xprt)
