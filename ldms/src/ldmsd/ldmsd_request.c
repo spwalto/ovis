@@ -225,8 +225,6 @@ void ldmsd_req_ctxt_sec_get(ldmsd_req_ctxt_t rctxt, ldmsd_sec_ctxt_t sctxt)
 /* executable for user, and group */
 #define XUG 0110
 
-#define ARRAY_SIZE(a) (sizeof(a) / sizeof(a[0]))
-
 //static struct obj_handler_entry cfg_obj_handler_tbl[] = {
 //		{ "auth",		auth_handler,			XUG },
 //		{ "env",		env_handler,			XUG },
@@ -294,6 +292,15 @@ static struct request_handler_entry request_handler_tbl[] = {
 		{ "query",	ldmsd_cfgobj_query_handler,	XALL },
 		{ "update",	ldmsd_cfgobj_update_handler,	XUG },
 };
+
+int request_handler_entry_cmp(const void *a, const void *b)
+{
+	struct request_handler_entry *a_, *b_;
+	a_ = (struct request_handler_entry *)a;
+	b_ = (struct request_handler_entry *)b;
+
+	return strcmp(a_->request, b_->request);
+}
 
 struct schema_handler_entry {
 	const char *schema;
@@ -490,6 +497,9 @@ static int ldmsd_cfgobj_update_handler(ldmsd_req_ctxt_t reqc)
 	if (enabled)
 		is_enabled = json_value_bool(enabled);
 	dft = json_value_find(reqc->json, "default");
+	key = json_value_find(reqc->json, "key");
+	value = json_value_find(reqc->json, "value");
+	re = json_value_find(reqc->json, "re");
 
 	reply = ldmsd_reply_new("update", reqc->key.msg_no);
 	if (!reply)
@@ -567,6 +577,8 @@ static int ldmsd_cfgobj_delete_handler(ldmsd_req_ctxt_t reqc)
 
 	schema = json_value_find(reqc->json, "schema");
 	schema_s = json_value_str(schema)->str;
+	key = json_value_find(reqc->json, "key");
+	re = json_value_find(reqc->json, "re");
 
 	reply = ldmsd_reply_new("delete", reqc->key.msg_no);
 	if (!reply)
@@ -1011,7 +1023,7 @@ int ldmsd_append_request(ldmsd_req_ctxt_t reqc, int msg_flags,
 			msg_flags, LDMSD_MSG_TYPE_REQ, data, data_len);
 }
 
-int __send_error(ldmsd_cfg_xprt_t xprt, struct ldmsd_msg_key *key, const char *name,
+int __send_error(ldmsd_cfg_xprt_t xprt, struct ldmsd_msg_key *key,
 				ldmsd_req_buf_t buf, uint32_t errcode,
 				const char *errmsg_fmt, va_list errmsg_ap)
 {
@@ -1934,6 +1946,7 @@ out:
 //	return 0;
 //}
 //
+
 int ldmsd_process_json_obj(ldmsd_req_ctxt_t reqc)
 {
 	json_entity_t req_type;
@@ -1963,7 +1976,7 @@ int ldmsd_process_json_obj(ldmsd_req_ctxt_t reqc)
 
 	handler = bsearch(type_s, request_handler_tbl,
 			ARRAY_SIZE(request_handler_tbl),
-			sizeof(*handler), handler_entry_comp);
+			sizeof(*handler), request_handler_entry_cmp);
 	if (!handler) {
 		ldmsd_log(LDMSD_LERROR, "Message number %d:%" PRIu64
 				"has an unrecognized object type '%s'\n",

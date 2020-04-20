@@ -70,6 +70,8 @@
 #include "ldms.h"
 #include "ref.h"
 
+#define ARRAY_SIZE(a) (sizeof(a) / sizeof(a[0]))
+
 #define LDMSD_PLUGIN_LIBPATH_DEFAULT PLUGINDIR
 
 #define LDMSD_VERSION_MAJOR	0x03
@@ -834,8 +836,13 @@ void ldmsd_cfg_lock(ldmsd_cfgobj_type_t type);
 void ldmsd_cfg_unlock(ldmsd_cfgobj_type_t type);
 void ldmsd_cfgobj_lock(ldmsd_cfgobj_t obj);
 void ldmsd_cfgobj_unlock(ldmsd_cfgobj_t obj);
-ldmsd_cfgobj_t ldmsd_cfgobj_new(const char *name, ldmsd_cfgobj_type_t type, size_t obj_size,
-				ldmsd_cfgobj_del_fn_t __del);
+ldmsd_cfgobj_t ldmsd_cfgobj_new(const char *name, ldmsd_cfgobj_type_t type,
+				size_t obj_size, ldmsd_cfgobj_del_fn_t __del,
+				ldmsd_cfgobj_update_fn_t update,
+				ldmsd_cfgobj_delete_fn_t delete,
+				ldmsd_cfgobj_query_fn_t query,
+				ldmsd_cfgobj_export_fn_t export,
+				short enabled);
 ldmsd_cfgobj_t ldmsd_cfgobj_new_with_auth(const char *name,
 					  ldmsd_cfgobj_type_t type,
 					  size_t obj_size,

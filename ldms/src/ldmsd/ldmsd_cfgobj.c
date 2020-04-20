@@ -137,7 +137,7 @@ struct cfgobj_type_entry {
 	enum ldmsd_cfgobj_type e;
 };
 
-static int cfgobj_type_entry_comp(void *a, void *b)
+static int cfgobj_type_entry_comp(const void *a, const void *b)
 {
 	struct cfgobj_type_entry *a_, *b_;
 	a_ = (struct cfgobj_type_entry *)a;
@@ -258,10 +258,16 @@ out_1:
  * exist. On success, the object is returned locked.
  */
 ldmsd_cfgobj_t ldmsd_cfgobj_new(const char *name, ldmsd_cfgobj_type_t type,
-				size_t obj_size, ldmsd_cfgobj_del_fn_t __del)
+				size_t obj_size, ldmsd_cfgobj_del_fn_t __del,
+				ldmsd_cfgobj_update_fn_t update,
+				ldmsd_cfgobj_delete_fn_t delete,
+				ldmsd_cfgobj_query_fn_t query,
+				ldmsd_cfgobj_export_fn_t export,
+				short enabled)
 {
 	return ldmsd_cfgobj_new_with_auth(name, type, obj_size, __del,
-					  getuid(), getgid(), 0777);
+					update, delete, query, export,
+					getuid(), getgid(), 0777, enabled);
 }
 
 ldmsd_cfgobj_t ldmsd_cfgobj_get(ldmsd_cfgobj_t obj)
@@ -426,7 +432,7 @@ struct base_attr_add_entry {
 	attr_add_fn fn;
 };
 
-int base_attr_add_entry_cmp(void *a, void *b)
+int base_attr_add_entry_cmp(const void *a, const void *b)
 {
 	struct base_attr_add_entry *a_ = (struct base_attr_add_entry *)a;
 	struct base_attr_add_entry *b_ = (struct base_attr_add_entry *)b;
@@ -474,18 +480,18 @@ static struct base_attr_add_entry base_attr_add_tbl[] = {
 		{ "ref_count",	ref_count_attr_add },
 		{ "type",	type_attr_add },
 		{ "uid",	uid_attr_add },
-		NULL
+		{ NULL },
 };
 
 int ldmsd_cfgobj_query_base_attr_add(ldmsd_cfgobj_t obj, json_entity_t query,
 							const char *tgt)
 {
 	int rc, i = 0;
-	json_entity_t t;
 	struct base_attr_add_entry *handler;
 
 	if (tgt) {
-		handler = bsearch(tgt, base_attr_add_tbl,
+		handler = (struct base_attr_add_entry *)bsearch(tgt,
+				base_attr_add_tbl,
 				ARRAY_SIZE(base_attr_add_tbl),
 				sizeof(struct base_attr_add_entry),
 				base_attr_add_entry_cmp);
@@ -495,12 +501,12 @@ int ldmsd_cfgobj_query_base_attr_add(ldmsd_cfgobj_t obj, json_entity_t query,
 		if (rc)
 			return rc;
 	} else {
-		handler = base_attr_add_tbl[i++];
+		handler = &base_attr_add_tbl[i++];
 		while (handler) {
 			rc = handler->fn(obj, query);
 			if (rc)
 				return rc;
-			handler = base_attr_add_tbl[i++];
+			handler = &base_attr_add_tbl[i++];
 		}
 	}
 	return 0;
