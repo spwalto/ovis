@@ -140,8 +140,10 @@ struct ldms_set *__ldms_find_local_set(const char *set_name)
 	struct ldms_set *s = NULL;
 
 	z = rbt_find(&set_tree, (void *)set_name);
-	if (z)
+	if (z) {
 		s = container_of(z, struct ldms_set, rb_node);
+		ref_get(&s->ref, __func__);
+	}
 	return s;
 }
 
@@ -176,26 +178,17 @@ void __ldms_set_tree_unlock()
 	pthread_mutex_unlock(&__set_tree_lock);
 }
 
-static ldms_set_t __set_by_name(const char *set_name)
-{
-	struct ldms_set *set = __ldms_find_local_set(set_name);
-	struct ldms_rbuf_desc *rbd = NULL;
-	if (!set)
-		goto out;
-
-	rbd = __ldms_alloc_rbd(NULL, set, LDMS_RBD_LOCAL);
-
- out:
-	return rbd;
-}
-
 extern ldms_set_t ldms_set_by_name(const char *set_name)
 {
-	ldms_set_t s;
-	__ldms_set_tree_lock();
-	s = __set_by_name(set_name);
-	__ldms_set_tree_unlock();
-	return s;
+        struct ldms_set *set = __ldms_find_local_set(set_name);
+        struct ldms_rbuf_desc *rbd;
+        if (!set)
+                return NULL;
+        rbd = __ldms_alloc_rbd(NULL, set, LDMS_RBD_LOCAL);
+        if (rbd)
+                ref_get(&set->ref, __func__);
+        ref_put(&set->ref, "__ldms_find_local_set");
+        return rbd;
 }
 
 uint64_t ldms_set_meta_gn_get(ldms_set_t s)
@@ -430,6 +423,17 @@ int __ldms_get_local_set_list(struct ldms_name_list *head)
 
 uint64_t __next_set_id = 1;
 
+static void __destroy_set(void *v)
+{
+        struct ldms_set *set = v;
+
+        ref_dump_no_lock(&set->ref, __func__);
+        mm_free(set->meta);
+        __ldms_set_info_delete(&set->local_info);
+        __ldms_set_info_delete(&set->remote_info);
+        free(set);
+}
+
  /* The caller must hold the set tree lock. */
 static struct ldms_set *
 __record_set(const char *instance_name,
@@ -439,6 +443,7 @@ __record_set(const char *instance_name,
 
 	set = __ldms_find_local_set(instance_name);
 	if (set) {
+		ref_put(&set->ref, "__ldms_find_local_set");
 		errno = EEXIST;
 		return NULL;
 	}
@@ -461,6 +466,7 @@ __record_set(const char *instance_name,
 	set->data = __set_array_get(set, set->curr_idx);
 	set->flags = flags;
 
+    ref_init(&set->ref, __func__, __destroy_set, set);
 	rbn_init(&set->rb_node, get_instance_name(set->meta)->name);
 	rbt_ins(&set_tree, &set->rb_node);
 	rbn_init(&set->id_node, (void *)set->set_id);
@@ -637,11 +643,13 @@ void ldms_set_delete(ldms_set_t s)
  	if (!s)
 		assert(NULL == "The metric set passed in is NULL");
 
+	ref_dump(&s->set->ref, __func__);
 	__ldms_set_tree_lock();
 	set = s->set;
 	rbt_del(&set_tree, &set->rb_node);
 	rbt_del(&id_tree, &set->id_node);
 	__ldms_set_tree_unlock();
+
 	while (!LIST_EMPTY(&set->remote_rbd_list)) {
 		rbd = LIST_FIRST(&set->remote_rbd_list);
 		xprt = rbd->xprt;
@@ -663,10 +671,7 @@ void ldms_set_delete(ldms_set_t s)
 		__ldms_free_rbd(rbd);
 	}
 
-	mm_free(set->meta);
-	__ldms_set_info_delete(&set->local_info);
-	__ldms_set_info_delete(&set->remote_info);
-	free(set);
+	ref_put(&set->ref, "__record_set");
 }
 
 void ldms_set_put(ldms_set_t s)
@@ -685,6 +690,7 @@ void ldms_set_put(ldms_set_t s)
 	if (xprt)
 		pthread_mutex_unlock(&xprt->lock);
 	pthread_mutex_unlock(&set->lock);
+	ref_put(&set->ref, "ldms_set_by_name");
 	__ldms_set_tree_unlock();
 }
 

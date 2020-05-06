@@ -59,6 +59,7 @@
 
 #include "ldms.h"
 #include "ldms_auth.h"
+#include "ref.h"
 
 #pragma pack(4)
 
@@ -71,6 +72,7 @@
 #define LDMS_RBD_F_PUSH_CANCEL	4	/* cancel pending */
 
 struct ldms_rbuf_desc {
+	struct ref_s ref;
 	struct ldms_xprt *xprt;
 	struct ldms_set *set;
 	uint64_t remote_set_id;	    /* Remote set id returned by lookup */
@@ -283,7 +285,8 @@ struct ldms_reply {
 typedef enum ldms_context_type {
 	LDMS_CONTEXT_DIR,
 	LDMS_CONTEXT_DIR_CANCEL,
-	LDMS_CONTEXT_LOOKUP,
+	LDMS_CONTEXT_LOOKUP_REQ,
+	LDMS_CONTEXT_LOOKUP_READ,
 	LDMS_CONTEXT_UPDATE,
 	LDMS_CONTEXT_REQ_NOTIFY,
 	LDMS_CONTEXT_SEND,
@@ -295,6 +298,7 @@ struct ldms_context {
 	sem_t sem;
 	sem_t *sem_p;
 	int rc;
+	struct ldms_xprt *x;
 	ldms_context_type_t type;
 	union {
 		struct {
@@ -302,25 +306,29 @@ struct ldms_context {
 			void *cb_arg;
 		} dir;
 		struct {
+			ldms_lookup_cb_t cb;
+			void *cb_arg;
 			char *path;
+			enum ldms_lookup_flags flags;
+		} lu_req;
+		struct {
+			ldms_set_t s;
 			ldms_lookup_cb_t cb;
 			void *cb_arg;
 			int more;
 			enum ldms_lookup_flags flags;
-			ldms_set_t s;
-			zap_map_t remote_map;
-		} lookup;
+		} lu_read;
 		struct {
 			ldms_set_t s;
 			ldms_update_cb_t cb;
-			void *arg;
+			void *cb_arg;
 			int idx_from;
 			int idx_to;
 		} update;
 		struct {
 			ldms_set_t s;
 			ldms_notify_cb_t cb;
-			void *arg;
+			void *cb_arg;
 		} req_notify;
 	};
 	TAILQ_ENTRY(ldms_context) link;
