@@ -60,8 +60,7 @@ static inline int _ref_put(ref_t r, const char *name, const char *func, int line
  out:
 	if (!count)
 		r->free_fn(r->free_arg);
-	else
-		pthread_mutex_unlock(&r->lock);
+	pthread_mutex_unlock(&r->lock);
 #else
 	count = __sync_sub_and_fetch(&r->ref_count, 1);
 	if (!count)
