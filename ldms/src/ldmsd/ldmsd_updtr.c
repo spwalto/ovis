@@ -402,11 +402,6 @@ static int schedule_set_updates(ldmsd_prdcr_set_t prd_set, ldmsd_updtr_task_t ta
 		}
 	} else if (0 == (prd_set->push_flags & LDMSD_PRDCR_SET_F_PUSH_REG)) {
 		op_s = "Registering push for";
-		// this doesn't work because it's taken after lookup
-		// which may fail or the updater is never started at
-		// all. since the flags don't tell yuou one way or the
-		// other this is just broken
-		// ldmsd_prdcr_set_ref_get(prd_set);
 		if (updtr->push_flags & LDMSD_UPDTR_F_PUSH_CHANGE)
 			push_flags = LDMS_XPRT_PUSH_F_CHANGE;
 		rc = ldms_xprt_register_push(prd_set->set, push_flags,

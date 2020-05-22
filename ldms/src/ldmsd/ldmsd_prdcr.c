@@ -388,7 +388,7 @@ static void prdcr_dir_cb_list(ldms_t xprt, ldms_dir_t dir, ldmsd_prdcr_t prdcr)
  */
 static void prdcr_dir_cb_del(ldms_t xprt, ldms_dir_t dir, ldmsd_prdcr_t prdcr)
 {
-	ldmsd_log(LDMSD_LINFO, "prodcer '%s' ignoring dir_del", prdcr->obj.name);
+	ldmsd_log(LDMSD_LINFO, "prodcer '%s' ignoring dir_del\n", prdcr->obj.name);
 }
 
 static void prdcr_dir_cb_upd(ldms_t xprt, ldms_dir_t dir, ldmsd_prdcr_t prdcr)

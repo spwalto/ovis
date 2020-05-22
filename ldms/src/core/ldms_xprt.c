@@ -445,11 +445,12 @@ void __ldms_xprt_resource_free(struct ldms_xprt *x)
 	struct ldms_rbuf_desc *rbd;
 	while ((rbn = rbt_min(&x->rbd_rbt))) {
 		rbd = RBN_RBD(rbn);
-		rbt_del(&x->rbd_rbt, &rbd->xprt_rbn);
-		ref_put(&rbd->ref, "xprt_rbd_tree");
+		__ldms_rbd_xprt_release(rbd);
 	}
-	if (x->auth)
+	if (x->auth) {
 		ldms_auth_free(x->auth);
+		x->auth = NULL;
+	}
 	pthread_mutex_unlock(&x->lock);
 }
 
@@ -505,9 +506,6 @@ static void process_set_delete_request(struct ldms_xprt *x, struct ldms_request 
 		event.data_len = sizeof(ldms_set_t);
 		x->event_cb(x, &event, x->event_cb_arg);
 	}
-	pthread_mutex_lock(&r->set->lock);
-	__ldms_free_rbd(r, "rendezvous_lookup");
-	pthread_mutex_unlock(&r->set->lock);
  reply_1:
 	ref_put(&set->ref, "__ldms_find_local_set");
  reply:
@@ -1772,6 +1770,7 @@ void __ldms_passive_connect_cb(ldms_t x, ldms_xprt_event_t e, void *cb_arg)
 	case LDMS_XPRT_EVENT_CONNECTED:
 		break;
 	case LDMS_XPRT_EVENT_DISCONNECTED:
+ 		__ldms_xprt_resource_free(x);
 		ldms_xprt_put(x);
 		break;
 	case LDMS_XPRT_EVENT_RECV:
@@ -2432,6 +2431,7 @@ static void ldms_zap_cb(zap_ep_t zep, zap_event_t ev)
 			 x, x->ref_count);
 		#endif /* DEBUG */
 		/* Put the reference taken in ldms_xprt_connect() or accept() */
+		__ldms_xprt_resource_free(x);
 		ldms_xprt_put(x);
 		break;
 	default:
@@ -2988,7 +2988,6 @@ void ldms_xprt_set_delete(ldms_set_t s, ldms_set_delete_cb_t cb_fn, void *cb_arg
 	struct ldms_set *set = s->set;
 	size_t len;
 	int rc;
-	ref_dump(&s->set->ref, __func__);
 	pthread_mutex_lock(&set->lock);
 	rbd = LIST_FIRST(&set->local_rbd_list);
 	while (rbd) {
@@ -3379,6 +3378,7 @@ out:
 
 void __ldms_rbd_xprt_release(struct ldms_rbuf_desc *rbd)
 {
+	ldms_t x = rbd->xprt;
 	if (rbd->lmap) {
 #ifdef DEBUG
 		rbd->xprt->log("DEBUG: zap %p: unmap local\n", rbd->xprt->zap_ep);
@@ -3393,9 +3393,9 @@ void __ldms_rbd_xprt_release(struct ldms_rbuf_desc *rbd)
 		zap_unmap(rbd->xprt->zap_ep, rbd->rmap);
 		rbd->rmap = NULL;
 	}
-	rbt_del(&rbd->xprt->rbd_rbt, &rbd->xprt_rbn);
-	ref_put(&rbd->ref, "xprt_rbd_tree");
 	rbd->xprt = NULL;
+	rbt_del(&x->rbd_rbt, &rbd->xprt_rbn);
+	ref_put(&rbd->ref, "xprt_rbd_tree");
 }
 
 /*
@@ -3403,6 +3403,7 @@ void __ldms_rbd_xprt_release(struct ldms_rbuf_desc *rbd)
  */
 void ___ldms_free_rbd(struct ldms_rbuf_desc *rbd, const char *name, const char *func, int line)
 {
+	struct ldms_set *set = rbd->set;
 	struct ldms_xprt *x = rbd->xprt;
 	if (x) {
 		pthread_mutex_lock(&x->lock);
@@ -3411,12 +3412,10 @@ void ___ldms_free_rbd(struct ldms_rbuf_desc *rbd, const char *name, const char *
 		rbd->xprt = NULL;
 	}
 	if (rbd->push_flags & LDMS_RBD_F_PUSH) {
+		_ref_put(&set->ref, "rendezvous_push", func, line);
 		_ref_put(&rbd->ref, "rendezvous_push", func, line);
-		_ref_put(&rbd->set->ref, "rendezvous_push", func, line);
 	}
-	ref_dump(&rbd->set->ref, __func__);
-	ref_dump(&rbd->ref, __func__);
-	_ref_put(&rbd->set->ref, name, func, line);
+	_ref_put(&set->ref, name, func, line);
 	_ref_put(&rbd->ref, name, func, line);
 }
 

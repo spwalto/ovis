@@ -115,6 +115,7 @@ extern struct ldms_rbuf_desc *___ldms_alloc_rbd(struct ldms_xprt *,
 extern void ___ldms_free_rbd(struct ldms_rbuf_desc *rbd, const char *name, const char *func, int line);
 #define __ldms_free_rbd(_r_, _n_) ___ldms_free_rbd(_r_, _n_, __func__, __LINE__)
 extern void __ldms_free_rbd_no_lock(struct ldms_rbuf_desc *rbd, const char *name, const char *func, int line);
+extern void __ldms_rbd_xprt_release(struct ldms_rbuf_desc *rbd);
 extern int __ldms_remote_lookup(ldms_t _x, const char *path,
 				enum ldms_lookup_flags flags,
 				ldms_lookup_cb_t cb, void *cb_arg);
