@@ -669,10 +669,10 @@ void free_req_cmd_ctxt(ldmsd_req_cmd_t rcmd)
 {
 	if (rcmd->org_reqc)
 		req_ctxt_ref_put(rcmd->org_reqc);
+	if (rcmd->reqc && rcmd->reqc->xprt->cleanup_fn)
+		rcmd->reqc->xprt->cleanup_fn(rcmd->reqc->xprt);
 	if (rcmd->reqc)
 		req_ctxt_ref_put(rcmd->reqc);
-	if (rcmd->reqc->xprt->cleanup_fn)
-		rcmd->reqc->xprt->cleanup_fn(rcmd->reqc->xprt);
 	free(rcmd);
 }
 
