@@ -35,6 +35,7 @@ static inline int _ref_put(ref_t r, const char *name, const char *func, int line
 	int count;
 #ifdef _REF_TRACK_
 	ref_inst_t inst;
+	assert(r->ref_count);
 	pthread_mutex_lock(&r->lock);
 	LIST_FOREACH(inst, &r->head, entry) {
 		if (0 == strcmp(inst->name, name)) {
@@ -56,11 +57,12 @@ static inline int _ref_put(ref_t r, const char *name, const char *func, int line
 		"name %s ref_count %d func %s line %d put but not taken\n",
 		name, r->ref_count, func, line);
 	assert(0);
-	count = -1;
  out:
 	if (!count)
 		r->free_fn(r->free_arg);
-	pthread_mutex_unlock(&r->lock);
+	else
+		/* Only unlock if ref_count > */
+		pthread_mutex_unlock(&r->lock);
 #else
 	count = __sync_sub_and_fetch(&r->ref_count, 1);
 	if (!count)
@@ -169,4 +171,20 @@ static void ref_dump(ref_t r, const char *name, FILE *f)
 #endif
 }
 
+__attribute__((unused))
+static void ref_assert_count_ge(ref_t r, const char *name, int count)
+{
+#ifdef _REF_TRACK_
+	ref_inst_t inst;
+	LIST_FOREACH(inst, &r->head, entry) {
+		if (0 == strcmp(inst->name, name)) {
+			assert(inst->ref_count >= count);
+			return;
+		}
+	}
+	assert("Reference not present\n");
 #endif
+}
+
+#endif /* _REF_H_ */
+
