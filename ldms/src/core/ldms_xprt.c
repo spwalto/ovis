@@ -403,6 +403,42 @@ void ldms_xprt_close(ldms_t x)
 	__ldms_xprt_term(x);
 }
 
+/*
+ * Must be called with the set->lock held
+ */
+static void __ldms_drop_rbd_set_refs(struct ldms_rbuf_desc *rbd)
+{
+	struct ldms_set *set = rbd->set;
+	struct ldms_rbuf_desc *tgt;
+	LIST_FOREACH(tgt, &set->local_rbd_list, set_link) {
+		if (tgt == rbd)
+			goto drop_refs;
+	}
+	LIST_FOREACH(tgt, &set->remote_rbd_list, set_link) {
+		if (tgt == rbd)
+			goto drop_refs;
+	}
+	return;
+ drop_refs:
+	LIST_REMOVE(rbd, set_link);
+	ref_put(&rbd->ref, "set_rbd_list");
+	rbd->set = NULL;
+	switch (rbd->type) {
+	case LDMS_RBD_LOCAL:
+		ref_put(&set->ref, "share_lookup");
+		ref_put(&rbd->ref, "share_lookup");
+		break;
+	case LDMS_RBD_INITIATOR:
+		ref_put(&set->ref, "rendezvous_lookup");
+		ref_put(&rbd->ref, "rendezvous_lookup");
+		break;
+	case LDMS_RBD_TARGET:
+		ref_put(&set->ref, "rendezvous_push");
+		ref_put(&rbd->ref, "rendezvous_push");
+		break;
+	}
+}
+
 void __ldms_xprt_resource_free(struct ldms_xprt *x)
 {
 	pthread_mutex_lock(&x->lock);
@@ -443,8 +479,15 @@ void __ldms_xprt_resource_free(struct ldms_xprt *x)
 
 	struct rbn *rbn;
 	struct ldms_rbuf_desc *rbd;
+	struct ldms_set *set;
 	while ((rbn = rbt_min(&x->rbd_rbt))) {
 		rbd = RBN_RBD(rbn);
+		set = rbd->set;
+		if (set) {
+			pthread_mutex_lock(&set->lock);
+			__ldms_drop_rbd_set_refs(rbd);
+			pthread_mutex_unlock(&set->lock);
+		}
 		__ldms_rbd_xprt_release(rbd);
 	}
 	if (x->auth) {
@@ -635,8 +678,10 @@ static void process_dir_request(struct ldms_xprt *x, struct ldms_request *req)
 			last_cnt += snprintf(&reply->dir.json_data[last_cnt],
 					     len - hdrlen - last_cnt,
 					     "]}");
-			if (last_cnt >= len - hdrlen)
+			if (last_cnt >= len - hdrlen) {
+				ref_put(&set->ref, "__ldms_find_local_set");
 				goto out;
+			}
 			reply->hdr.len = htonl(last_cnt + hdrlen);
 			reply->dir.json_data_len = htonl(last_cnt);
 			reply->dir.more = htonl(1);
@@ -986,7 +1031,7 @@ static int __send_lookup_reply(struct ldms_xprt *x, struct ldms_set *set,
 			 */
 			+ sizeof(struct ldms_name) * (2 + (set_info_cnt) * 2 + 1)
 			+ name->len + schema->len + set_info_len;
-	msg = malloc(msg_len);
+	msg = calloc(1, msg_len);
 	if (!msg)
 		goto err_0;
 
@@ -2155,6 +2200,7 @@ static void handle_rendezvous_lookup(zap_ep_t zep, zap_event_t ev,
 		if (0 != strcmp(schema_name->name, lschema->name)) {
 			/* Two sets have the same name but different schema */
 			rc = EINVAL;
+			ref_put(&lset->ref, "__ldms_find_local_set");
 			goto callback;
 		}
 
@@ -2171,6 +2217,7 @@ static void handle_rendezvous_lookup(zap_ep_t zep, zap_event_t ev,
 			ref_put(&lset->ref, "__ldms_find_local_set");
 			goto callback;
 		}
+		ref_put(&lset->ref, "__ldms_find_local_set");
 	}
 	__ldms_set_tree_unlock();
 
@@ -2415,14 +2462,15 @@ static void ldms_zap_cb(zap_ep_t zep, zap_event_t ev)
 			break;
 		}
 		pthread_mutex_lock(&x->lock);
+		struct ldms_context *dir_ctxt = NULL;
 		if (x->local_dir_xid) {
-			struct ldms_context *dir_ctxt;
 			dir_ctxt = (struct ldms_context *)(unsigned long)
 				x->local_dir_xid;
-			__ldms_free_ctxt(x, dir_ctxt);
 			x->local_dir_xid = 0;
 		}
 		pthread_mutex_unlock(&x->lock);
+		if (dir_ctxt)
+			__ldms_free_ctxt(x, dir_ctxt);
 		if (x->event_cb)
 			x->event_cb(x, &event, x->event_cb_arg);
 		#ifdef DEBUG
@@ -2983,7 +3031,7 @@ int ldms_register_notify_cb(ldms_t x, ldms_set_t s, int flags,
 void ldms_xprt_set_delete(ldms_set_t s, ldms_set_delete_cb_t cb_fn, void *cb_arg)
 {
 	struct ldms_request *req;
-	struct ldms_rbuf_desc *rbd;
+	struct ldms_rbuf_desc *rbd, *next_rbd;
 	struct ldms_context *ctxt;
 	struct ldms_set *set = s->set;
 	size_t len;
@@ -2991,6 +3039,7 @@ void ldms_xprt_set_delete(ldms_set_t s, ldms_set_delete_cb_t cb_fn, void *cb_arg
 	pthread_mutex_lock(&set->lock);
 	rbd = LIST_FIRST(&set->local_rbd_list);
 	while (rbd) {
+		next_rbd = LIST_NEXT(rbd, set_link);
 		LIST_REMOVE(rbd, set_link);
 		if (!rbd->xprt)
 			goto next;
@@ -3007,7 +3056,8 @@ void ldms_xprt_set_delete(ldms_set_t s, ldms_set_delete_cb_t cb_fn, void *cb_arg
 			__ldms_free_ctxt(rbd->xprt, ctxt);
 	next:
 		ref_put(&rbd->ref, "set_rbd_list");
-		rbd = LIST_NEXT(rbd, set_link);
+		rbd->set = NULL;
+		rbd = next_rbd;
 	}
 	pthread_mutex_unlock(&set->lock);
 }
@@ -3043,7 +3093,7 @@ void ldms_notify(ldms_set_t s, ldms_notify_event_t e)
 		return;
 	if (!s->set)
 		return;
-	pthread_mutex_lock(&xprt_list_lock);
+	pthread_mutex_lock(&s->set->lock);
 	LIST_FOREACH(r, &s->set->local_rbd_list, set_link) {
 		if (r->remote_notify_xid &&
 			(0 == r->notify_flags || (r->notify_flags & e->type))) {
@@ -3052,7 +3102,7 @@ void ldms_notify(ldms_set_t s, ldms_notify_event_t e)
 					      e);
 		}
 	}
-	pthread_mutex_unlock(&xprt_list_lock);
+	pthread_mutex_unlock(&s->set->lock);
 }
 
 static int send_req_register_push(struct ldms_rbuf_desc *r, uint32_t push_change)
@@ -3129,7 +3179,7 @@ int __ldms_xprt_push(ldms_set_t s, int push_flags)
 	uint32_t meta_meta_gn = __le32_to_cpu(set->meta->meta_gn);
 	uint32_t meta_meta_sz = __le32_to_cpu(set->meta->meta_sz);
 	uint32_t meta_data_sz = __le32_to_cpu(set->meta->data_sz);
-	struct ldms_rbuf_desc *rbd, *next_rbd;
+	struct ldms_rbuf_desc *rbd;
 
 	pthread_mutex_lock(&set->lock);
 	rbd = LIST_FIRST(&set->remote_rbd_list);
@@ -3205,8 +3255,7 @@ int __ldms_xprt_push(ldms_set_t s, int push_flags)
 #ifdef DEBUG
 		x->active_push++;
 #endif /* DEBUG */
-		next_rbd = LIST_NEXT(rbd, set_link);
-		rbd = next_rbd;
+		rbd = LIST_NEXT(rbd, set_link);
 	}
 	pthread_mutex_unlock(&set->lock);
 	return rc;
@@ -3409,7 +3458,6 @@ void ___ldms_free_rbd(struct ldms_rbuf_desc *rbd, const char *name, const char *
 		pthread_mutex_lock(&x->lock);
 		__ldms_rbd_xprt_release(rbd);
 		pthread_mutex_unlock(&x->lock);
-		rbd->xprt = NULL;
 	}
 	if (rbd->push_flags & LDMS_RBD_F_PUSH) {
 		_ref_put(&set->ref, "rendezvous_push", func, line);

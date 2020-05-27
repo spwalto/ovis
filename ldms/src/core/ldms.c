@@ -644,11 +644,11 @@ static void __destroy_set(void *v)
         free(set);
 }
 
-static void __set_delete_cb(ldms_t xprt, int status, ldms_set_t set, void *cb_arg)
+static void __set_delete_cb(ldms_t xprt, int status, ldms_set_t rbd, void *cb_arg)
 {
-	pthread_mutex_lock(&set->set->lock);
-	__ldms_free_rbd(set, "share_lookup");
-	pthread_mutex_unlock(&set->set->lock);
+	struct ldms_set *set = cb_arg;
+	ref_put(&set->ref, "share_lookup");
+	ref_put(&rbd->ref, "share_lookup");
 }
 
 void ldms_set_delete(ldms_set_t s)
@@ -663,19 +663,25 @@ void ldms_set_delete(ldms_set_t s)
 	rbt_del(&id_tree, &set->id_node);
 	__ldms_set_tree_unlock();
 
-	ldms_xprt_set_delete(s, __set_delete_cb, NULL);
+	ldms_xprt_set_delete(s, __set_delete_cb, set);
 
 	pthread_mutex_lock(&set->lock);
 	while (!LIST_EMPTY(&set->remote_rbd_list)) {
 		rbd = LIST_FIRST(&set->remote_rbd_list);
 		LIST_REMOVE(rbd, set_link);
 		ref_put(&rbd->ref, "set_rbd_list");
-		if (rbd->rmap && rbd->type == LDMS_RBD_INITIATOR) {
-			__ldms_free_rbd(rbd, "rendezvous_lookup");
-		}
-		if (rbd->push_flags & LDMS_RBD_F_PUSH) {
+		rbd->set = NULL;
+		switch (rbd->type) {
+		case LDMS_RBD_INITIATOR:
+			ref_put(&rbd->ref, "rendezvous_lookup");
+			ref_put(&set->ref, "rendezvous_lookup");
+			break;
+		case LDMS_RBD_TARGET:
 			ref_put(&rbd->ref, "rendezvous_push");
 			ref_put(&set->ref, "rendezvous_push");
+		case LDMS_RBD_LOCAL:
+			/* cleaned up in __set_delete_cb() */
+			break;
 		}
 		xprt = rbd->xprt;
 		if (xprt) {
@@ -685,7 +691,6 @@ void ldms_set_delete(ldms_set_t s)
 				__ldms_rbd_xprt_release(rbd);
 			pthread_mutex_unlock(&xprt->lock);
 		}
-		rbd = LIST_NEXT(rbd, set_link);
 	}
 	pthread_mutex_unlock(&set->lock);
 
@@ -696,7 +701,7 @@ void ldms_set_delete(ldms_set_t s)
 	rbt_ins(&del_tree, &set->del_node);
 	pthread_mutex_unlock(&__del_tree_lock);
 
-	/* Drop the create and reference on the this RBD and the set */
+	/* Drop the create references on the this RBD and the set */
 	ref_put(&s->ref, "set_new");
 	ref_put(&set->ref, "set_new");
 	ref_put(&set->ref, "__record_set");
@@ -2570,7 +2575,7 @@ int ldms_mval_parse_scalar(ldms_mval_t v, enum ldms_value_type vt, const char *s
 	return 0;
 }
 
-#define DELETE_TIMEOUT	(120)	/* 2 minutes */
+#define DELETE_TIMEOUT	(600)	/* 10 minutes */
 #define DELETE_CHECK	(60)
 #define REPORT_MIN	(10)
 
@@ -2580,6 +2585,10 @@ static void *delete_proc(void *arg)
 	struct ldms_set *set;
 	ldms_name_t name;
 	time_t dur;
+	char *to = getenv("LDMS_DELETE_TIMEOUT");
+	int timeout = (to ? atoi(to) : DELETE_TIMEOUT);
+	if (timeout <= DELETE_CHECK)
+		timeout = DELETE_CHECK;
 	do {
 		/*
 		 * Iterate through the tree from oldest to
@@ -2591,17 +2600,23 @@ static void *delete_proc(void *arg)
 			set = container_of(rbn, struct ldms_set, del_node);
 			name = get_instance_name(set->meta);
 			dur = time(NULL) - set->del_time;
-			fprintf(stderr, "Dangling set %s with reference count %d, waiting %jd seconds\n",
+			fprintf(stderr,
+				"Dangling set %s with reference count %d, "
+				"waiting %jd seconds\n",
 				name->name, set->ref.ref_count, dur);
-			if (dur < DELETE_TIMEOUT)
+			fflush(stderr);
+			if (dur < timeout)
 				break;
-			fprintf(stderr, "Deleting set %s with reference count %d, waited %jd seconds\n",
+			fprintf(stderr,
+				"Deleting dangling set %s with reference "
+				"count %d, waited %jd seconds\n",
 				name->name, set->ref.ref_count, dur);
 			ref_dump(&set->ref, __func__, stderr);
 			pthread_mutex_unlock(&__del_tree_lock);
 			__destroy_set(set);
 			pthread_mutex_lock(&__del_tree_lock);
 			rbn = rbt_max(&del_tree);
+			fflush(stderr);
 		}
 		pthread_mutex_unlock(&__del_tree_lock);
 		sleep(DELETE_CHECK);
