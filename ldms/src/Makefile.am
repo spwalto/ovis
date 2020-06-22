@@ -16,6 +16,9 @@ SUBDIRS += third-plugins
 
 if ENABLE_CORE
 SUBDIRS += core
+endif
+
+if ENABLE_OVIS_AUTH
 SUBDIRS += auth
 endif
 
