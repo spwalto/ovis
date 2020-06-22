@@ -518,7 +518,9 @@ fi
 
 dnl swig stuff
 if test -z "$ENABLE_SOS_TRUE"; then
-	which cython >/dev/null 2>&1 || AC_MSG_ERROR("cython not found")
+	if test -z "$ENABLE_LDMS_PYTHON_TRUE"; then
+		which cython >/dev/null 2>&1 || AC_MSG_ERROR("cython not found")
+	fi
 	AX_PYTHON_DEVEL()
 	if test "x$WITH_SOS" != "xbuild"; then
 		OCFLAGS=$CFLAGS
