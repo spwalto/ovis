@@ -14,24 +14,24 @@
  * modification, are permitted provided that the following conditions
  * are met:
  *
- *      Redistributions of source code must retain the above copyright
- *      notice, this list of conditions and the following disclaimer.
+ *	Redistributions of source code must retain the above copyright
+ *	notice, this list of conditions and the following disclaimer.
  *
- *      Redistributions in binary form must reproduce the above
- *      copyright notice, this list of conditions and the following
- *      disclaimer in the documentation and/or other materials provided
- *      with the distribution.
+ *	Redistributions in binary form must reproduce the above
+ *	copyright notice, this list of conditions and the following
+ *	disclaimer in the documentation and/or other materials provided
+ *	with the distribution.
  *
- *      Neither the name of Sandia nor the names of any contributors may
- *      be used to endorse or promote products derived from this software
- *      without specific prior written permission.
+ *	Neither the name of Sandia nor the names of any contributors may
+ *	be used to endorse or promote products derived from this software
+ *	without specific prior written permission.
  *
- *      Neither the name of Open Grid Computing nor the names of any
- *      contributors may be used to endorse or promote products derived
- *      from this software without specific prior written permission.
+ *	Neither the name of Open Grid Computing nor the names of any
+ *	contributors may be used to endorse or promote products derived
+ *	from this software without specific prior written permission.
  *
- *      Modified source versions must be plainly marked as such, and
- *      must not be misrepresented as being the original software.
+ *	Modified source versions must be plainly marked as such, and
+ *	must not be misrepresented as being the original software.
  *
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
@@ -273,6 +273,10 @@ static void fixup_context(char *str)
 	rbn = rbt_find(&context_tree, &key);
 	if (!rbn) {
 		context = calloc(1, sizeof(*context));
+		if (!context) {
+			msglog(LDMSD_LERROR, "lustre_sampler: out of memory\n");
+			return;
+		}
 		context->mount_id = __sync_fetch_and_add(&mount_id, 1);
 		context->context_id = key;
 		rbn_init(&context->rbn, &context->context_id);
@@ -297,6 +301,9 @@ int stats_construct_routine(ldms_schema_t schema,
 			    char **keys, int nkeys)
 {
 	char *strip_suffix = strdup(suffix);
+	if (!strip_suffix) {
+		return ENOMEM;
+	}
 	char metric_name[128];
 	struct lustre_metric_ctxt *ctxt;
 	int rc;
@@ -347,9 +354,9 @@ int stats_construct_routine(ldms_schema_t schema,
 	return 0;
 
 err1:
-	free(strip_suffix);
 	lustre_svc_stats_free(lss);
 err0:
+	free(strip_suffix);
 	return rc;
 }
 
@@ -374,8 +381,11 @@ int single_construct_routine(ldms_schema_t schema,
 	LIST_INSERT_HEAD(list, &ls->lms, link);
 	return 0;
 err1:
+	msglog(LDMSD_LERROR, "lustre sample: metric add failed for %s\n", metric_name);
 	lustre_single_free(ls);
+	return EINVAL;
 err0:
+	msglog(LDMSD_LERROR, "lustre sample: out of memory using %s\n", metric_path);
 	return ENOMEM;
 }
 
@@ -410,8 +420,8 @@ int __lss_sample(ldms_set_t set, struct lustre_svc_stats *lss)
 
 	fseek(lss->lms.f, 0, SEEK_SET);
 	char lbuf[__LBUF_SIZ];
-	char name[64];
-	char unit[16];
+	char name[__LBUF_SIZ];
+	char unit[__LBUF_SIZ];
 	uint64_t n, count, min, max, sum, sum2;
 	union ldms_value value;
 	/* The first line is timestamp, we can ignore that */
@@ -571,8 +581,10 @@ struct str_list_head* construct_str_list(const char *strlist)
 	char *s = strtok(tmp, delim);
 	while (s) {
 		sl = calloc(1, sizeof(*sl));
-		if (!sl)
+		if (!sl) {
+			free(tmp);
 			goto err1;
+		}
 		sl->str = strdup(s);
 		if (!sl->str)
 			goto err1;
@@ -603,7 +615,7 @@ struct str_list_head* construct_dir_list(const char *path)
 		goto err0;
 	struct str_list *sl;
 	while ((dir = readdir(d))) {
-		if (dir->d_type & DT_DIR) {
+		if (dir->d_type == DT_DIR) {
 			if (strcmp(dir->d_name, ".")==0 ||
 					strcmp(dir->d_name, "..")==0)
 				continue;

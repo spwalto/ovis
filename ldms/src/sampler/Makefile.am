@@ -23,6 +23,10 @@ PAPI_LDFLAGS = @LIBPAPI_LIB64DIR_FLAG@ @LIBPAPI_LIBDIR_FLAG@ \
 ldmssamplerincludedir = $(includedir)/ldms/sampler
 ldmssamplerinclude_HEADERS = sampler_base.h
 
+if ENABLE_IBNET
+SUBDIRS += ibnet
+endif
+
 if ENABLE_JOBID
 AM_CFLAGS = -DENABLE_JOBID
 JOBID_LIBFLAGS = libjobid.la
@@ -79,13 +83,6 @@ libfptrans_la_SOURCES = fptrans.c
 libfptrans_la_LIBADD = $(COMMON_LIBADD)
 pkglib_LTLIBRARIES += libfptrans.la
 endif
-
-if ENABLE_VARSET
-libvariable_la_SOURCES = variable.c
-libvariable_la_LIBADD = $(COMMON_LIBADD) -lm
-pkglib_LTLIBRARIES += libvariable.la
-endif
-
 
 # always include examples
 SUBDIRS += examples
@@ -272,4 +269,8 @@ endif
 
 if ENABLE_APP_SAMPLER
 SUBDIRS += app_sampler
+endif
+
+if ENABLE_HELLO_STREAM
+SUBDIRS += hello_stream
 endif

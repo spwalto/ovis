@@ -9,7 +9,7 @@
 #include <getopt.h>
 #include <semaphore.h>
 #include <pthread.h>
-#include <json/json_util.h>
+#include <ovis_json/ovis_json.h>
 #include <ovis_util/util.h>
 #include "ldms.h"
 #include "../ldmsd_request.h"
@@ -67,15 +67,31 @@ int main(int argc, char **argv)
 		switch (opt) {
 		case 'h':
 			host = strdup(optarg);
+			if (!host) {
+				printf("ERROR: out of memory\n");
+				exit(1);
+			}
 			break;
 		case 'p':
 			port = strdup(optarg);
+			if (!port) {
+				printf("ERROR: out of memory\n");
+				exit(1);
+			}
 			break;
 		case 'x':
 			xprt = strdup(optarg);
+			if (!xprt) {
+				printf("ERROR: out of memory\n");
+				exit(1);
+			}
 			break;
 		case 'a':
 			auth = strdup(optarg);
+			if (!auth) {
+				printf("ERROR: out of memory\n"); 
+				exit(1);
+			}
 			break;
 		case 'A':
 			lval = strtok(optarg, "=");
@@ -94,9 +110,17 @@ int main(int argc, char **argv)
 			break;
 		case 's':
 			stream = strdup(optarg);
+			if (!stream) {
+				printf("ERROR: out of memory\n");
+				exit(1);
+			}
 			break;
 		case 'f':
 			filename = strdup(optarg);
+			if (!filename) {
+				printf("ERROR: out of memory\n");
+				exit(1);
+			}
 			break;
 		case 't':
 			if (0 == strcmp("json", optarg)) {
