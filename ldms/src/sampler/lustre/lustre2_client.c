@@ -14,24 +14,24 @@
  * modification, are permitted provided that the following conditions
  * are met:
  *
- *      Redistributions of source code must retain the above copyright
- *      notice, this list of conditions and the following disclaimer.
+ *	Redistributions of source code must retain the above copyright
+ *	notice, this list of conditions and the following disclaimer.
  *
- *      Redistributions in binary form must reproduce the above
- *      copyright notice, this list of conditions and the following
- *      disclaimer in the documentation and/or other materials provided
- *      with the distribution.
+ *	Redistributions in binary form must reproduce the above
+ *	copyright notice, this list of conditions and the following
+ *	disclaimer in the documentation and/or other materials provided
+ *	with the distribution.
  *
- *      Neither the name of Sandia nor the names of any contributors may
- *      be used to endorse or promote products derived from this software
- *      without specific prior written permission.
+ *	Neither the name of Sandia nor the names of any contributors may
+ *	be used to endorse or promote products derived from this software
+ *	without specific prior written permission.
  *
- *      Neither the name of Open Grid Computing nor the names of any
- *      contributors may be used to endorse or promote products derived
- *      from this software without specific prior written permission.
+ *	Neither the name of Open Grid Computing nor the names of any
+ *	contributors may be used to endorse or promote products derived
+ *	from this software without specific prior written permission.
  *
- *      Modified source versions must be plainly marked as such, and
- *      must not be misrepresented as being the original software.
+ *	Modified source versions must be plainly marked as such, and
+ *	must not be misrepresented as being the original software.
  *
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
@@ -79,6 +79,7 @@
 #include "lustre_sampler.h"
 #include "../sampler_base.h"
 
+#define ARRAY_SIZE(a) (sizeof(a) / sizeof(*a))
 #define STR_MAP_SIZE 4093
 #define SAMP "lustre2_client"
 
@@ -90,6 +91,27 @@ static ldmsd_msg_log_f msglog;
 static base_data_t base;
 
 static char tmp_path[PATH_MAX];
+
+//OMAR
+//"osc", "mdc", "llite"
+/* OSC */
+static char *osc_path = NULL;
+static const char * default_osc_path[] = {
+		"/sys/kernel/debug/lustre/osc",
+		"/proc/fs/lustre/osc",
+};
+/* MDC */
+static char *mdc_path = NULL;
+static const char * default_mdc_path[] = {
+		"/sys/kernel/debug/lustre/mdc",
+		"/proc/fs/lustre/mdc",
+};
+/* LLITE */
+static char *llite_path = NULL;
+static const char * default_llite_path[] = {
+		"/sys/kernel/debug/lustre/llite",
+		"/proc/fs/lustre/llite",
+};
 
 char *llite_key[] = {
 	/* metric source status (sampler induced) */
@@ -142,7 +164,7 @@ char *llite_key[] = {
 	"write_bytes.rate",
 };
 
-#define LLITE_KEY_LEN sizeof(llite_key)/sizeof(llite_key[0])
+#define LLITE_KEY_LEN ARRAY_SIZE(llite_key)
 
 /**
  * \brief Construct client string list.
@@ -174,7 +196,7 @@ struct str_list_head* construct_client_list(const char *clients,
  * \brief Create metric set.
  *
  * \param oscs The comma-separated list of OST clients. Being NULL means
- * 	using all OSCs at the time.
+ *	using all OSCs at the time.
  * \param mdcs Similar to \c oscs, but for MDS clients.
  * \param llites Similar to \c oscs, but for Lustre mount point.
  *
@@ -193,40 +215,110 @@ static int create_metric_set(const char *oscs, const char *mdcs,
 	int keylen[] = {STATS_KEY_LEN, STATS_KEY_LEN, LLITE_KEY_LEN};
 	lh_osc = lh_mdc = lh_llite = 0;
 
-	lh_osc = construct_client_list(oscs, "/proc/fs/lustre/osc");
-	if (!lh_osc)
+	/* test if the osc default path exist */
+	if (osc_path == NULL) {
+		/* Try possible luster stat locations */
+		for (i=0; i < ARRAY_SIZE(default_osc_path); i++) {
+			osc_path = strdup(default_osc_path[i]);
+			lh_osc = construct_client_list(oscs, osc_path);
+			if (!lh_osc) {
+				msglog(LDMSD_LDEBUG, SAMP ": default osc path '%s'" 
+					" not found\n", osc_path);
+				/* Set to NULL, if no path exist */
+				osc_path = NULL;
+				continue;
+			}
+			break;
+		}
+	} else {
+		msglog(LDMSD_LDEBUG, SAMP ": osc user path used\n");
+		lh_osc = construct_client_list(oscs, osc_path);
+	}
+
+
+	if (!lh_osc) {
+		msglog(LDMSD_LERROR, SAMP ": osc user and default paths failed\n");
 		goto err0;
+	}
 	heads[0] = lh_osc;
 
-	lh_mdc = construct_client_list(mdcs, "/proc/fs/lustre/mdc");
-	if (!lh_mdc)
+	/* test if the mdc default path exist */
+	if (mdc_path == NULL) {
+		/* Try possible luster stat locations */
+		for (i=0; i < ARRAY_SIZE( default_mdc_path); i++) {
+			mdc_path = strdup(default_mdc_path[i]);
+			lh_mdc = construct_client_list(mdcs, mdc_path);
+			if (!lh_mdc) {
+				msglog(LDMSD_LDEBUG, SAMP ": default mdc path '%s'"
+					" not found\n", mdc_path);
+				/* Set to NULL, if no path exist */
+				mdc_path = NULL;
+				continue;
+			}
+			break;
+		}
+	} else {
+		msglog(LDMSD_LDEBUG, SAMP ": mdc user path used\n");
+		lh_mdc = construct_client_list(mdcs, mdc_path);
+	}
+
+	if (!lh_mdc) {
+		msglog(LDMSD_LERROR, SAMP ": mdc user and default paths failed\n");
 		goto err0;
+	}
 	heads[1] = lh_mdc;
 
-	lh_llite = construct_client_list(llites, "/proc/fs/lustre/llite");
-	if (!lh_llite)
+	/* test if the llite default path exist */
+	if (llite_path == NULL) {
+		/* Try possible luster stat locations */
+		for (i=0; i < ARRAY_SIZE(default_llite_path); i++) {
+			llite_path = strdup(default_llite_path[i]);
+			lh_llite = construct_client_list(llites, llite_path);
+			if (!lh_llite) {
+				msglog(LDMSD_LDEBUG, SAMP ": default llite path '%s'"
+					" not found\n", llite_path);
+				/* Set to NULL, if no path exist */
+				llite_path = NULL;
+				continue;
+			}
+			break;
+		}
+	} else {
+		msglog(LDMSD_LDEBUG, SAMP ": llite user path used\n");
+		lh_llite = construct_client_list(llites, llite_path);
+	}
+
+	if (!lh_llite) {
+		msglog(LDMSD_LERROR, SAMP ": llite user and default paths failed\n");
 		goto err0;
+	}
 	heads[2] = lh_llite;
 
 	ldms_schema_t schema = base_schema_new(base);
-	if (!schema)
+	if (!schema) {
+		msglog(LDMSD_LERROR, SAMP ": base_schema_new failed\n");
 		goto err0;
+	}
 
 	char *namebase[] = {"osc", "mdc", "llite"};
+	char *pathbase[] = {osc_path, mdc_path, llite_path};
 	struct str_list *sl;
 
 	char suffix[128];
-	for (i = 0; i < sizeof(heads) / sizeof(*heads); i++) {
+	for (i = 0; i < ARRAY_SIZE(heads); i++) {
 		LIST_FOREACH(sl, heads[i], link) {
 			/* For general stats */
-			sprintf(tmp_path, "/proc/fs/lustre/%s/%s*/stats",
-					namebase[i], sl->str);
+			sprintf(tmp_path, "%s/%s*/stats",
+					pathbase[i], sl->str);
 			sprintf(suffix, "#%s.%s", namebase[i], sl->str);
 			rc = stats_construct_routine(schema, tmp_path,
 					"client.", suffix, &lms_list, keys[i],
 					keylen[i]);
-			if (rc)
+			if (rc) {
+				msglog(LDMSD_LERROR, SAMP
+					 ": stats_construct_routine err for %s\n", tmp_path);
 				goto err1;
+			}
 		}
 	}
 
@@ -234,20 +326,20 @@ static int create_metric_set(const char *oscs, const char *mdcs,
 	set = base_set_new(base);
 	if (!set) {
 		rc = errno;
+		msglog(LDMSD_LERROR, SAMP ": base_set_new failed\n");
 		goto err1;
 	}
 	return 0;
 err1:
-	msglog(LDMSD_LINFO, "lustre_oss.c:create_metric_set@err1\n");
+	msglog(LDMSD_LINFO, SAMP ": create_metric_set@err1\n");
 	lustre_metric_src_list_free(&lms_list);
-	msglog(LDMSD_LINFO, "WARNING: lustre_oss set DESTROYED\n");
 	set = 0;
 err0:
-	for (i = 0; i < sizeof(heads) / sizeof(*heads); i++) {
+	for (i = 0; i < ARRAY_SIZE(heads); i++) {
 		if (heads[i])
 			free_str_list(heads[i]);
 	}
-	msglog(LDMSD_LINFO, "lustre_oss.c:create_metric_set@err0\n");
+	msglog(LDMSD_LINFO, SAMP ": create_metric_set@err0\n");
 	return errno;
 }
 
@@ -269,9 +361,9 @@ static void term(struct ldmsd_plugin *self)
  * (ldmsctl usage note)
  * <code>
  * config name=lustre2_client producer_name=<producer_name> instance_name=<instance_name> osts=<OST1>,...
- *     producer_name       The producer id value.
- *     instance_name     The set name.
- *     osts              The comma-separated list of the OSTs to sample from.
+ *     producer_name	   The producer id value.
+ *     instance_name	 The set name.
+ *     osts		 The comma-separated list of the OSTs to sample from.
  * </code>
  * If osts is not given, the plugin will create ldms_set according to the
  * available OSTs at the time.
@@ -281,7 +373,7 @@ static int config(struct ldmsd_plugin *self, struct attr_value_list *kwl, struct
 	char *oscs, *mdcs, *llites;
 
 	if (set) {
-		msglog(LDMSD_LERROR, "lustre2_client: Set already created.\n");
+		msglog(LDMSD_LERROR, SAMP ": Set already created.\n");
 		return EINVAL;
 	}
 
@@ -292,6 +384,19 @@ static int config(struct ldmsd_plugin *self, struct attr_value_list *kwl, struct
 	oscs = av_value(avl, "osc");
 	mdcs = av_value(avl, "mdc");
 	llites = av_value(avl, "llite");
+
+	char *pvalue = av_value(avl, "osc_path");
+	if (pvalue) {
+		osc_path = strdup(pvalue);
+	}
+	pvalue = av_value(avl, "mdc_path");
+	if (pvalue) {
+		mdc_path = strdup(pvalue);
+	}
+	pvalue = av_value(avl, "llite_path");
+	if (pvalue) {
+		llite_path = strdup(pvalue);
+	}
 
 	int rc = create_metric_set(oscs, mdcs, llites);
 	if (rc) {
@@ -306,12 +411,15 @@ static const char *usage(struct ldmsd_plugin *self)
 {
 	return
 "config name=" SAMP " " BASE_CONFIG_SYNOPSIS
-"       [osc=<CSV>] [mdc=<CSV>] [llite=<CSV>]\n"
+"	[osc=<CSV>] [mdc=<CSV>] [llite=<CSV>] [osc_path=<oscpath>] [mdc_path=<mdcpath>] [llite_path=<llitepath>]\n"
 "\n"
 BASE_CONFIG_DESC
-"    osc          The comma-separated value list of OCSs.\n"
-"    mdc          The comma-separated value list of MDCs.\n"
-"    llite        The comma-separated value list of LLITEs.\n"
+"    osc	  The comma-separated value list of OCSs.\n"
+"    mdc	  The comma-separated value list of MDCs.\n"
+"    llite	  The comma-separated value list of LLITEs.\n"
+"    oscpath      User custom path to osc.\n"
+"    mdcpath      User custom path to mdc.\n"
+"    llitepath    User custom path to llite.\n"
 "\n"
 "For oscs,mdcs and llites: if not specified, NONE of the\n"
 "oscs/mdcs/llites will be added. If {oscs,mdcs,llites} is set to *, all\n"

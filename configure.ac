@@ -34,9 +34,13 @@ AX_PREFIX_CONFIG_H_G(ovis-ldms-config.h,,,[
 AM_PROG_LIBTOOL
 AC_LIB_RPATH
 
-dnl if LEX and/or YACC are not available, the configure still won't fail
+dnl if LEX is not available, the configure still won't fail
 AC_PROG_LEX
-AC_PROG_YACC
+
+AC_ARG_VAR([BISON], [bison command])
+AC_CHECK_PROG([BISON], [bison -y], [bison -y], [no])
+AS_IF([test "x$BISON" = "xno"], [AC_MSG_ERROR([bison not found])])
+
 dnl check for python interpreter
 AM_PATH_PYTHON([2.6])
 
@@ -73,7 +77,7 @@ OPTION_INCLUDE_FLAGS([OVIS],[ \
 	lib/src/ovis_auth \
 	lib/src/ovis_ctrl \
 	lib/src/ovis_event \
-	lib/src/json \
+	lib/src/ovis_json \
 	lib/src/zap \
 	lib/src/mmalloc \
 	ldms/src \
@@ -92,7 +96,7 @@ OPTION_LIB_FLAGS([OVIS],[ \
 	lib/src/ovis_auth \
 	lib/src/ovis_ctrl \
 	lib/src/ovis_event \
-	lib/src/json \
+	lib/src/ovis_json \
 	lib/src/zap \
 	lib/src/mmalloc \
 	ldms/src/core \
@@ -247,6 +251,7 @@ OPTION_DEFAULT_ENABLE([meminfo], [ENABLE_MEMINFO])
 OPTION_DEFAULT_DISABLE([filesingle], [ENABLE_FILESINGLE])
 OPTION_DEFAULT_DISABLE([msr_interlagos], [ENABLE_MSR_INTERLAGOS])
 OPTION_DEFAULT_ENABLE([array_example], [ENABLE_ARRAY_EXAMPLE])
+OPTION_DEFAULT_ENABLE([hello_stream], [ENABLE_HELLO_STREAM])
 OPTION_DEFAULT_DISABLE([perfevent], [ENABLE_PERFEVENT])
 OPTION_DEFAULT_DISABLE([rapl], [ENABLE_RAPL])
 OPTION_DEFAULT_DISABLE([hweventpapi], [ENABLE_HWEVENTPAPI])
@@ -271,6 +276,7 @@ dnl cray_power_sampler won't build with --disable-tsampler
 
 OPTION_DEFAULT_DISABLE([sysclassib], [ENABLE_SYSCLASSIB])
 OPTION_DEFAULT_DISABLE([opa2], [ENABLE_OPA2])
+OPTION_DEFAULT_DISABLE([ibnet], [ENABLE_IBNET])
 OPTION_DEFAULT_ENABLE([loadavg], [ENABLE_LOADAVG])
 OPTION_DEFAULT_ENABLE([vmstat], [ENABLE_VMSTAT])
 OPTION_DEFAULT_ENABLE([procdiskstats], [ENABLE_PROCDISKSTATS])
@@ -701,11 +707,10 @@ util/sample_init_scripts/genders/sysv/Makefile
 util/sample_init_scripts/genders/sysv/etc/Makefile
 util/sample_init_scripts/genders/sysv/etc/init.d/Makefile
 util/sample_init_scripts/genders/examples/Makefile
-lib/ovis-lib.spec
 lib/Doxyfile
 lib/Makefile
 lib/src/Makefile
-lib/src/json/Makefile
+lib/src/ovis_json/Makefile
 lib/src/third/Makefile
 lib/src/coll/Makefile
 lib/src/mmalloc/Makefile
@@ -734,6 +739,7 @@ ldms/src/auth/Makefile
 ldms/src/store/Makefile
 ldms/src/sampler/Makefile
 ldms/src/contrib/Makefile
+ldms/src/store/hello_stream/Makefile
 ldms/src/store/kokkos/Makefile
 ldms/src/store/papi/Makefile
 ldms/src/store/slurm/Makefile
@@ -743,6 +749,8 @@ ldms/src/store/store_app/Makefile
 ldms/src/contrib/store/Makefile
 ldms/src/contrib/store/tutorial/Makefile
 ldms/src/sampler/dstat/Makefile
+ldms/src/sampler/hello_stream/Makefile
+ldms/src/sampler/hello_stream/stream_configs/Makefile
 ldms/src/sampler/filesingle/Makefile
 ldms/src/sampler/lustre/Makefile
 ldms/src/sampler/job_info/Makefile
@@ -754,6 +762,7 @@ ldms/src/sampler/shm/mpi_profiler/Makefile
 ldms/src/sampler/cray_system_sampler/Makefile
 ldms/src/sampler/aries_mmr/Makefile
 ldms/src/sampler/aries_mmr/aries_mmr_set_configs/Makefile
+ldms/src/sampler/ibnet/Makefile
 ldms/src/sampler/slurm/Makefile
 ldms/src/sampler/spank/Makefile
 ldms/src/sampler/papi/Makefile
@@ -787,7 +796,6 @@ ldms/python/cmds/Makefile
 ldms/Doxyfile
 ldms/scripts/ldmsd
 ldms/scripts/envldms.sh
-ldms/ldms.spec
 ldms/man/Makefile
 ] )
 
