@@ -46,7 +46,7 @@ ovis-roll-over.py: ${srcdir}/ovis-roll-over.py
 lsdate: ${srcdir}/lsdate
 	cp ${srcdir}/lsdate .a
 
-installcheck-local: ${srcdir}/run-static-tests.sh
+installcheck-local: run-static-tests.sh
 
 install-data-local: $(testsets)
 
