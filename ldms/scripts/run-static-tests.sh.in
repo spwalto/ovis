@@ -2,18 +2,57 @@
 # this driver script runs all static tests
 # checks if a certain plugin fails or passes and returns a "PASS" or "FAIL" option
 # 
+export bindir=@bindir@
 
-testlist=("app_sampler" "papi_sampler" "generic_sampler" "grptest" "test_sampler" "job_info_slurm" "aries_mmr" "cray_system_sampler" "ibm_occ" "rapl" "sampler_atasmart" "shm" "switchx" "switchx_eth" "tsampler" "hfclock" "meminfo" "dstat" "filesingle" "loadavg" "procinterrupts" "procstat" "procnetdev" "vmstat" "clock" "fptrans" "variable" "array_example" "synthetic" "procnfs" "lustre2_client" "lnet_stats" "meminfo.job" "many" "sysclassib" "edac" "opa2" "procdiskstats" "shm")
+@ENABLE_MEMINFO_TRUE@ testlist="$testlist meminfo"
+@ENABLE_APP_SAMPLER_TRUE@ testlist="$testlist app_sampler"
+@ENABLE_PAPI_SAMPLER_TRUE@ testlist="$testlist papi_sampler"
+@ENABLE_GRPTEST_TRUE@ testlist="$testlist grptest"
+@ENABLE_TEST_SAMPLER_TRUE@ testlist="$testlist test_sampler"
+@ENABLE_SLURM_JOBINFO_TRUE@ testlist="$testlist job_info_slurm"
+@ENABLE_IBM_OCC_SAMPLER_TRUE@ testlist="$testlist ibm_occ"
+@ENABLE_GENERIC_SAMPLER_TRUE@ testlist="$testlist generic_sampler"
+@ENABLE_ARIES_MMR_TRUE@ testlist="$testlist areis_mmr"
+@ENABLE_CRAY_SYSTEM_SAMPLER_TRUE@ testlist="$testlist cray_system_sampler"
+@ENABLE_RAPL_TRUE@ testlist="$testlist rapl"
+@ENABLE_ATASMART_TRUE@ testlist="$testlist sampler_atasmart"
+@ENABLE_MPI_SAMPLER_TRUE@ testlist="$testlist shm"
+@ENABLE_SWITCHX_TRUE@ testlist="$testlist switchx"
+@ENABLE_TSAMPLER_TRUE@ testlist="$testlist tsampler hfclock"
+@ENABLE_DSTAT_TRUE@ testlist="$testlist dstat"
+@ENABLE_FILESINGLE_TRUE@ testlist="$testlist filesingle"
+@ENABLE_LOADAVG_TRUE@ testlist="$testlist loadavg"
+@ENABLE_PROCINTERRUPTS_TRUE@ testlist="$testlist procinterrupts"
+@ENABLE_PROCSTAT_TRUE@ testlist="$testlist procstat"
+@ENABLE_PROCNETDEV_TRUE@ testlist="$testlist procnetdev"
+@ENABLE_VMSTAT_TRUE@ testlist="$testlist vmstat"
+@ENABLE_CLOCK_TRUE@ testlist="$testlist clock"
+@ENABLE_FPTRANS_TRUE@ testlist="$testlist fptrans"
+@ENABLE_VARSET_TRUE@ testlist="$testlist variable"
+@ENABLE_ARRAY_EXAMPLE_TRUE@ testlist="$testlist array_example"
+@ENABLE_SYNTHETIC_TRUE@ testlist="$testlist synthetic"
+@ENABLE_PROCNFS_TRUE@ testlist="$testlist procnfs"
+@ENABLE_LUSTRE_TRUE@ testlist="$testlist lustre"
+@ENABLE_LNET_STATS_TRUE@ testlist="$testlist lnet_stats"
+@ENABLE_JOBID_TRUE@ testlist="$testlist many meminfo.job"
+@ENABLE_SYSCLASSIB_TRUE@ testlist="$testlist sysclassib"
+@ENABLE_OPA2_TRUE@ testlist="$testlist opa2"
+@ENABLE_PROCDISKSTATS_TRUE@ testlist="$testlist procdiskstats"
 
-for k in $testlist; do
-	if test -x "$ENABLE_$k_TRUE"; then 
-		./$bindir/ldms-static-test.sh $k 
-		if [$? -eq 0]
-			echo "PASS $k"
-		else
-			echo "FAIL $k: Please refer to test.$testname.log"
-		fi
-		@bindir@/ldms-static-test.sh $args > test.$testname.log
-		tar czf ldmstest/$test.tgz ldmstest/$test test.$testname.log
+
+for testname in ${testlist[@]}; do  
+		$bindir/ldms-static-test.sh $testname
+	
+	if [ $? -eq 0 ]; then
+		echo "PASS $testname"
+	else
+		echo "FAIL $testname: Please refer to test.$testname.log"
+		$bindir/ldms-static-test.sh $testname > test.$testname.log	
+		tar czf ldmstest/$testname.tgz ldmstest/$testname test.$testname.log
+	
+	if [ $? -eq 2 ]; then 
+		echo "The LDMSD config file for $testname does not exist or $testname is disabled"	
 	fi
-done 
+	fi
+	
+done
