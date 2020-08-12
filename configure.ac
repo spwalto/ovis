@@ -359,6 +359,7 @@ if test -z "$ENABLE_SYSPAPI_SAMPLER_TRUE"; then
 	CFLAGS="$TMPCFLAGS"
 fi
 
+
 if test -z "$ENABLE_KOKKOS_TRUE"; then
 	dnl kokkos needs sos (not the storesos).
 	CHECK_SOS=1
