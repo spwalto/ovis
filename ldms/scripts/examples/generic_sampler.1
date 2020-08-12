@@ -1,0 +1,4 @@
+load name=${plugname}
+config name=${plugname} producer=localhost${i} schema=${testname} instance=localhost${i}/${testname} component_id=${i} mx=M2:I,M2:U,M3:D 
+start name=${plugname} interval=1000000 offset=0
+
