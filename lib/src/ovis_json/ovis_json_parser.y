@@ -5,7 +5,9 @@
 #include <string.h>
 #include <errno.h>
 #include "ovis_json.h"
+
 #define YYLTYPE struct json_loc_s
+#define YYSTYPE json_entity_t
 
 void yyerror(YYLTYPE *yylloc, json_parser_t parser, char *input, size_t input_len,
 	     json_entity_t *pentity, const char *str)
@@ -127,6 +129,7 @@ item_list: /* empty */ { $$ = new_list_val(); }
     ;
 
 %%
+
 json_parser_t json_parser_new(size_t user_data) {
 	json_parser_t p = calloc(1, sizeof *p + user_data);
 	if (p)
@@ -138,16 +141,5 @@ void json_parser_free(json_parser_t parser)
 {
 	yylex_destroy(parser->scanner);
 	free(parser);
-}
-
-int json_parse_buffer(json_parser_t p, char *buf, size_t buf_len, json_entity_t *pentity)
-{
-	 *pentity = NULL;
-	 if (p->buffer_state) {
-		 /* The previous call did not reset the lexer state */
-		 yy_delete_buffer(p->buffer_state);
-		 p->buffer_state = NULL;
-	 }
-	 return yyparse(p, buf, buf_len, pentity);
 }
 

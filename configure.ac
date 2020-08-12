@@ -1,7 +1,9 @@
 dnl Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.63)
-AC_INIT(ovis-ldms, 4.3.4, ovis-help@sandia.gov)
+AC_INIT([ovis-ldms],
+        m4_esyscmd([config/git-version-gen --prefix 'OVIS-' .tarball-version]),
+        [ovis-help@sandia.gov])
 AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_SRCDIR([m4/Ovis-top.m4])
 AC_CONFIG_AUX_DIR(config)
@@ -215,7 +217,10 @@ OPTION_DOC
 OPTION_DEFAULT_DISABLE([etc], [ENABLE_ETC])
 OPTION_DEFAULT_DISABLE([ldms-test], [ENABLE_LDMS_TEST])
 
+<<<<<<< HEAD
 #OPTION_DEFAULT_ENABLE([core], [ENABLE_CORE])
+=======
+>>>>>>> 135cb49f61c60115a82764735640fc97522ac43c
 OPTION_DEFAULT_ENABLE([mmap], [ENABLE_MMAP])
 OPTION_DEFAULT_ENABLE([perf], [ENABLE_PERF])
 OPTION_DEFAULT_DISABLE([yaml], [ENABLE_YAML])
@@ -358,7 +363,10 @@ if test -z "$ENABLE_SYSPAPI_SAMPLER_TRUE"; then
 	CFLAGS="$TMPCFLAGS"
 fi
 
+<<<<<<< HEAD
 #OPTION_DEFAULT_ENABLE([ldmsd], [ENABLE_LDMSD])
+=======
+>>>>>>> 135cb49f61c60115a82764735640fc97522ac43c
 
 if test -z "$ENABLE_KOKKOS_TRUE"; then
 	dnl kokkos needs sos (not the storesos).

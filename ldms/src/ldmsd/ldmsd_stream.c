@@ -26,19 +26,19 @@ static int s_cmp(void *tree_key, const void *key)
 	return strcmp((char *)tree_key, (const char *)key);
 }
 
-typedef struct ldmsd_stream_client_s {
+struct ldmsd_stream_client_s {
 	ldmsd_stream_recv_cb_t c_cb_fn;
 	void *c_ctxt;
 	ldmsd_stream_t c_s;
 	LIST_ENTRY(ldmsd_stream_client_s) c_ent;
-} *ldmsd_stream_client_t;
+};
 
-typedef struct ldmsd_stream_s {
+struct ldmsd_stream_s {
 	const char *s_name;
 	struct rbn s_ent;
 	pthread_mutex_t s_lock;
 	LIST_HEAD(ldmsd_client_list, ldmsd_stream_client_s) s_c_list;
-} *ldmsd_stream_t;
+};
 
 static pthread_mutex_t s_tree_lock = PTHREAD_MUTEX_INITIALIZER;
 struct rbt s_tree = RBT_INITIALIZER(s_cmp);
@@ -84,7 +84,6 @@ ldmsd_stream_subscribe(const char *stream_name,
 			goto err_1;
 		s->s_name = strdup(stream_name);
 		if (!s->s_name) {
-			free(s);
 			goto err_2;
 		}
 		pthread_mutex_init(&s->s_lock, NULL);
@@ -98,7 +97,7 @@ ldmsd_stream_subscribe(const char *stream_name,
 	LIST_FOREACH(cc, &s->s_c_list, c_ent) {
 		if (cc->c_cb_fn == cb_fn && cc->c_ctxt == ctxt) {
 			msglog("The client %p is already subscribed to "
-			       "stream %s", cc, stream_name);
+			       "stream %s\n", cc, stream_name);
 			errno = EEXIST;
 			pthread_mutex_unlock(&s->s_lock);
 			goto err_1;
@@ -156,6 +155,8 @@ int ldmsd_stream_publish(ldms_t xprt,
 	ldmsd_req_attr_t first_attr, attr, next_attr;
 	int rc;
 	size_t this_rec;
+	if (!data_len)
+		return 0;
 
 	size_t max_msg = ldms_xprt_msg_max(xprt);
 	ldmsd_req_hdr_t req = malloc(max_msg);
@@ -224,10 +225,8 @@ int ldmsd_stream_publish(ldms_t xprt,
 	return 0;
 }
 
-static char recv_buf[128];
 sem_t conn_sem;
 int conn_status;
-sem_t recv_sem;
 static void event_cb(ldms_t x, ldms_xprt_event_t e, void *cb_arg)
 {
 	switch (e->type) {
@@ -245,11 +244,6 @@ static void event_cb(ldms_t x, ldms_xprt_event_t e, void *cb_arg)
 		break;
 	case LDMS_XPRT_EVENT_ERROR:
 		conn_status = ECONNREFUSED;
-		break;
-	case LDMS_XPRT_EVENT_RECV:
-		memcpy(recv_buf, e->data,
-		       e->data_len < sizeof(recv_buf) ? e->data_len : sizeof(recv_buf));
-		sem_post(&recv_sem);
 		break;
 	default:
 		msglog("Received invalid event type %d\n", e->type);
@@ -297,7 +291,6 @@ int ldmsd_stream_publish_file(const char *stream, const char *type,
 		return errno;
 	}
 
-	sem_init(&recv_sem, 0, 0);
 	sem_init(&conn_sem, 0, 0);
 
 	rc = ldms_xprt_connect_by_name(x, host, port, event_cb, NULL);
@@ -374,12 +367,6 @@ int ldmsd_stream_publish_file(const char *stream, const char *type,
 		}
 	}
 
-	/* Wait for the reply */
-	ts.tv_sec = time(NULL) + 10;
-	ts.tv_nsec = 0;
-	sem_timedwait(&recv_sem, &ts);
-	ldmsd_req_hdr_t reply = (ldmsd_req_hdr_t)recv_buf;
-	rc = ntohl(reply->rsp_err);
 	ldms_xprt_close(x);
  err:
 	return rc;

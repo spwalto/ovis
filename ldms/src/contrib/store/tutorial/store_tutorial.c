@@ -83,7 +83,7 @@ static ldmsd_msg_log_f msglog;
 
 struct tutorial_store_handle {
 	struct ldmsd_store *store;
-        char *path; //full path will be path/container/schema
+	char *path; //full path will be path/container/schema
 	FILE *file;
 	pthread_mutex_t lock;
 	void *ucontext;
@@ -102,20 +102,19 @@ static pthread_mutex_t cfg_lock;
  */
 static int config(struct ldmsd_plugin *self, struct attr_value_list *kwl, struct attr_value_list *avl)
 {
-  char* s;
-	int rc;
+	char* s;
+	int rc = 0;
 
 	pthread_mutex_lock(&cfg_lock);
 	s = av_value(avl, "path");
 	if (!s){
-           msglog(LDMSD_LDEBUG, PNAME ": missing path in config\n");
+	   msglog(LDMSD_LDEBUG, PNAME ": missing path in config\n");
 	   rc = EINVAL;
 	} else {
 	  root_path = strdup(s);
 	  msglog(LDMSD_LDEBUG, PNAME ": setting root_path to '%s'\n", root_path);
 	}
 
-out:
 	pthread_mutex_unlock(&cfg_lock);
 
 	return rc;
@@ -123,8 +122,8 @@ out:
 
 static void term(struct ldmsd_plugin *self)
 {
-        //not implemented
-        return;
+	//not implemented
+	return;
 }
 
 static const char *usage(struct ldmsd_plugin *self)
@@ -166,10 +165,10 @@ open_store(struct ldmsd_store *s, const char *container, const char* schema,
 	size_t pathlen = strlen(root_path) + strlen(schema) + strlen(container) + 8;
 	path = malloc(pathlen);
 	if (!path)
-           goto out;
+	   goto out;
 	dpath = malloc(pathlen);
 	if (!dpath)
-           goto out;
+	   goto out;
 	sprintf(path, "%s/%s/%s", root_path, container, schema);
 	sprintf(dpath, "%s/%s", root_path, container);
 
@@ -196,14 +195,14 @@ open_store(struct ldmsd_store *s, const char *container, const char* schema,
 
 	s_handle->file = fopen_perm(s_handle->path, "a+", LDMSD_DEFAULT_FILE_PERM);
 	if (!s_handle->file){
-                msglog(LDMSD_LERROR, PNAME ": Error %d opening the file %s.\n",
+		msglog(LDMSD_LERROR, PNAME ": Error %d opening the file %s.\n",
 		       errno, s_handle->path);
 		goto err1;
 	}
 	pthread_mutex_unlock(&s_handle->lock);
 
 	tstorehandle[numschema++] = s_handle;
-	
+
 	goto out;
 
 err1:
@@ -231,8 +230,8 @@ static int store(ldmsd_store_handle_t _sh, ldms_set_t set, int *metric_array, si
 	const struct ldms_timestamp *ts = &_ts;
 	const char* pname;
 	struct tutorial_store_handle *s_handle;
-	int i, j;
-	int rc, rcu;
+	int i;
+	int rc;
 
 	s_handle = _sh;
 	if (!s_handle)
@@ -256,7 +255,6 @@ static int store(ldmsd_store_handle_t _sh, ldms_set_t set, int *metric_array, si
 		fprintf(s_handle->file, "%s", pname);
 
 
-	const char * str;
 	for (i = 0; i != metric_count; i++) {
 		enum ldms_value_type metric_type = ldms_metric_type_get(set, metric_array[i]);
 		//TUT: only supporting U64
@@ -289,7 +287,7 @@ static void close_store(ldmsd_store_handle_t _s_handle)
 {
 
   //not implemented
-        return;
+	return;
 }
 
 static struct ldmsd_store store_tutorial = {

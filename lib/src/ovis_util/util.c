@@ -1,9 +1,9 @@
 /* -*- c-basic-offset: 8 -*-
- * Copyright (c) 2013-2015,2017-2019 National Technology & Engineering
+ * Copyright (c) 2013-2015,2017-2020 National Technology & Engineering
  * Solutions of Sandia, LLC (NTESS). Under the terms of Contract
  * DE-NA0003525 with NTESS, the U.S. Government retains certain rights
  * in this software.
- * Copyright (c) 2013-2015,2017-2019 Open Grid Computing, Inc.
+ * Copyright (c) 2013-2015,2017-2020 Open Grid Computing, Inc.
  * All rights reserved.
  *
  * This software is available to you under a choice of one of two
@@ -107,13 +107,15 @@ int _scpy(char **buff, size_t *slen, size_t *alen,
 	strncpy(*buff+*slen, str, len);
 	*alen -= len;
 	*slen += len;
-	(*buff)[*slen] = 0;
+	(*buff)[*slen] = '\0';
 	return 0;
 }
 
 char *str_repl_cmd(const char *_str)
 {
 	char *str = strdup(_str);
+	if (!str)
+		goto err;
 	char *buff = NULL;
 	char *xbuff;
 	const char *eos = str + strlen(str);
@@ -124,7 +126,7 @@ char *str_repl_cmd(const char *_str)
 	char *cmd;
 	int rc;
 	int count;
-	FILE *p;
+	FILE *p = NULL;
 
 	if (!str)
 		goto err;
@@ -213,6 +215,8 @@ char *str_repl_cmd(const char *_str)
 err:
 	free(str);
 	free(buff);
+	if (p)
+		pclose(p);
 	return NULL;
 }
 
@@ -526,9 +530,10 @@ int av_check_expansion(printf_t log, const char *n, const char *s)
 size_t ovis_get_mem_size(const char *s)
 {
     char unit;
-#define TSZ 256
-    char tmp[TSZ];
-    snprintf(tmp, TSZ, "%s%s", s, "B");
+
+    size_t n = strlen(s) + 3;
+    char tmp[n];
+    snprintf(tmp, n, "%s%s", s, "B");
     size_t size;
     sscanf(tmp, "%lu %c", &size, &unit);
     switch (unit) {
@@ -942,6 +947,23 @@ const char* ovis_errno_abbvr(int e)
 	return "UNKNOWN_ERRNO";
 }
 
+/**
+ * \brief thread-safe strerror.
+ *
+ * \retval str The sys_errlist value.
+ * \retval "unknown_errno" if the errno \c e is unknown.
+ */
+const char *ovis_strerror(int e) {
+	if (e >=0 && e < sys_nerr)
+		return sys_errlist[e];
+	return "unknown_errno";
+/* the gnu linker nuisance warning about sys_errlist.
+ * If we truly hate it, we can use the code from nginx ngx_strerror
+ * here. See: http://nginx.org/en/docs/sys_errlist.html
+ * for why this is a good idea.
+ */
+}
+
 /*
  * alen[in/out] - available length
  * dlen[in/out] - buff data length
@@ -1044,14 +1066,14 @@ ovis_pgrep_array_t ovis_pgrep(const char *text)
 		i++;
 	}
 
-	rc = 0;
 	goto out;
 err1:
 	while ((ent = TAILQ_FIRST(&head))) {
 		TAILQ_REMOVE(&head, ent, entry);
 		free(ent);
 	}
-out:
+out: 	if (dir)
+		closedir(dir);
 	return array;
 }
 

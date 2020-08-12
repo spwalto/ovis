@@ -10,7 +10,7 @@ COMMON_LIBADD =  -lldms -lovis_util -lcoll \
 
 if ENABLE_HELLO_STREAM
 
-libhello_sampler_la_SOURCES = hello_sampler.c hello_sampler.h ../sampler_base.c
+libhello_sampler_la_SOURCES = hello_sampler.c ../sampler_base.c
 libhello_sampler_la_LIBADD = $(COMMON_LIBADD) -lovis_json
 pkglib_LTLIBRARIES += libhello_sampler.la
 dist_man7_MANS += Plugin_hello_sampler.man
@@ -26,20 +26,23 @@ hello_cat_publisher_LDADD = $(COMMON_LIBADD) -lovis_json \
 			      ../../ldmsd/libldmsd_stream.la
 dist_man7_MANS += hello_cat_publisher.man
 
-SUBDIRS = stream_configs
 
+SUBDIRS = stream_configs
 
 HELLO_EXTRA_FILES = \
 	${srcdir}/parser.pl
 
-HELLO_DIR = $(DESTDIR)$(sysconfdir)/ldms/hello_sampler_util
+OPV=-$(PACKAGE_VERSION)
+HELLO_DIR = $(docdir)$(OPV)/examples/hello_sampler_util
 install-data-local: $(HELLO_EXTRA_FILES)
-	$(MKDIR_P) $(HELLO_DIR)
-	$(INSTALL_DATA) $(HELLO_EXTRA_FILES) $(HELLO_DIR)/
-	chmod 755 $(HELLO_DIR)/*
+	$(MKDIR_P) $(DESTDIR)$(HELLO_DIR)
+	$(INSTALL_DATA) $(HELLO_EXTRA_FILES) $(DESTDIR)$(HELLO_DIR)/
+	chmod 755 $(DESTDIR)$(HELLO_DIR)/*
 
 uninstall-local:
-	rm -rf $(HELLO_DIR)
+	for i in $(HELLO_EXTRA_FILES); do \
+		rm -rf $(DESTDIR)$(HELLO_DIR)/$$i; \
+	done
 
 endif
 
