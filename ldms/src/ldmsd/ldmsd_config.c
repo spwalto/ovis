@@ -1007,10 +1007,6 @@ void ldmsd_mm_status(enum ldmsd_loglevel level, const char *prefix)
 }
 
 const char * blacklist[] = {
-<<<<<<< HEAD
-	"librapl.so",
-=======
->>>>>>> 135cb49f61c60115a82764735640fc97522ac43c
 	"libpapi_sampler.so",
 	"libtsampler.so",
 	"libtimer_base.so",
