@@ -128,11 +128,12 @@ static void default_log(const char *fmt, ...)
 
 pthread_mutex_t xprt_list_lock;
 
-#define LDMS_ZAP_XPRT_SOCK 0;
-#define LDMS_ZAP_XPRT_RDMA 1;
-#define LDMS_ZAP_XPRT_UGNI 2;
 pthread_mutex_t ldms_zap_list_lock;
-static zap_t ldms_zap_list[3] = {0};
+static struct {
+	char *name;
+	zap_t zap;
+} ldms_zap_tbl[16] = {{0}};
+static int ldms_zap_tbl_n = 0;
 
 ldms_t ldms_xprt_get(ldms_t x)
 {
@@ -555,6 +556,9 @@ void __ldms_xprt_resource_free(struct ldms_xprt *x)
 			pthread_mutex_unlock(&set->lock);
 			pthread_mutex_lock(&x->lock);
 		}
+		/* Make sure that we didn't lose a set delete race */
+		if (!rbd->xprt)
+			continue;
 		__ldms_rbd_xprt_release(rbd);
 	}
 	if (x->auth) {
@@ -2602,31 +2606,33 @@ static void ldms_zap_auto_cb(zap_ep_t zep, zap_event_t ev)
 
 zap_t __ldms_zap_get(const char *xprt, ldms_log_fn_t log_fn)
 {
-	int zap_type = -1;
-	if (0 == strcmp(xprt, "sock")) {
-		zap_type = LDMS_ZAP_XPRT_SOCK;
-	} else if (0 == strcmp(xprt, "ugni")) {
-		zap_type = LDMS_ZAP_XPRT_UGNI;
-	} else if (0 == strcmp(xprt, "rdma")) {
-		zap_type = LDMS_ZAP_XPRT_RDMA;
-	} else {
-		log_fn("ldms: Unrecognized xprt '%s'\n", xprt);
-		errno = EINVAL;
-		return NULL;
-	}
+	int i;
+	zap_t zap = NULL;
+	char *name;
 
 	pthread_mutex_lock(&ldms_zap_list_lock);
-	zap_t zap = ldms_zap_list[zap_type];
-	if (zap)
+	for (i = 0; i < ldms_zap_tbl_n; i++) {
+		if (0 == strcmp(xprt, ldms_zap_tbl[i].name)) {
+			zap = ldms_zap_tbl[i].zap;
+			goto out;
+		}
+	}
+	if (ldms_zap_tbl_n == sizeof(ldms_zap_tbl)/sizeof(*ldms_zap_tbl)) {
+		errno = ENOMEM;
 		goto out;
-
+	}
 	zap = zap_get(xprt, log_fn, ldms_zap_mem_info);
 	if (!zap) {
 		log_fn("ldms: Cannot get zap plugin: %s\n", xprt);
 		errno = ENOENT;
 		goto out;
 	}
-	ldms_zap_list[zap_type] = zap;
+	name = strdup(xprt);
+	if (!name)
+		goto out;
+	ldms_zap_tbl[ldms_zap_tbl_n].name = name;
+	ldms_zap_tbl[ldms_zap_tbl_n].zap = zap;
+	ldms_zap_tbl_n++;
 out:
 	pthread_mutex_unlock(&ldms_zap_list_lock);
 	return zap;
@@ -3165,7 +3171,10 @@ void ldms_xprt_set_delete(ldms_set_t s, ldms_set_delete_cb_t cb_fn, void *cb_arg
 	/* Release the set->lock, and walk the local list */
 	rbd = LIST_FIRST(&rbd_list);
 	while (rbd) {
-		xprt = rbd->xprt;
+		xprt = ldms_xprt_get(rbd->xprt);
+		if (!xprt)
+			goto next_1;
+
 		next_rbd = LIST_NEXT(rbd, set_link);
 		LIST_REMOVE(rbd, set_link);
 
@@ -3194,6 +3203,7 @@ void ldms_xprt_set_delete(ldms_set_t s, ldms_set_delete_cb_t cb_fn, void *cb_arg
 			xprt->zerrno = zerr;
 			__ldms_free_ctxt(xprt, ctxt);
 		}
+		ldms_xprt_put(xprt);
 	next_1:
 		ref_put(&rbd->ref, "xprt_set_delete");
 		rbd = next_rbd;

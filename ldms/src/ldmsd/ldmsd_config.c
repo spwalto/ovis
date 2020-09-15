@@ -207,7 +207,7 @@ err:
 			free(pi->libpath);
 		free(pi);
 	}
-	if (d) 
+	if (d)
 		dlclose(d);
 	return NULL;
 }
@@ -497,6 +497,46 @@ char *find_comment(const char *line)
 	return NULL;
 }
 
+static ldmsd_req_hdr_t __aggregate_records(struct ldmsd_req_array *rec_array)
+{
+	ldmsd_req_hdr_t req, rec;
+	char *buf;
+	size_t buf_len, buf_off, hdr_sz, data_len;
+	int i;
+
+	hdr_sz = sizeof(*req);
+	buf = malloc(LDMSD_CFG_FILE_XPRT_MAX_REC);
+	if (!buf)
+		goto oom;
+	buf_len = LDMSD_CFG_FILE_XPRT_MAX_REC;
+	buf_off = 0;
+
+	for (i = 0; i < rec_array->num_reqs; i++) {
+		rec = rec_array->reqs[i];
+		if (0 == i) {
+			memcpy(buf, rec, hdr_sz);
+			buf_off = hdr_sz;
+		}
+		data_len = ntohl(rec->rec_len) - hdr_sz;
+		while (buf_len - buf_off < data_len) {
+			buf = realloc(buf, buf_len * 2 + data_len);
+			if (!buf)
+				goto oom;
+			buf_len = buf_len * 2 + data_len;
+		}
+		memcpy(&buf[buf_off], (void *)(rec + 1), data_len);
+		buf_off += data_len;
+	}
+	req = (ldmsd_req_hdr_t)buf;
+	req->flags =htonl(LDMSD_REQ_SOM_F | LDMSD_REQ_EOM_F);
+	req->rec_len = htonl(buf_off);
+	return req;
+oom:
+	errno = ENOMEM;
+	ldmsd_log(LDMSD_LCRITICAL, "Out of memory\n");
+	return NULL;
+}
+
 /*
  * \param req_filter is a function that returns zero if we want to process the
  *                   request, and returns non-zero otherwise.
@@ -520,7 +560,7 @@ int __process_config_file(const char *path, int *lno, int trust,
 	ssize_t cnt;
 	size_t buf_len = 0;
 	struct ldmsd_cfg_xprt_s xprt;
-	ldmsd_req_hdr_t request;
+	ldmsd_req_hdr_t request = NULL;
 	struct ldmsd_req_array *req_array = NULL;
 	if (!path)
 		return EINVAL;
@@ -618,38 +658,49 @@ parse:
 				"(%s). %s\n", lineno, path, strerror(rc));
 		goto cleanup;
 	}
-	for (i = 0; i < req_array->num_reqs; i++) {
-		request = req_array->reqs[i];
-		if (req_filter) {
-			rc = req_filter(&xprt, request, ctxt);
-			/* rc = 0, filter OK */
-			if (rc == 0)
-				goto next_req;
-			/* rc == errno */
-			if (rc > 0) {
-				ldmsd_log(LDMSD_LERROR,
-					  "Configuration error at "
-					  "line %d (%s)\n", lineno, path);
-				goto cleanup;
-			}
-			/* rc < 0, filter not applied */
-		}
-		rc = ldmsd_process_config_request(&xprt, request);
-		if (rc || xprt.rsp_err) {
-			if (!rc)
-				rc = xprt.rsp_err;
-			ldmsd_log(LDMSD_LERROR, "Configuration error at line %d (%s)\n",
-					lineno, path);
-			goto cleanup;
-		}
-	next_req:
-		free(request);
-	}
-	msg_no += 1;
 
-	off = 0;
+	request = __aggregate_records(req_array);
+	if (!request) {
+		rc = errno;
+		goto cleanup;
+	}
 	free(req_array);
 	req_array = NULL;
+
+	/*
+	 * Make sure that LDMSD will create large enough buffer to receive
+	 * the config data.
+	 */
+	if (xprt.max_msg < ntohl(request->rec_len))
+		xprt.max_msg = ntohl(request->rec_len);
+
+	if (req_filter) {
+		rc = req_filter(&xprt, request, ctxt);
+		/* rc = 0, filter OK */
+		if (rc == 0)
+			goto next_req;
+		/* rc == errno */
+		if (rc > 0) {
+			ldmsd_log(LDMSD_LERROR,
+				  "Configuration error at "
+				  "line %d (%s)\n", lineno, path);
+			goto cleanup;
+		}
+		/* rc < 0, filter not applied */
+	}
+	rc = ldmsd_process_config_request(&xprt, request);
+	if (rc || xprt.rsp_err) {
+		if (!rc)
+			rc = xprt.rsp_err;
+		ldmsd_log(LDMSD_LERROR, "Configuration error at line %d (%s)\n",
+				lineno, path);
+		goto cleanup;
+	}
+next_req:
+	free(request);
+	request = NULL;
+	msg_no += 1;
+	off = 0;
 	goto next_line;
 
 cleanup:
@@ -669,6 +720,8 @@ cleanup:
 		}
 		free(req_array);
 	}
+	if (request)
+		free(request);
 	return rc;
 }
 
@@ -951,6 +1004,10 @@ int listen_on_ldms_xprt(ldmsd_listen_t listen)
 {
 	int rc = 0;
 	struct sockaddr_in sin;
+	struct addrinfo *ai = NULL;
+	struct addrinfo ai_hint = { .ai_family = AF_INET,
+				    .ai_flags = AI_PASSIVE };
+	char port_buff[8];
 
 	listen->x = ldms_xprt_new_with_auth(listen->xprt, ldmsd_linfo,
 			listen->auth_name, listen->auth_attrs);
@@ -969,8 +1026,19 @@ int listen_on_ldms_xprt(ldmsd_listen_t listen)
 		cleanup(6, "error creating transport");
 	}
 	sin.sin_family = AF_INET;
-	sin.sin_addr.s_addr = 0;
-	sin.sin_port = htons(listen->port_no);
+	if (listen->host) {
+		snprintf(port_buff, sizeof(port_buff), "%hu", listen->port_no);
+		rc = getaddrinfo(listen->host, port_buff, &ai_hint, &ai);
+		if (rc) {
+			ldmsd_lerror("xprt listen error, getaddrinfo(%s, %s) error: %d\n", listen->host, port_buff, rc);
+			cleanup(7, "error listening on transport");
+		}
+		memcpy(&sin, ai->ai_addr, ai->ai_addrlen);
+		freeaddrinfo(ai);
+	} else {
+		sin.sin_addr.s_addr = 0;
+		sin.sin_port = htons(listen->port_no);
+	}
 	rc = ldms_xprt_listen(listen->x, (struct sockaddr *)&sin, sizeof(sin),
 			       __listen_connect_cb, NULL);
 	if (rc) {
@@ -1021,6 +1089,27 @@ const char * blacklist[] = {
 
 static int ldmsd_plugins_usage_dir(const char *dir, const char *plugname);
 
+/* check path for existence, and if verbose != 0, whine if missing. */
+static int ldmd_plugins_check_dir(const char *path, int verbose) {
+	struct stat buf;
+	memset(&buf, 0, sizeof(buf));
+	int serr = stat(path, &buf);
+	int err = 0;
+	if (serr < 0) { 
+		err = errno;
+		fprintf(stderr, "%s: unable to stat plugin library path %s (%d).\n",
+			APP, path, err);
+		return err;
+	}
+	if ( !S_ISDIR(buf.st_mode)) {
+		err = ENOTDIR;
+		fprintf(stderr, "%s: plugin library path %s is not a directory.\n",
+			APP, path);
+		return err;
+	}
+	return 0;
+}
+
 /* Dump plugin names and usages (where available) before ldmsd redirects
  * io. Loads and terms all plugins, which provides a modest check on some
  * coding and deployment issues.
@@ -1045,27 +1134,37 @@ int ldmsd_plugins_usage(const char *plugname)
 	strncpy(library_path, path, sizeof(library_path) - 1);
 
 	int trc=0, rc = 0;
+	int plugfound = 0;
 	while ((libpath = strtok_r(pathdir, ":", &saveptr)) != NULL) {
 		pathdir = NULL;
 		trc = ldmsd_plugins_usage_dir(libpath, plugname);
 		if (trc)
 			rc = trc;
+		else
+			if (plugname)
+				plugfound = 1;
+	}
+	if (plugname && !plugfound) {
+		fprintf(stderr, "%s: no library in %s for %s\n", APP, path, plugname);
+		strncpy(library_path, path, sizeof(library_path) - 1);
+		while ((libpath = strtok_r(pathdir, ":", &saveptr)) != NULL) {
+			pathdir = NULL;
+			(void)ldmd_plugins_check_dir(libpath, 1);
+			fprintf(stderr, "%s: no library in %s for %s\n", APP, path, plugname);
+		}
 	}
 	return rc;
 }
 
+
 static int ldmsd_plugins_usage_dir(const char *path, const char *plugname)
 {
 	assert( path || "null dir name in ldmsd_plugins_usage" == NULL);
-	struct stat buf;
 	glob_t pglob;
 
-	if (stat(path, &buf) < 0) {
-		int err = errno;
-		fprintf(stderr, "%s: unable to stat library path %s (%d).\n",
-			APP, path, err);
-		return err;
-	}
+	int ckdir = ldmd_plugins_check_dir(path, 0);
+	if (ckdir)
+		return ckdir;
 
 	int rc = 0;
 	enum ldmsd_plugin_type tmatch = LDMSD_PLUGIN_OTHER;
@@ -1111,7 +1210,6 @@ static int ldmsd_plugins_usage_dir(const char *path, const char *plugname)
 		rc = 1;
 		break;
 	case GLOB_NOMATCH:
-		fprintf(stderr, "%s: no libraries in %s for %s\n", APP, path, pat);
 		rc = 1;
 		break;
 	default:

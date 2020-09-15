@@ -51,6 +51,8 @@ installcheck-local: run-static-tests.sh
 
 install-data-local: $(testsets)
 
+TESTS = run-static-tests.sh
+
 install-serial:
 	$(MKDIR_P) $(DESTDIR)$(docdir)$(OPV)/examples/static-test && \
 	uf=$(DESTDIR)$(docdir)$(OPV)/examples/static-test/.uninst.ldms && \
