@@ -4,7 +4,6 @@ EXTRA_DIST=examples lsdate slurm-examples
 EXTRA_DIST += ldms-csv-anonymize ldms-csv-export-sos
 EXTRA_DIST += ovis-roll-over.py ldmsd-check-env
 
-
 if ENABLE_SCRIPTS
 sbin_SCRIPTS= ldms-wrapper
 bin_SCRIPTS = lsdate
@@ -47,11 +46,18 @@ ovis-roll-over.py: ${srcdir}/ovis-roll-over.py
 lsdate: ${srcdir}/lsdate
 	cp ${srcdir}/lsdate .
 
-installcheck-local: run-static-tests.sh
+#check_PROGRAMS = run-static-test.sh
+TEST_LOG_DRIVER = env AM_TAP_AWK='$(AWK)' $(SHELL) \
+                  $(top_srcdir)/config/tap-driver.sh
+
+TESTS = run-static-tests.sh
+EXTRA_DIST +=$(TESTS)
+
+#installcheck-local: run-static-tests.sh
 
 install-data-local: $(testsets)
 
-TESTS = run-static-tests.sh
+#TESTS = run-static-tests.sh
 
 install-serial:
 	$(MKDIR_P) $(DESTDIR)$(docdir)$(OPV)/examples/static-test && \

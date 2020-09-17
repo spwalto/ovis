@@ -832,6 +832,8 @@ AC_CONFIG_FILES([
 	], [chmod a+x $ac_file]
 )
 
+AC_REQUIRE_AUX_FILE([tap-driver.sh])
+
 AC_OUTPUT
 
 if test "x$enable_rpath" != "xyes"; then

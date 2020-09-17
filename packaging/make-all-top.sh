@@ -47,6 +47,7 @@ if test -f ldms/src/sampler/meminfo/meminfo.c; then
 	../configure $allconfig && \
 	make && \
 	make install && \
+	make check && \
 	../util/nola.sh $prefix
 else
 	echo "this must be run from the top of ovis source tree"
