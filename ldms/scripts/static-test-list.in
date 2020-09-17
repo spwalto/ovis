@@ -9,10 +9,12 @@ ibm_occ
 generic_sampler
 aries_mmr
 cray_system_sampler
-apl
+rapl
 sampler_atasmart
 shm
 switchx
+tsampler
+hfclock
 dstat
 filesingle
 loadavg
@@ -26,6 +28,8 @@ variable
 array_example
 synthetic
 procnfs
+lustre
+lustre2_client
 lnet_stats
 many 
 meminfo.job
@@ -33,9 +37,5 @@ sysclassib
 opa2
 procdiskstats
 kgnilnd
-hfclock
-lustre2_client
-tsampler
-lustre
 hello_stream
 llnl
