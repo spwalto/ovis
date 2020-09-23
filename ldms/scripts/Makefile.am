@@ -13,7 +13,6 @@ bin_SCRIPTS += ovis-roll-over.py
 bin_SCRIPTS += ldms-csv-anonymize
 bin_SCRIPTS += ldms-csv-export-sos
 bin_SCRIPTS += ldmsd-check-env
-bin_SCRIPTS += static-test-list
 
 DISTCLEANFILES = $(gen_scripts) $(sgen_scripts)
 OPV=-$(PACKAGE_VERSION)

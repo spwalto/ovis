@@ -30,7 +30,7 @@ endif
 
 if ENABLE_LDMS_TEST
 SUBDIRS += test
-EXTRA_DIST= ldms-static-test-list.sh.in
+EXTRA_DIST+= ldms-static-test-list.sh.in
 
 FILES= ldms-static-test-list.sh
 FILES+= ldms-static-test-bypass
