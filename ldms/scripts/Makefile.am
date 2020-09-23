@@ -30,7 +30,10 @@ gen_scripts += ldms-py-varset.sh
 gen_scripts += ldms-py-rename.sh
 gen_scripts += ldms_local_opa2test.sh
 gen_scripts += ldms-l2_test.sh
-gen_scripts += run-static-tests.sh
+
+if ENABLE_LDMS_TEST
+gen_scripts += ldms-run-static-tests.sh
+endif
 
 bin_SCRIPTS += $(gen_scripts)
 
