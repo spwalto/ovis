@@ -1,17 +1,6 @@
-#! /bin/sh
-# this driver script runs all static tests
-# checks if a certain plugin fails or passes and returns a "PASS" or "FAIL" option
-# Please refer to run-static-tets.man for more information
+#Run script to populate test case array for 'run-static-test.sh'
 
-export prefix=@prefix@
-export exec_prefix=@exec_prefix@
-export libdir=@libdir@
-export BUILDDIR=@prefix@ 
-export bindir=@bindir@
-file=$bindir/static-test-list
-
-testlist=""
-
+#check which plugins are enabled and store into an array.
 @ENABLE_MEMINFO_TRUE@ testlist[${#testlist[@]}]="meminfo"
 @ENABLE_APP_SAMPLER_TRUE@ testlist[${#testlist[@]}]="app_sampler"
 @ENABLE_PAPI_SAMPLER_TRUE@ testlist[${#testlist[@]}]="papi_sampler"
@@ -26,7 +15,7 @@ testlist=""
 @ENABLE_ATASMART_TRUE@ testlist[${#testlist[@]}]="sampler_atasmart"
 @ENABLE_MPI_SAMPLER_TRUE@ testlist[${#testlist[@]}]="shm"
 @ENABLE_SWITCHX_TRUE@ testlist[${#testlist[@]}]="switchx"
-@ENABLE_TSAMPLER_TRUE@ testlist[${#testlist[@]}]="tsampler" 
+@ENABLE_TSAMPLER_TRUE@ testlist[${#testlist[@]}]="tsampler"
 @ENABLE_TSAMPLER_TRUE@ testlist[${#testlist[@]}]="hfclock"
 @ENABLE_DSTAT_TRUE@ testlist[${#testlist[@]}]="dstat"
 @ENABLE_FILESINGLE_TRUE@ testlist[${#testlist[@]}]="filesingle"
@@ -41,10 +30,10 @@ testlist=""
 @ENABLE_ARRAY_EXAMPLE_TRUE@ testlist[${#testlist[@]}]="array_example"
 @ENABLE_SYNTHETIC_TRUE@ testlist[${#testlist[@]}]="synthetic"
 @ENABLE_PROCNFS_TRUE@ testlist[${#testlist[@]}]="procnfs"
-@ENABLE_LUSTRE_TRUE@ testlist[${#testlist[@]}]="lustre" 
+@ENABLE_LUSTRE_TRUE@ testlist[${#testlist[@]}]="lustre"
 @ENABLE_LUSTRE_TRUE@ testlist[${#testlist[@]}]="lustre2_client"
 @ENABLE_LNET_STATS_TRUE@ testlist[${#testlist[@]}]="lnet_stats"
-@ENABLE_JOBID_TRUE@ testlist[${#testlist[@]}]="many" 
+@ENABLE_JOBID_TRUE@ testlist[${#testlist[@]}]="many"
 @ENABLE_JOBID_TRUE@ testlist[${#testlist[@]}]="meminfo.job"
 @ENABLE_SYSCLASSIB_TRUE@ testlist[${#testlist[@]}]="sysclassib"
 @ENABLE_OPA2_TRUE@ testlist [${#testlist[@]}]="opa2"
@@ -52,81 +41,4 @@ testlist=""
 @ENABLE_KGNILND_TRUE@ testlist[${#testlist[@]}]="kgnilnd"
 @ENABLE_HELLO_STREAM_TRUE@ testlist[${#testlist[@]}]="hello_stream"
 @ENABLE_LLNL_EDAC_TRUE@ testlist[${#testlist[@]}]="llnl"
-
-
-#remove first element in the array
-unset testlist[0]
-
-function clusage {
-cat << EOF
-$0: usage:
-$0 -h
-$0 -l
-	-h produces help message
-	-l produces list of enabled plugins
-See man ldms-static-test and run-static-tests.sh for details.
-EOF
-}
-
-function failure_output {
-
-	$bindir/ldms-static-test.sh $testname &> ldmstest/test.$testname.log
-	tar czf ldmstest/$testname.tgz ldmstest/$testname ldmstest/test.$testname.log &>>ldmstest/test.$testname.log
-	x=$?
-	if [ $x -eq 2 ]; then
-	echo "If a line above reads 'FAIL: cannot read test input $testname':
-		1) The LDMSD config file for $testname does not exist.
-					OR
-		2) The $testname cannot be loaded, queried for usage and unloaded for ldmsd -u." >> ldmstest/test.$testname.log
-		tar czf ldmstest/$testname.tgz ldmstest/test.$testname.log
-	fi
-return 0
-}
-
-input=$1
-export input
-
-if test "$1" = "-h"; then
-	clusage
-	exit 0
-fi
-
-if test "$1" = "-l"; then
-	echo "Enabled plugins are:"
-	for plugins in ${testlist[@]};do
-		echo "$plugins"
-	done
-        exit 0
-fi
-
-echo 1..${#testlist[@]}
-for testnum in ${!testlist[@]}; do
-	testname=${testlist[$testnum]}
-	$bindir/ldms-static-test.sh $testname
-	exit_code=$?
-
-if grep "^$testname$" $file; then
-	bypass=1
-else
-	bypass=0
-fi
-
-if [ $exit_code -eq 0 ]; then
-	echo ok $testnum $testname
-fi
-
-if [ $bypass -eq 0 ] && [ $exit_code -eq 1 ]; then
-	failure_output
-	echo 'Bail out! Unexpected FAILURE'
-fi
-
-if [ $bypass -eq 1 ] && [ $exit_code -eq 1 ]; then
-	echo not ok $testnum - $testname expected failure defined in $file. Please remove $testname from list if sampler is not expected to fail.
-	failure_output
-	
-fi
-
-done;
-
-echo DONE.
 

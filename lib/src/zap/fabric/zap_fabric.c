@@ -185,7 +185,7 @@ static void dlog_(const char *func, int line, char *fmt, ...)
 #endif
 
 #define ZAP_FABRIC_INFO_LOG "ZAP_FABRIC_INFO_LOG"
-static int z_fi_info_log_on = 0;
+static int z_fi_info_log_on = 1;
 
 #define Z_FI_INFO_LOG(rep, fmt, ...) do { \
 	if (z_fi_info_log_on && rep && rep->ep.z && rep->ep.z->log_fn) \
@@ -400,6 +400,37 @@ static void z_fi_destroy(zap_ep_t zep)
 	free(rep);
 }
 
+int sockaddr_in_print(struct sockaddr *sa, char **node, char **port)
+{
+	char *_node = NULL;
+	char *_port = NULL;
+	int len;
+	uint8_t *ip_addr;
+	struct sockaddr_in *sin = (void*)sa;
+	if (sa->sa_family != AF_INET)
+		return EINVAL;
+	len = asprintf(&_port, "%hu", ntohs(sin->sin_port));
+	if (len < 0)
+		return errno;
+	if (sin->sin_addr.s_addr) {
+		ip_addr = (void*)&sin->sin_addr.s_addr;
+		len = asprintf(&_node, "%hhu.%hhu.%hhu.%hhu", ip_addr[0], ip_addr[1], ip_addr[2], ip_addr[3]);
+		if (len < 0) {
+			free(_port);
+			return errno;
+		}
+	} else {
+		len = asprintf(&_node, "*");
+		if (len < 0) {
+			free(_port);
+			return errno;
+		}
+	}
+	*node = _node;
+	*port = _port;
+	return 0;
+}
+
 static int __fi_init(struct z_fi_ep *rep, int active, struct sockaddr *sin, size_t sa_len)
 {
 	/* Initialize the following fabric entities in the endpoint.
@@ -412,6 +443,10 @@ static int __fi_init(struct z_fi_ep *rep, int active, struct sockaddr *sin, size
 	int ret = FI_ENOMEM;
 	struct z_fi_fabdom *fdom;
 	struct sockaddr *_sin;
+	char *node = NULL;
+	char *port = NULL;
+	int rc;
+	uint64_t flags = 0;
 
 	if (rep->fi)
 		goto init_dom;
@@ -437,8 +472,15 @@ static int __fi_init(struct z_fi_ep *rep, int active, struct sockaddr *sin, size
 			hints->dest_addr = _sin;
 			hints->dest_addrlen  = sa_len;
 		} else {
-			hints->src_addr = _sin;
-			hints->src_addrlen  = sa_len;
+			rc = sockaddr_in_print(_sin, &node, &port);
+			if (rc == 0) {
+				flags |= FI_SOURCE;
+				free(_sin); /* _sin is not used */
+			} else {
+				/* fall back to src_addr if str not working */
+				hints->src_addr = _sin;
+				hints->src_addrlen  = sa_len;
+			}
 		}
 	}
 	if (rep->provider_name) {
@@ -451,10 +493,11 @@ static int __fi_init(struct z_fi_ep *rep, int active, struct sockaddr *sin, size
 		if (!hints->domain_attr->name)
 			goto err_0;
 	}
-	ret = fi_getinfo(ZAP_FI_VERSION, NULL, NULL, 0, hints, &rep->fi);
+	ret = fi_getinfo(ZAP_FI_VERSION, node, port, flags, hints, &rep->fi);
 	if (ret)
 		goto err_0;
 	fi_freeinfo(hints);
+	hints = NULL;
  init_dom:
 	if (rep->fabric)
 		goto out;
@@ -467,11 +510,19 @@ static int __fi_init(struct z_fi_ep *rep, int active, struct sockaddr *sin, size
 	rep->domain = fdom->domain;
 	rep->fabdom_id = fdom->id;
  out:
+	if (node)
+		free(node);
+	if (port)
+		free(port);
 	return 0;
 
  err_0:
 	if (hints)
 		fi_freeinfo(hints);
+	if (node)
+		free(node);
+	if (port)
+		free(port);
 	return ret;
 }
 
@@ -536,8 +587,8 @@ _buffer_init_pool(struct z_fi_ep *rep)
 
 	rep->num_bufs = RQ_DEPTH + SQ_DEPTH + 4;  // +4 for credit updates
 	rep->buf_sz   = RQ_BUF_SZ;
-	rep->buf_pool = malloc(rep->num_bufs * rep->buf_sz);
-	rep->buf_objs = malloc(rep->num_bufs * sizeof(struct z_fi_buffer));
+	rep->buf_pool = calloc(1, rep->num_bufs * rep->buf_sz);
+	rep->buf_objs = calloc(1, rep->num_bufs * sizeof(struct z_fi_buffer));
 	if (!rep->buf_pool || !rep->buf_objs)
 		return -ENOMEM;
 	ret = fi_mr_reg(rep->domain, rep->buf_pool, rep->num_bufs*rep->buf_sz, FI_SEND|FI_RECV, 0,
@@ -1747,6 +1798,147 @@ static void *cm_thread_proc(void *arg)
 	return NULL;
 }
 
+#define MIN(a,b) ((a)<(b)?(a):(b))
+
+/* NOTE: From libfabric src/fi_tostr.c, ofi_straddr() is the internal function
+ *       (not exported) that yields the string address. fi_tostr() with
+ *       FI_TYPE_INFO seems to be the only one calling that function and giving
+ *       us src_addr string along with a lot longer description of fi_info. In
+ *       addition, fi_tostr() is NOT thread-safe. So, we borrow `ofi_straddr()`
+ *       from libfabric and put it in this file in order to get the printable
+ *       `fi_info.src_addr`.
+ */
+static
+const char *ofi_straddr(char *buf, size_t *len,
+			uint32_t addr_format, const void *addr)
+{
+/* from libfabric src/common.c */
+/*
+ * Copyright (c) 2004, 2005 Topspin Communications.  All rights reserved.
+ * Copyright (c) 2006-2017 Cisco Systems, Inc.  All rights reserved.
+ * Copyright (c) 2013-2018 Intel Corp., Inc.  All rights reserved.
+ * Copyright (c) 2015 Los Alamos Nat. Security, LLC. All rights reserved.
+ *
+ * This software is available to you under a choice of one of two
+ * licenses.  You may choose to be licensed under the terms of the GNU
+ * General Public License (GPL) Version 2, available from the file
+ * COPYING in the main directory of this source tree, or the
+ * BSD license below:
+ *
+ *     Redistribution and use in source and binary forms, with or
+ *     without modification, are permitted provided that the following
+ *     conditions are met:
+ *
+ *      - Redistributions of source code must retain the above
+ *        copyright notice, this list of conditions and the following
+ *        disclaimer.
+ *
+ *      - Redistributions in binary form must reproduce the above
+ *        copyright notice, this list of conditions and the following
+ *        disclaimer in the documentation and/or other materials
+ *        provided with the distribution.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+ * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS
+ * BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN
+ * ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+ * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+	const struct sockaddr *sock_addr;
+	const struct sockaddr_in6 *sin6;
+	const struct sockaddr_in *sin;
+	char str[INET6_ADDRSTRLEN + 8];
+	size_t size;
+
+	if (!addr || !len)
+		return NULL;
+
+	switch (addr_format) {
+	case FI_SOCKADDR:
+		sock_addr = addr;
+		switch (sock_addr->sa_family) {
+		case AF_INET:
+			goto sa_sin;
+		case AF_INET6:
+			goto sa_sin6;
+		default:
+			return NULL;
+		}
+		break;
+	case FI_SOCKADDR_IN:
+sa_sin:
+		sin = addr;
+		if (!inet_ntop(sin->sin_family, &sin->sin_addr, str,
+			       sizeof(str)))
+			return NULL;
+
+		size = snprintf(buf, MIN(*len, sizeof(str)),
+				"fi_sockaddr_in://%s:%" PRIu16, str,
+				ntohs(sin->sin_port));
+		break;
+	case FI_SOCKADDR_IN6:
+sa_sin6:
+		sin6 = addr;
+		if (!inet_ntop(sin6->sin6_family, &sin6->sin6_addr, str,
+			       sizeof(str)))
+			return NULL;
+
+		size = snprintf(buf, MIN(*len, sizeof(str)),
+				"fi_sockaddr_in6://[%s]:%" PRIu16, str,
+				ntohs(sin6->sin6_port));
+		break;
+	case FI_SOCKADDR_IB:
+		size = snprintf(buf, *len, "fi_sockaddr_ib://%p", addr);
+		break;
+	case FI_ADDR_PSMX:
+		size = snprintf(buf, *len, "fi_addr_psmx://%" PRIx64,
+				*(uint64_t *)addr);
+		break;
+	case FI_ADDR_PSMX2:
+		size =
+		    snprintf(buf, *len, "fi_addr_psmx2://%" PRIx64 ":%" PRIx64,
+			     *(uint64_t *)addr, *((uint64_t *)addr + 1));
+		break;
+	case FI_ADDR_GNI:
+		size = snprintf(buf, *len, "fi_addr_gni://%" PRIx64,
+				*(uint64_t *)addr);
+		break;
+	case FI_ADDR_BGQ:
+		size = snprintf(buf, *len, "fi_addr_bgq://%p", addr);
+		break;
+	case FI_ADDR_MLX:
+		size = snprintf(buf, *len, "fi_addr_mlx://%p", addr);
+		break;
+	case FI_ADDR_IB_UD:
+		memset(str, 0, sizeof(str));
+		if (!inet_ntop(AF_INET6, addr, str, INET6_ADDRSTRLEN))
+			return NULL;
+		size = snprintf(buf, *len, "fi_addr_ib_ud://"
+				"%s" /* GID */ ":%" PRIx32 /* QPN */
+				"/%" PRIx16 /* LID */ "/%" PRIx16 /* P_Key */
+				"/%" PRIx8 /* SL */,
+				str, *((uint32_t *)addr + 4),
+				*((uint16_t *)addr + 10),
+				*((uint16_t *)addr + 11),
+				*((uint8_t *)addr + 26));
+		break;
+	case FI_ADDR_STR:
+		size = snprintf(buf, *len, "%s", (const char *) addr);
+		break;
+	default:
+		return NULL;
+	}
+
+	/* Make sure that possibly truncated messages have a null terminator. */
+	if (buf && *len)
+		buf[*len - 1] = '\0';
+	*len = size + 1;
+	return buf;
+}
+
 static zap_err_t z_fi_listen(zap_ep_t ep, struct sockaddr *saddr, socklen_t sa_len)
 {
 	zap_err_t zerr;
@@ -1754,6 +1946,8 @@ static zap_err_t z_fi_listen(zap_ep_t ep, struct sockaddr *saddr, socklen_t sa_l
 	struct z_fi_ep *rep = (struct z_fi_ep *)ep;
 	struct epoll_event cm_event;
 	struct fi_eq_attr eq_attr = { .wait_obj = FI_WAIT_FD };
+	char buf[512] = "";
+	size_t len = sizeof(buf);
 
 	zerr = zap_ep_change_state(&rep->ep, ZAP_EP_INIT, ZAP_EP_LISTENING);
 	if (zerr)
@@ -1776,7 +1970,10 @@ static zap_err_t z_fi_listen(zap_ep_t ep, struct sockaddr *saddr, socklen_t sa_l
 	if (rc)
 		goto err_0;
 
-	Z_FI_INFO_LOG(rep, "using fabric '%s' provider '%s' domain '%s'\n",
+	Z_FI_INFO_LOG(rep, "zap_fabric listening on %s "
+			   "using fabric '%s' provider '%s' domain '%s'\n",
+			   ofi_straddr(buf, &len, rep->fi->addr_format,
+				       rep->fi->src_addr),
 			   rep->fi->fabric_attr->name,
 			   rep->fi->fabric_attr->prov_name,
 			   rep->fi->domain_attr->name);

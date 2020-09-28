@@ -44,7 +44,7 @@ AC_CHECK_PROG([BISON], [bison -y], [bison -y], [no])
 AS_IF([test "x$BISON" = "xno"], [AC_MSG_ERROR([bison not found])])
 
 dnl check for python interpreter
-AM_PATH_PYTHON([2.6])
+AM_PATH_PYTHON([3.6])
 
 dnl Checks for programs
 AC_PROG_CXX
@@ -401,7 +401,12 @@ AC_SUBST(OVIS_AUTH_LIBS)
 LDMSD_PLUGIN_LIBPATH=${pkglibdir}
 AC_SUBST(LDMSD_PLUGIN_LIBPATH)
 
+dnl making --disable-python an alias of --disable-ldms-python
+dnl ENABLE_LDMS_PYTHON_TRUE only if neither --disable-python nor
+dnl --disable-ldms-python are given.
 OPTION_DEFAULT_ENABLE([ldms-python], [ENABLE_LDMS_PYTHON])
+OPTION_DEFAULT_ENABLE([python], [ENABLE_PYTHON_OPT])
+AM_CONDITIONAL([ENABLE_PYTHON], [test -z "${ENABLE_LDMS_PYTHON_TRUE}" -a -z "${ENABLE_PYTHON_OPT_TRUE}"])
 
 dnl Check for pthread support
 AC_CHECK_LIB(pthread, pthread_mutex_init, [],
@@ -526,9 +531,7 @@ if test -z "$ENABLE_YAML_TRUE"; then
 	LIBS=""
 fi
 
-dnl swig stuff
 if test -z "$ENABLE_SOS_TRUE"; then
-	AX_PYTHON_DEVEL()
 	if test "x$WITH_SOS" != "xbuild"; then
 		OCFLAGS=$CFLAGS
 		CFLAGS=$SOS_INCDIR_FLAG
@@ -548,14 +551,30 @@ if test -z "$ENABLE_SOS_TRUE"; then
 	fi
 fi
 
-OPTION_DEFAULT_DISABLE([swig], [ENABLE_SWIG])
-if test -z "$ENABLE_SWIG_TRUE" || test -z "$ENABLE_LDMS_PYTHON_TRUE"; then
-	AC_PROG_SWIG
-	SWIG_PYTHON
+AC_ARG_VAR([CYTHON], [Cython compiler command])
+dnl CYTHON_CHECK(CYTHON_MIN_VERSION, PYTHON_VERSION)
+AC_DEFUN([CYTHON_CHECK],
+[cython_min_version=$1
+ python_version=$2
+ AC_CACHE_CHECK([for a version of Cython >= ${cython_min_version}],
+		[ac_cv_path_CYTHON],
+		[AC_PATH_PROGS_FEATURE_CHECK([CYTHON],
+			[cython-${python_version} cython${python_version} cython],
+			[cython_version=$(${ac_path_CYTHON} --version 2>&1 | sed -e 's/.*\s//')
+			 AX_COMPARE_VERSION([${cython_version}],[ge],[$cython_min_version],
+			[ac_cv_path_CYTHON=$ac_path_CYTHON ac_path_CYTHON_found=:])],
+			[AC_MSG_ERROR([not found])])])
+ AC_SUBST([CYTHON], [$ac_cv_path_CYTHON])
+])
+
+dnl ldms-python API's and programs
+AS_IF([test "x$enable_python" != xno], [
+	AX_PYTHON_DEVEL([>='3.6'])
 	pkgpythondir="${pythondir}/ovis_ldms"
 	pkgpyexecdir="${pkgpythondir}"
 	AX_PYTHON_MODULE_VERSION(["argparse"], 1.1, "python")
-fi
+	CYTHON_CHECK([0.25], $PYTHON_VERSION)
+])
 AM_CONDITIONAL([HAVE_PYTHON], [test "$PYTHON" != :])
 
 OPTION_WITH_PORT([LDMSD],[411])
@@ -730,16 +749,12 @@ lib/src/zap/fabric/Makefile
 lib/src/zap/sock/Makefile
 lib/src/zap/ugni/Makefile
 lib/src/zap/test/Makefile
-lib/swig/Makefile
-lib/swig/zap/Makefile
-lib/swig/ovis_auth/Makefile
 lib/etc/Makefile
 lib/etc/ovis/Makefile
 lib/etc/ld.so.conf.d/Makefile
 ldms/Makefile
 ldms/src/Makefile
 ldms/src/core/Makefile
-ldms/swig/Makefile
 ldms/src/auth/Makefile
 ldms/src/store/Makefile
 ldms/src/sampler/Makefile
@@ -818,8 +833,6 @@ AC_CONFIG_FILES([
 	ldms/scripts/ldms-wrapper
 	ldms/scripts/ldms-static-test.sh
 	ldms/scripts/pll-ldms-static-test.sh
-	ldms/scripts/run-static-tests.sh
-	ldms/scripts/static-test-list
 	ldms/scripts/ldms_ban.sh
 	ldms/scripts/ldms-plugins.sh
 	ldms/scripts/ldms-py-subset_test.sh
@@ -829,6 +842,9 @@ AC_CONFIG_FILES([
 	ldms/scripts/ldms-meminfo.sh
 	ldms/scripts/ldms_local_opa2test.sh
 	ldms/scripts/ldms-l2_test.sh
+	ldms/src/test/ldms-run-static-tests.sh
+	ldms/src/test/ldms-static-test-list.sh
+	ldms/src/test/ldms-static-test-bypass
 	], [chmod a+x $ac_file]
 )
 
