@@ -5,14 +5,11 @@ SUBDIRS = src
 if ENABLE_SCRIPTS
 SUBDIRS += scripts
 endif
-if ENABLE_SWIG
-SUBDIRS += swig
-endif
 if ENABLE_ETC
 SUBDIRS += etc
 endif
 
-if ENABLE_LDMS_PYTHON
+if ENABLE_PYTHON
 SUBDIRS += python
 endif
 

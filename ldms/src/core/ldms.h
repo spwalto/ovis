@@ -646,9 +646,6 @@ typedef struct ldms_dir_s {
 	/** !0 if this is the first of multiple updates */
 	int more;
 
-#ifdef SWIG
-%immutable;
-#endif
 	/** count of sets in the set_name array */
 	int set_count;
 
@@ -1122,6 +1119,14 @@ extern int ldms_set_producer_name_set(ldms_set_t s, const char *name);
  * \returns 0		Success
  */
 extern int ldms_mmap_set(void *meta_addr, void *data_addr, ldms_set_t *s);
+
+/**
+ * \brief Get the set name
+ *
+ * \param s The ldms_set_t handle.
+ * \returns Pointer to the set name
+ */
+extern const char *ldms_set_name_get(ldms_set_t s);
 
 /**
  * \brief Get the number of metrics in the set.
@@ -1713,9 +1718,6 @@ typedef enum ldms_notify_event_type {
 } ldms_notify_event_type_t;
 typedef struct ldms_notify_event_s {
 	ldms_notify_event_type_t type;
-#ifdef SWIG
-%ignore u_data;
-#endif
 	size_t len;		/*! The size of the event in bytes */
 	unsigned char u_data[OVIS_FLEX];/*! User-data for the LDMS_USER_DATA
 				  type */

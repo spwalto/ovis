@@ -113,6 +113,7 @@ int _scpy(char **buff, size_t *slen, size_t *alen,
 
 char *str_repl_cmd(const char *_str)
 {
+	FILE *p = NULL;
 	char *str = strdup(_str);
 	if (!str)
 		goto err;
@@ -126,7 +127,6 @@ char *str_repl_cmd(const char *_str)
 	char *cmd;
 	int rc;
 	int count;
-	FILE *p = NULL;
 
 	if (!str)
 		goto err;
@@ -202,6 +202,7 @@ char *str_repl_cmd(const char *_str)
 			}
 		}
 		pclose(p);
+		p = NULL;
 		/* remove the trailing spaces at the end */
 		while (isspace(buff[slen-1])) {
 			buff[slen-1] = 0;
@@ -444,6 +445,42 @@ static char *copy_string(struct attr_value_list *av_list, const char *s)
 	return str;
 }
 
+int av_add(struct attr_value_list *avl, const char *name, const char *value)
+{
+        string_ref_t nref, vref;
+        struct attr_value *av;
+
+        if (avl->count == avl->size)
+                return ENOSPC;
+
+        av = &(avl->list[avl->count]);
+        nref = malloc(sizeof(*nref));
+        if (!nref)
+                return ENOMEM;
+        nref->str = strdup(name);
+        if (!nref->str)
+                goto err0;
+        av->name = nref->str;
+        if (value) {
+                vref = malloc(sizeof(*vref));
+                if (!vref)
+                        goto err1;
+                vref->str = strdup(value);
+                if (!vref->str)
+                        goto err2;
+                av->value = vref->str;
+        }
+        avl->count++;
+        return 0;
+err2:
+        free(vref);
+err1:
+        free(nref->str);
+err0:
+        free(nref);
+        return ENOMEM;
+}
+
 struct attr_value_list *av_copy(struct attr_value_list *src)
 {
 	struct attr_value *av;
@@ -574,7 +611,7 @@ pid_t ovis_execute(const char *command)
 
 #define DSTRING_USE_SHORT
 #include "dstring.h"
-char *ovis_join(char *pathsep, ...)
+__attribute__ ((sentinel)) char *ovis_join(char *pathsep, ...)
 {
 	va_list ap;
 	char *result = NULL;
@@ -607,7 +644,7 @@ char *ovis_join(char *pathsep, ...)
 	return result;
 }
 
-int ovis_join_buf(char *buf, size_t buflen, char *pathsep, ...)
+__attribute__ ((sentinel)) int ovis_join_buf(char *buf, size_t buflen, char *pathsep, ...)
 {
 	int rc = 0;
 	va_list ap;

@@ -160,6 +160,14 @@ char *av_to_string(struct attr_value_list *av_list, int av_flags);
 struct attr_value_list *av_new(size_t size);
 
 /**
+ * \brief Add a new attribute-value pair.
+ *  
+ * \return 0 on success. ENOSPC is returned of the list is full.
+ *         ENOMEM is returned out-of-memory occurs. 
+*/
+int av_add(struct attr_value_list *avl, const char *name, const char *value);
+
+/**
  * \brief Duplicate an existing list.
  */
 struct attr_value_list *av_copy(struct attr_value_list *src);
@@ -207,7 +215,7 @@ pid_t ovis_execute(const char *command);
  * Example: ovis_join("\\","c:\\root", "file.txt", NULL);
  * \return The resulting string caller must free, or NULL if fail(see errno).
  */
-char *ovis_join(char *joiner, ...);
+__attribute__ ((sentinel)) char *ovis_join(char *joiner, ...);
 
 /**
  * \brief Fill array by joining parts.
@@ -219,7 +227,7 @@ char *ovis_join(char *joiner, ...);
  * Example: ovis_join_buf(buf, 256, "\\","c:\\root", "file.txt", NULL);
  * \return 0 if successful, or errno if input problem detected.
  */
-int ovis_join_buf(char *buf, size_t buflen, char *joiner, ...);
+__attribute__ ((sentinel)) int ovis_join_buf(char *buf, size_t buflen, char *joiner, ...);
 
 /**
  * \brief A convenient function checking if the given \a path exists.
