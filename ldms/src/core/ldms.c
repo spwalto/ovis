@@ -939,8 +939,9 @@ uint32_t __ldms_set_size_get(struct ldms_set *s)
 int ldms_init(size_t max_size)
 {
 	size_t grain = LDMS_GRAIN_MMALLOC;
-	if (mm_init(max_size, grain))
-		return -1;
+	int rc = mm_init(max_size, grain); /* mm_init() returns errno */
+	if (rc)
+		return rc;
 	return 0;
 }
 
@@ -1172,7 +1173,7 @@ ldms_set_t ldms_set_new_with_auth(const char *instance_name,
 
 ldms_set_t ldms_set_new(const char *instance_name, ldms_schema_t schema)
 {
-	return ldms_set_new_with_auth(instance_name, schema, geteuid(), getegid(), 0777);
+	return ldms_set_new_with_auth(instance_name, schema, geteuid(), getegid(), 0440);
 }
 
 int ldms_set_config_auth(ldms_set_t set, uid_t uid, gid_t gid, mode_t perm)
@@ -1205,14 +1206,32 @@ uint32_t ldms_set_uid_get(ldms_set_t s)
 	return __le32_to_cpu(s->set->meta->uid);
 }
 
+int ldms_set_uid_set(ldms_set_t s, uid_t uid)
+{
+	s->set->meta->uid = __cpu_to_le32(uid);
+        return 0;
+}
+
 uint32_t ldms_set_gid_get(ldms_set_t s)
 {
 	return __le32_to_cpu(s->set->meta->gid);
 }
 
+int ldms_set_gid_set(ldms_set_t s, gid_t gid)
+{
+	s->set->meta->gid = __cpu_to_le32(gid);
+        return 0;
+}
+
 uint32_t ldms_set_perm_get(ldms_set_t s)
 {
 	return __le32_to_cpu(s->set->meta->perm);
+}
+
+int ldms_set_perm_set(ldms_set_t s, mode_t perm)
+{
+	s->set->meta->perm = __cpu_to_le32(perm);
+        return 0;
 }
 
 extern uint32_t ldms_set_meta_sz_get(ldms_set_t s)

@@ -43,9 +43,6 @@ AC_ARG_VAR([BISON], [bison command])
 AC_CHECK_PROG([BISON], [bison -y], [bison -y], [no])
 AS_IF([test "x$BISON" = "xno"], [AC_MSG_ERROR([bison not found])])
 
-dnl check for python interpreter
-AM_PATH_PYTHON([3.6])
-
 dnl Checks for programs
 AC_PROG_CXX
 dnl Checks for typedefs, structures, and compiler characteristics.
@@ -132,7 +129,6 @@ OPTION_DEFAULT_DISABLE([ugni], [ENABLE_UGNI])
 dnl dnl OPTION_DEFAULT_DISABLE([sos], [ENABLE_SOS])
 dnl dnl OPTION_WITH_OR_BUILD([sos],[../sos],[sos/src sos/include ods/src ods/include])
 
-dnl we need libevent to support zap
 have_zap=0
 
 if test "$disable_zap" != "yes"; then
@@ -401,13 +397,6 @@ AC_SUBST(OVIS_AUTH_LIBS)
 LDMSD_PLUGIN_LIBPATH=${pkglibdir}
 AC_SUBST(LDMSD_PLUGIN_LIBPATH)
 
-dnl making --disable-python an alias of --disable-ldms-python
-dnl ENABLE_LDMS_PYTHON_TRUE only if neither --disable-python nor
-dnl --disable-ldms-python are given.
-OPTION_DEFAULT_ENABLE([ldms-python], [ENABLE_LDMS_PYTHON])
-OPTION_DEFAULT_ENABLE([python], [ENABLE_PYTHON_OPT])
-AM_CONDITIONAL([ENABLE_PYTHON], [test -z "${ENABLE_LDMS_PYTHON_TRUE}" -a -z "${ENABLE_PYTHON_OPT_TRUE}"])
-
 dnl Check for pthread support
 AC_CHECK_LIB(pthread, pthread_mutex_init, [],
     AC_MSG_ERROR([pthread library not found.  ldms requires libpthread.]))
@@ -551,31 +540,44 @@ if test -z "$ENABLE_SOS_TRUE"; then
 	fi
 fi
 
-AC_ARG_VAR([CYTHON], [Cython compiler command])
-dnl CYTHON_CHECK(CYTHON_MIN_VERSION, PYTHON_VERSION)
-AC_DEFUN([CYTHON_CHECK],
-[cython_min_version=$1
- python_version=$2
- AC_CACHE_CHECK([for a version of Cython >= ${cython_min_version}],
-		[ac_cv_path_CYTHON],
-		[AC_PATH_PROGS_FEATURE_CHECK([CYTHON],
-			[cython-${python_version} cython${python_version} cython],
-			[cython_version=$(${ac_path_CYTHON} --version 2>&1 | sed -e 's/.*\s//')
-			 AX_COMPARE_VERSION([${cython_version}],[ge],[$cython_min_version],
-			[ac_cv_path_CYTHON=$ac_path_CYTHON ac_path_CYTHON_found=:])],
-			[AC_MSG_ERROR([not found])])])
- AC_SUBST([CYTHON], [$ac_cv_path_CYTHON])
-])
+AC_ARG_ENABLE([python],
+	[AS_HELP_STRING([--disable-python], [disable the LDMS python API])],
+	[want_python=$enableval],
+	[want_python="check"])
+dnl --disable-ldms-python is deprecated, and we should remove it in 5.X
+AC_ARG_ENABLE([ldms-python],
+	[AS_HELP_STRING([--disable-ldms-python], [disable the LDMS python API (deprecated)])],
+	[want_python=$enableval])
 
-dnl ldms-python API's and programs
-AS_IF([test "x$enable_python" != xno], [
-	AX_PYTHON_DEVEL([>='3.6'])
-	pkgpythondir="${pythondir}/ovis_ldms"
-	pkgpyexecdir="${pkgpythondir}"
-	AX_PYTHON_MODULE_VERSION(["argparse"], 1.1, "python")
-	CYTHON_CHECK([0.25], $PYTHON_VERSION)
+AC_ARG_VAR([CYTHON], [Cython compiler command])
+
+dnl ldms's python APIs and programs
+dnl We make the assumption that if AM_PATH_PYTHON succeeds, that AX_PYTHON_DEVEL
+dnl is very likely to succeed as well.
+python_found=false
+cython_found=false
+AS_IF([test "x$want_python" != xno], [
+	AM_PATH_PYTHON([3.6],
+		[AX_PYTHON_DEVEL([>='3.6'])
+		 pkgpythondir="${pythondir}/ovis_ldms"
+		 pkgpyexecdir="${pkgpythondir}"
+		 AX_PYTHON_MODULE_VERSION(["argparse"], 1.1, "python")
+		 python_found=true
+		 CYTHON_CHECK([0.25], [$PYTHON_VERSION],
+		 	[cython_found=true], [cython_found=false])],
+		[python_found=false
+		 cython_found=false])
+
+	AS_IF([test "$python_found" = false],
+		[AS_IF([test "x$want_python" = xyes],
+			[AC_MSG_ERROR([python not found])],
+			[AC_MSG_WARN([python not found])])])
+	AS_IF([test "$cython_found" = false],
+		[AS_IF([test "x$want_python" = xyes],
+			[AC_MSG_ERROR([cython not found])],
+			[AC_MSG_WARN([cython not found])])])
 ])
-AM_CONDITIONAL([HAVE_PYTHON], [test "$PYTHON" != :])
+AM_CONDITIONAL([ENABLE_PYTHON], [test "$python_found" = true -a "$cython_found" = true])
 
 OPTION_WITH_PORT([LDMSD],[411])
 
@@ -833,8 +835,6 @@ AC_CONFIG_FILES([
 	ldms/scripts/ldms-wrapper
 	ldms/scripts/ldms-static-test.sh
 	ldms/scripts/pll-ldms-static-test.sh
-	ldms/scripts/run-static-tests.sh
-	ldms/scripts/static-test-list
 	ldms/scripts/ldms_ban.sh
 	ldms/scripts/ldms-plugins.sh
 	ldms/scripts/ldms-py-subset_test.sh
@@ -844,6 +844,9 @@ AC_CONFIG_FILES([
 	ldms/scripts/ldms-meminfo.sh
 	ldms/scripts/ldms_local_opa2test.sh
 	ldms/scripts/ldms-l2_test.sh
+	ldms/src/test/ldms-run-static-tests.sh
+	ldms/src/test/ldms-static-test-list.sh
+	ldms/src/test/ldms-static-test-bypass
 	], [chmod a+x $ac_file]
 )
 
