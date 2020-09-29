@@ -194,7 +194,8 @@ typedef struct ldms_schema_s *ldms_schema_t;
  *
  *  Pre-allocate a memory region for metric sets
  *  \param max_size The maximum size of the pre-allocated memory
- *  \return 0 on success
+ *  \retval 0     If success
+ *  \retval errno If error
  */
 int ldms_init(size_t max_size);
 
@@ -646,9 +647,6 @@ typedef struct ldms_dir_s {
 	/** !0 if this is the first of multiple updates */
 	int more;
 
-#ifdef SWIG
-%immutable;
-#endif
 	/** count of sets in the set_name array */
 	int set_count;
 
@@ -1147,6 +1145,15 @@ extern uint32_t ldms_set_card_get(ldms_set_t s);
 uint32_t ldms_set_uid_get(ldms_set_t s);
 
 /**
+ * \brief Set the UID of the LDMS set.
+ * \param s The set handle.
+ * \param uid The UID to set
+ * \retval errno If failed.
+ * \retval 0     If succeeded.
+ */
+int ldms_set_uid_set(ldms_set_t s, uid_t uid);
+
+/**
  * \brief Retreive the GID of the LDMS set.
  * \param s The set handle.
  * \retval gid The GID of the set.
@@ -1154,11 +1161,29 @@ uint32_t ldms_set_uid_get(ldms_set_t s);
 uint32_t ldms_set_gid_get(ldms_set_t s);
 
 /**
+ * \brief Set the GID of the LDMS set.
+ * \param s The set handle.
+ * \param uid The GID to set
+ * \retval errno If failed.
+ * \retval 0     If succeeded.
+ */
+int ldms_set_gid_set(ldms_set_t s, gid_t gid);
+
+/**
  * \brief Retreive the permission of the LDMS set.
  * \param s The set handle.
  * \retval perm The permission of the set.
  */
 uint32_t ldms_set_perm_get(ldms_set_t s);
+
+/**
+ * \brief Set the permissions of the LDMS set.
+ * \param s The set handle.
+ * \param perm The UNIX mode_t bits (see chmod)
+ * \retval errno If failed.
+ * \retval 0     If succeeded.
+ */
+int ldms_set_perm_set(ldms_set_t s, mode_t perm);
 
 /**
  * \brief Get the size in bytes of the set's meta data
@@ -1721,9 +1746,6 @@ typedef enum ldms_notify_event_type {
 } ldms_notify_event_type_t;
 typedef struct ldms_notify_event_s {
 	ldms_notify_event_type_t type;
-#ifdef SWIG
-%ignore u_data;
-#endif
 	size_t len;		/*! The size of the event in bytes */
 	unsigned char u_data[OVIS_FLEX];/*! User-data for the LDMS_USER_DATA
 				  type */

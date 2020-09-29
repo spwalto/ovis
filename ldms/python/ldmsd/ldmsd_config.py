@@ -103,6 +103,7 @@ LDMSD_CTRL_CMD_MAP = {'usage': {'req_attr': [], 'opt_attr': ['name']},
                       'prdcr_set_status': {'opt_attr': ['producer', 'instance', 'schema']},
                       'prdcr_hint_tree': {'req_attr':['name'], 'opt_attr': []},
                       'prdcr_subscribe': {'req_attr':['regex', 'stream'], 'opt_attr': []},
+                      'prdcr_unsubscribe': {'req_attr':['regex', 'stream'], 'opt_attr': []},
                       ##### Updater Policy #####
                       'updtr_add': {'req_attr': ['name'],
                                     'opt_attr': ['offset', 'push', 'interval', 'auto_interval']},
@@ -132,6 +133,7 @@ LDMSD_CTRL_CMD_MAP = {'usage': {'req_attr': [], 'opt_attr': ['name']},
                       ##### Streams ###
                       'publish': {'req_attr': ['name'], 'opt_attr': []},
                       'subscribe': {'req_attr': ['name'], 'opt_attr': []},
+                      'stream_client_dump': {'req_attr': [], 'opt_attr': []},
                       ##### Daemon #####
                       'daemon_status': {'req_attr': [], 'opt_attr': []},
                       ##### Misc. #####
@@ -243,8 +245,7 @@ class ldmsdInbandConfig(ldmsdConfig):
         try:
             from ovis_ldms import ldms
         except:
-            raise ImportError("Failed to import ovis_ldms.ldms. "
-                              "Please make sure that ldms is built with --enable-swig")
+            raise ImportError("Failed to import ovis_ldms.ldms.")
         else:
             self.ldms_module = ldms
 
