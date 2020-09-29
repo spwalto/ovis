@@ -39,6 +39,9 @@ test_metric_SOURCES = test_metric.c
 test_metric_LDADD = -lldms
 test_metric_LDFLAGS = $(AM_LDFLAGS) -pthread -lm
 
+TEST_LOG_DRIVER = env AM_TAP_AWK='$(AWK)' $(SHELL) \
+                  $(top_srcdir)/config/tap-driver.sh
+
 install-data-hook: 
 	$(MKDIR_P) $(DESTDIR)$(pkglibdir)
 	$(INSTALL) -m 644 ldms-static-test-list.sh $(DESTDIR)$(pkglibdir)
@@ -53,4 +56,4 @@ uninstall-hook:
 installcheck-local: 
 	ldms-run-static-tests.sh
 
-TESTS = $(check_PROGRAMS)
+TESTS = $(check_PROGRAMS) ldms-run-static-tests.sh
