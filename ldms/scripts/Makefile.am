@@ -4,6 +4,7 @@ EXTRA_DIST=examples lsdate slurm-examples
 EXTRA_DIST += ldms-csv-anonymize ldms-csv-export-sos
 EXTRA_DIST += ovis-roll-over.py ldmsd-check-env
 
+
 if ENABLE_SCRIPTS
 sbin_SCRIPTS= ldms-wrapper
 bin_SCRIPTS = lsdate

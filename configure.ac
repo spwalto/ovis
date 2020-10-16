@@ -812,7 +812,6 @@ ldms/src/ldmsd/Makefile
 ldms/src/ldmsd/test/Makefile
 ldms/scripts/Makefile
 ldms/src/test/Makefile
-ldms/src/test/test/Makefile
 ldms/etc/Makefile
 ldms/etc/systemd/Makefile
 ldms/python/Makefile
@@ -849,7 +848,6 @@ AC_CONFIG_FILES([
 	ldms/src/test/ldms-run-static-tests.test
 	ldms/src/test/ldms-static-test-list.sh
 	ldms/src/test/ldms-static-test-bypass
-	ldms/src/test/test/ldms-run-static-tests.t
 	], [chmod a+x $ac_file]
 )
 

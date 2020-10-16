@@ -53,7 +53,4 @@ uninstall-hook:
 	rm $(DESTDIR)$(pkglibdir)/ldms-run-static-tests.test
 	rm $(DESTDIR)$(pkglibdir)/ldms-static-test-bypass
 
-installcheck-local: 
-	ldms-run-static-tests.test
-
 TESTS = $(check_PROGRAMS) ldms-run-static-tests.test
