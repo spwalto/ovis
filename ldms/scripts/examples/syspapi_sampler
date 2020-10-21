@@ -1,0 +1,13 @@
+export plugname=syspapi_sampler
+portbase=61050
+LDMSD 1 2
+LDMSD -p syspapi_sampler.1 -p prolog.store3 3
+MESSAGE ldms_ls on host 1:
+LDMS_LS 1 -l
+MESSAGE ldms_ls on host 2:
+LDMS_LS 2 -l
+MESSAGE ldms_ls on host 3:
+LDMS_LS 3 -l
+SLEEP 5
+KILL_LDMSD `seq 3`
+file_created $STOREDIR/node/$testname
