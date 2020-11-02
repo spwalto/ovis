@@ -1,5 +1,5 @@
 load name=store_flatfile
-config name=store_flatfile path=${STOREDIR}/datadir altheader=0
+config name=store_flatfile path=${STOREDIR} altheader=0
 
 prdcr_add name=localhost1 host=${HOST} type=active xprt=${XPRT} port=${port1} interval=10000000
 prdcr_start name=localhost1
@@ -11,6 +11,6 @@ updtr_add name=allhosts interval=1000000 offset=100000
 updtr_prdcr_add name=allhosts regex=.*
 updtr_start name=allhosts
 
-strgp_add name=store_flatfile_${testname} plugin=store_flatfile schema=${testname} container=flat
+strgp_add name=store_flatfile_${testname} plugin=store_flatfile schema=${testname} container=node
 strgp_prdcr_add name=store_flatfile_${testname} regex=.*
 strgp_start name=store_flatfile_${testname} regex=.*
