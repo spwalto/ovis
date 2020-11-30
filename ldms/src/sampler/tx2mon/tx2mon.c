@@ -62,7 +62,7 @@
 #include <stdint.h>
 #include <termios.h>
 #include <term.h>
-
+#include <string.h>
 //#include "parse_mc_oper_region.c"
 
 #define SAMP "tx2mon"
@@ -100,14 +100,10 @@ static char *pids = "self";
 #define MCP_LIST(WRAP) \
         WRAP("cmd_status", cmd_status, LDMS_V_U32, pos_cmd_status) \
         WRAP("counter", counter, LDMS_V_U32, pos_counter) \
-        WRAP("resv0", resv0, LDMS_V_U32, pos_resv0) \
         WRAP("temp_abs_max", temp_abs_max, LDMS_V_U32, pos_temp_abs_max) \
         WRAP("temp_soft_thresh", temp_soft_thresh, LDMS_V_U32, pos_temp_soft_thresh) \
         WRAP("temp_hard_thresh", temp_hard_thresh, LDMS_V_U32, pos_temp_hard_thresh) \
-        WRAP("resv1", resv1, LDMS_V_U32, pos_resv1) \
-	WRAP("resv2", resv2, LDMS_V_U32, pos_resv2) \
 	WRAP("freq_cpu", freq_cpu[MAX_CPUS_PER_SOC], LDMS_V_U32_ARRAY, pos_freq_cpu) \
-	WRAP("resv3", resv3[MAX_CPUS_PER_SOC], LDMS_V_U32_ARRAY, pos_resv3) \
 	WRAP("tmon_cpu", tmon_cpu[MAX_CPUS_PER_SOC], LDMS_V_U16_ARRAY, pos_tmon_cpu) \
 	WRAP("tmon_soc_avg", tmon_soc_avg, LDMS_V_U32, pos_tmon_soc_avg) \
 	WRAP("freq_mem_net", freq_mem_net, LDMS_V_U32, pos_freq_mem_net) \
@@ -123,17 +119,6 @@ static char *pids = "self";
 	WRAP("v_sram", v_sram, LDMS_V_U32, pos_v_sram) \
 	WRAP("v_mem", v_mem, LDMS_V_U32, pos_v_mem) \
 	WRAP("v_soc", v_soc, LDMS_V_U32, pos_v_soc) \
-	WRAP("resv4", resv4, LDMS_V_U32, pos_resv4) \
-	WRAP("resv5", resv5, LDMS_V_U32, pos_resv5) \
-	WRAP("resv6", resv6, LDMS_V_U32, pos_resv6) \
-	WRAP("resv7", resv7, LDMS_V_U32, pos_resv7) \
-	WRAP("resv8", resv8, LDMS_V_U32, pos_resv8) \
-	WRAP("resv9", resv9, LDMS_V_U32, pos_resv9) \
-	WRAP("resv10", resv10, LDMS_V_U32, pos_resv10) \
-	WRAP("resv11", resv11, LDMS_V_U32, pos_resv11) \
-	WRAP("resv12", resv12, LDMS_V_U32, pos_resv12) \
-	WRAP("resv13", resv13, LDMS_V_U32, pos_resv13) \
-	WRAP("resv14", resv14, LDMS_V_U32, pos_resv14) \
 	WRAP("active_evt", active_evt, LDMS_V_U32, pos_active_evt) \
 	WRAP("temp_evt_cnt", temp_evt_cnt, LDMS_V_U32, pos_temp_evt_cnt) \
 	WRAP("pwr_evt_cnt", pwr_evt_cnt, LDMS_V_U32, pwr_evt_cnt) \
@@ -329,7 +314,7 @@ static void term(struct ldmsd_plugin *self)
 		base_del(base);
 	for (int i = 0; i < 2; i++){
 	if (set[i])
-		ldms_set_delete(set);
+		ldms_set_delete(set[i]);
 	set[i] = NULL;
 	}
 }
@@ -349,6 +334,7 @@ static int sample(struct ldmsd_sampler *self)
 	
 	for (int i = 0; i < 2; i ++)
 	{
+	
 	base_sample_begin(base);
 			if (!mcprc) {
 				if ( i == 0)
@@ -361,6 +347,7 @@ static int sample(struct ldmsd_sampler *self)
 	}
 	return rc;
 }
+
 
 static ldms_set_t get_set(struct ldmsd_sampler *self)
 {
@@ -414,20 +401,29 @@ static int create_metric_set(base_data_t base)
 		MCP_LIST(METRIC);
 	}
 
-	for (int i = 0; i < 1; i++){
+	for (int i = 0; i < 2; i++){
 		msglog(LDMSD_LDEBUG, SAMP ": Got to this point - in create metric set before setting base \n");
-		set[i] = base_set_new(base);
-#if 0
-		if (i == 0)
+		//set[i] = base_set_new(base);
+		base->set=set[i];
+		//char append = i;
+		if (i == 0){
 			set[i] = ldms_set_new("Node0", schema);
-		else if (i == 1)
+		}
+		else if (i == 1){
 			set[i] = ldms_set_new("Node1", schema);
+		}
+		//base->instance_name = strcat(base->instance_name, append);
 		if (!set[i]) {
 			rc = errno;
-			msglog(LDMSD_LDEBUG, SAMP ": Got to this point - in the check set section of create metric set \n");
+			msglog(LDMSD_LERROR,"base_set_new: ldms_set_new failed %d for %s\n",
+                                errno, base->instance_name);
 			goto err;
 		}
-#endif
+		ldms_set_producer_name_set(set[i], base->producer_name);
+        	ldms_metric_set_u64(set[i], BASE_COMPONENT_ID, base->component_id);
+        	ldms_metric_set_u64(set[i], BASE_JOB_ID, 0);
+        	ldms_metric_set_u64(set[i], BASE_APP_ID, 0);
+       		base_auth_set(&base->auth, set[i]);
 		base_sample_begin(base);
 		if (i == 0){
 			if (pidopts & MC_OPER_REGION_0) {
@@ -441,6 +437,7 @@ static int create_metric_set(base_data_t base)
 
 		base_sample_end(base);
 	}
+	base->set = NULL;
 	msglog(LDMSD_LDEBUG, SAMP ": Got to this point - in create metric set 3\n");
 	
 }
