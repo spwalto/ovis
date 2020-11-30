@@ -29,8 +29,9 @@
  *
  * TODO: insert exact configure command line required here.
  */
-#include "mc_oper_region.h"
+#include <tx2mon/mc_oper_region.h>
 
+#include <limits.h>
 /*
  * Forward declarations.
  */
@@ -42,6 +43,20 @@ static int sample(struct ldmsd_sampler *self);
 
 static int create_metric_set(base_data_t base);
 
+//Definitions and functions used to parse and dump cpu data to screen
+#define CORES_PER_ROW 4
+#define PIDFMAX 32
+#define BUFMAX 512
+static struct termios *ts_saved;
+static int display_extra = 0;
+static int display_throttling = 1;
+
+static struct term_seq {
+        char *cl;
+        char *nl;
+} term_seq;
+
+
 /*
  * Location of the sysfs entries created by the kernel module.
  *
@@ -49,8 +64,9 @@ static int create_metric_set(base_data_t base);
  */
 #define	TX2MON_SYSFS_PATH	"/sys/bus/platform/devices/tx2mon/"
 #define	TX2MON_SOCINFO_PATH	TX2MON_SYSFS_PATH "socinfo"
-#define	TX2MON_NODE_PATH	TX2MON_SYSFS_PATH "node%d_raw"
-
+#define	TX2MON_NODE_PATH_0	TX2MON_SYSFS_PATH "node0_raw"
+#define TX2MON_NODE_PATH_1      TX2MON_SYSFS_PATH "node1_raw"
+#define TX2MON_NODE_PATH      TX2MON_SYSFS_PATH "node%d_raw"
 /*
  * Max number of CPUs (TX2 chips) supported.
  */
@@ -76,7 +92,17 @@ typedef enum {CAP_BASIC = 0x00, CAP_THROTTLE = 0x01} tx2mon_cap;
 struct cpu_info {
 	int	fd;		/* fd of raw file opened */
 	int	metric_offset;	/* starting offset into schema for this CPU */
-	struct	mc_oper_region *mcp;	/* mmapped data structure (from fd) */
+	struct	mc_oper_region mcp;	/* mmapped data structure (from fd) */
+	unsigned int throttling_available:1;
+	int	node;
+	LIST_ENTRY(tx2mon_soc) entry; /**< List entry */
+	uint16_t meta_init;
+	int 	soc_number;
+	char schema_name[24];
+	char structname[24];
+	ldms_set_t set;
+	struct timeval last_fail;
+	char *srclist;
 };
 
 /*
@@ -89,6 +115,43 @@ struct tx2mon_sampler {
 	int	n_core;		/* cores *per CPU* */
 	int	n_thread;	/* threads *per core* (unused currently) */
 	tx2mon_cap	cap;	/* capabilites of kernel module */
-
+	
+	FILE	*fileout;
+	int 	samples;
+	struct base_auth auth;
 	struct cpu_info cpu[TX2MON_MAX_CPU];
+	ldms_schema_t soc_schema;
+	/** list of ports expected from configuration file list */
+	LIST_HEAD(tx2mon_soc_list, tx2mon_soc) cpus;
+	
+	int delta_retry;
+	bool debug;
 } ;
+
+/*brief parse on soc info and fill provides struct.
+   * \return 0 on success, errno from fopen, ENODATA from
+    * failed fgets, ENOKEY or ENAMETOOLONG from failed parse.
+    */
+
+static int parse_socinfo(void);
+
+/* Dump out the information stored in the nodes of each core*/
+
+static void  dump_cpu_info(struct cpu_info *s);
+
+/* Read the information located in th the node file directory*/
+
+static int read_cpu_info(struct cpu_info *s);
+
+/*Read and query cpu data for each node and map to data strucutre. Can also be used for debugging
+ * by displaying the data to the ldmsd log file*/
+
+static int display(struct mc_oper_region *s);
+
+static char *get_throttling_cause(unsigned int active_event, const char *sep, char *buf, int bufsz);
+
+static int tx2mon_data_sets_init(struct tx2mon_sampler *d,const char *soc_schema_name);
+
+struct tx2mon_sampler *tx2mon_data_new(ldmsd_msg_log_f log, struct attr_value_list *avl, struct attr_value_list *kwl);
+
+void tx2mon_data_sample(struct tx2mon_sampler *d);
