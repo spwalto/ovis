@@ -70,6 +70,7 @@
 #define N 2
 static ldmsd_msg_log_f msglog;
 static ldms_set_t set[MAX_CPUS_PER_SOC];
+static ldms_set_t sc;
 
 static base_data_t base;
 static ldms_schema_t schema;
@@ -77,17 +78,13 @@ static ldmsd_msg_log_f msglog;
 static struct tx2mon_sampler tx2mon_s = {0};
 
 static struct tx2mon_sampler *tx2mon = &tx2mon_s;
-static struct cpu_info cp_s = {0};
-static struct cpu_info *cp = &cp_s;
 
 #define MCP_STR_WRAP(NAME) #NAME
 #define MCP_LISTWRAP(NAME) MCP_ ## NAME
 
-#define MC_OPER_REGION_0 0x4
-#define MC_OPER_REGION_1 0x4
-#define MC_OPER_REGION_DATA \
-			struct mc_oper_region mcp_ldms = tx2mon->cpu[0].mcp; \
-			struct mc_oper_region mcp_ldms1 = tx2mon->cpu[1].mcp;
+#define MC_OPER_REGION 0x1
+#define MC_OPER_REGION_DATA struct mc_oper_region mcp_ldms;
+
 static int pidopts = 0;
 static char *pids = "self";
 
@@ -139,10 +136,11 @@ MCP_LIST(DECLPOS);
 	} \
 	p = rc;
 
-#define MCSAMPLE(n, m, t, p) \
+
+//#define MCSAMPLE(n, m, t, p) \
 	ldms_metric_set_u32(set[0], p, (uint32_t)mcp_ldms.m);
 
-#define MCSAMPLE1(n, m, t, p) \
+//#define MCSAMPLE1(n, m, t, p) \
         ldms_metric_set_u32(set[1], p, (uint32_t)mcp_ldms1.m);
 
 /*
@@ -189,6 +187,31 @@ static const char *tx2mon_words[] = {
 	NULL
 };
 
+static bool get_bool(const char *val, char *name)
+{
+	if (!val)
+		return false;
+
+	switch (val[0]) {
+	case '1':
+	case 't':
+	case 'T':
+	case 'y':
+	case 'Y':
+		return true;
+	case '0':
+	case 'f':
+	case 'F':
+	case 'n':
+	case 'N':
+		return false;
+	default:
+		msglog(LDMSD_LERROR, "%s: bad bool value %s for %s\n",
+			val, name);
+		return false;
+	}
+}
+
 static int config(struct ldmsd_plugin *self, struct attr_value_list *kwl, struct attr_value_list *avl)
 {
 	int rc = -1;
@@ -211,12 +234,11 @@ static int config(struct ldmsd_plugin *self, struct attr_value_list *kwl, struct
 		goto err;
 	}
 	msglog(LDMSD_LDEBUG, SAMP ": Got to this point 1. \n");
-	char *domcp, *domcp1;
+	char *domcp;
 	domcp = av_value(avl, "mc_oper_region");
-	domcp1 = av_value(avl, "mc_oper_region1");
-	if (!domcp && !domcp1) {
-		pidopts = (MC_OPER_REGION_0 | MC_OPER_REGION_1);
-	} 
+	if (!domcp) {
+		pidopts = MC_OPER_REGION;
+	}
 
 	if (!pidopts) {
 		msglog(LDMSD_LERROR, SAMP ": configured with nothing to do.\n");
@@ -259,7 +281,6 @@ static void term(struct ldmsd_plugin *self)
 
 static int sample(struct ldmsd_sampler *self)
 {
-	return 0;
 	int rc = 0;
 	for (int i = 0; i < 2; i++)
 		if (!set[i]) {
@@ -268,30 +289,48 @@ static int sample(struct ldmsd_sampler *self)
 	}
 	MC_OPER_REGION_DATA;
 	int mcprc = -1;
-	if (pidopts & MC_OPER_REGION_0 && (pidopts & MC_OPER_REGION_1)) 
+	if (pidopts & MC_OPER_REGION) 
                 mcprc = display(&mcp_ldms);
 	
 	for (int i = 0; i < 2; i ++)
 	{
-	
-	base_sample_begin(base);
-			if (!mcprc) {
-				if ( i == 0)
-				MCP_LIST(MCSAMPLE);
-				if (i == 1)
-				MCP_LIST(MCSAMPLE1);
+		base_sample_begin(base);
+		if (!mcprc) {
+			rc = tx2mon_set_metrics(&mcp_ldms, i);
+		if (rc) {
+                	msglog(LDMSD_LERROR, SAMP ": failed to create metric set.\n");
+                	rc = EINVAL;
+			return rc;
 			}
+
+		}
 	
-	base_sample_end(base);
+		base_sample_end(base);
 	}
 	return rc;
 }
 
+static int  tx2mon_set_metrics (struct mc_oper_region *s, int i)
+{
+	s = &tx2mon->cpu[i].mcp;
+#define MCSAMPLE(n, m, t, p) \
+        ldms_metric_set_u32(set[i], p, (uint32_t)s->m);
+	
+	MCP_LIST(MCSAMPLE);
+	msglog(LDMSD_LDEBUG, SAMP ": this is the metric freq_mem_net - > %d \n", s->freq_mem_net);
+	
+	return 0;
+
+}
+
+/*
+ *     get_set() - Obsolete call, no longer used.
+ *                     Return safe value, just in case.
+ *                     */
 
 static ldms_set_t get_set(struct ldmsd_sampler *self)
 {
-	for (int i = 0; i < 2; i++)
-		return set[i];
+		return sc;
 }
 
 /*
@@ -311,7 +350,6 @@ static ldms_set_t get_set(struct ldmsd_sampler *self)
  */
 static int create_metric_set(base_data_t base)
 {
-	int i; 
 	int rc, ret;
 	int mcprc = -1;
 	MC_OPER_REGION_DATA;
@@ -320,7 +358,7 @@ static int create_metric_set(base_data_t base)
 	char buf[instance_len];
 	char cpu_instance_index[12];
 
-	if (pidopts & MC_OPER_REGION_0 && pidopts & MC_OPER_REGION_1) {
+	if (pidopts & MC_OPER_REGION) {
 		ret = parse_socinfo();
 		if (ret < 0){
 			msglog(LDMSD_LERROR, SAMP ": Check that you loaded tx2mon module. \n");
@@ -340,11 +378,10 @@ static int create_metric_set(base_data_t base)
 		goto err;
 	}
 	msglog(LDMSD_LDEBUG, SAMP ": Got to this point - in create metric set 1\n");
-	if (pidopts & MC_OPER_REGION_0 && (pidopts & MC_OPER_REGION_1)) {
+	if (pidopts & MC_OPER_REGION) {
 		msglog(LDMSD_LDEBUG, SAMP ": Got to this point - in pidopts check \n");
 		MCP_LIST(METRIC);
 	}
-
 	for (int i = 0; i < 2; i++){
 		//buf[0] = '\0';
 		snprintf(cpu_instance_index, instance_len, ".%d", i);
@@ -353,8 +390,8 @@ static int create_metric_set(base_data_t base)
 		strncat(buf, cpu_instance_index, 12); 
 		
 		//ovis_join_buf(buf, instance_len, ".", base->instance_name, cpu_instance_index, NULL);
-		msglog(LDMSD_LDEBUG, SAMP ": This is what's in base instance name %s \n", buf);
-		msglog(LDMSD_LDEBUG, SAMP ": This is what's in cpu instance name %s \n", cpu_instance_index);
+		//msglog(LDMSD_LDEBUG, SAMP ": This is what's in base instance name %s \n", buf);
+		//msglog(LDMSD_LDEBUG, SAMP ": This is what's in cpu instance name %s \n", (uint64_t)cpu_instance_index);
 		//base->set = set[i];
 		set[i] = ldms_set_new(buf, schema);
 		
@@ -367,7 +404,7 @@ static int create_metric_set(base_data_t base)
 		
 		ldms_set_producer_name_set(set[i], base->producer_name);
         	ldms_metric_set_u64(set[i], BASE_COMPONENT_ID, base->component_id);
-        	ldms_metric_set_u64(set[i], BASE_JOB_ID, 0);
+        	ldms_metric_set_u64(set[i], BASE_JOB_ID, cpu_instance_index);
         	ldms_metric_set_u64(set[i], BASE_APP_ID, 0);
        		base_auth_set(&base->auth, set[i]);
 		
@@ -385,16 +422,14 @@ static int create_metric_set(base_data_t base)
 		base->set = set[i];
 		base_sample_begin(base);
 
-		if (i == 0){
-			if (pidopts & MC_OPER_REGION_0) {
-        		        MCP_LIST(MCSAMPLE);
-       	 		}
+		if (pidopts & MC_OPER_REGION) {
+			rc = tx2mon_set_metrics(&mcp_ldms, i);
+                	if (rc) {
+                        	msglog(LDMSD_LERROR, SAMP ": failed to create metric set.\n");
+                        	rc = EINVAL;
+                        	return rc;
+                        }
 		}
-		if (i == 1)
-			if (pidopts & MC_OPER_REGION_1) {
-				MCP_LIST(MCSAMPLE1);
-		}
-
 		base_sample_end(base);
 		base->set = NULL;
 	}
@@ -539,7 +574,7 @@ static int read_cpu_info(struct cpu_info *s)
        
 	//msglog(LDMSD_LDEBUG, SAMP ": This is what's in the tmon_soc_avg thing before %f \n", (float)op->tmon_soc_avg);
 	//Comment the following section if you are debugging. The following converts the mr_oper_regtion struct variables. The dump function will try to convert these values again which will lead to inaccurate results of the node table/output.
-	/*op->temp_soft_thresh = to_c(op->temp_soft_thresh);
+	op->temp_soft_thresh = to_c(op->temp_soft_thresh);
         op->temp_abs_max = to_c(op->temp_abs_max);
 	op->tmon_soc_avg = to_c(op->tmon_soc_avg);
 	op->v_core = to_v(op->v_core);
@@ -549,7 +584,7 @@ static int read_cpu_info(struct cpu_info *s)
 	op->pwr_core = to_w(op->pwr_core);
 	pwr_sram = to_w(op->pwr_sram);
 	pwr_mem = to_w(op->pwr_mem);
-	pwr_soc = to_w(op->pwr_soc);*/
+	pwr_soc = to_w(op->pwr_soc);
 	
 	
 	//msglog(LDMSD_LDEBUG, SAMP ": This is what's in the tmon_soc_avg thing after being converted %6.2f \n", (float)op->tmon_soc_avg);
@@ -637,7 +672,7 @@ static char *get_throttling_cause(unsigned int active_event, const char *sep, ch
 
 static int display(struct mc_oper_region *s)
 {
-        int ret, ret1, ret2;
+        int ret, ret1;
         int fd;
 	int i;
 	char filename[sizeof(TX2MON_NODE_PATH) + 2];  // for up to 3 digit numbers
