@@ -91,25 +91,25 @@ static char *pids = "self";
 #define MCP_LIST(WRAP) \
         WRAP("cmd_status", cmd_status, LDMS_V_U32, pos_cmd_status) \
         WRAP("counter", counter, LDMS_V_U32, pos_counter) \
-        WRAP("temp_abs_max", temp_abs_max, LDMS_V_U32, pos_temp_abs_max) \
-        WRAP("temp_soft_thresh", temp_soft_thresh, LDMS_V_U32, pos_temp_soft_thresh) \
+        WRAP("temp_abs_max", temp_abs_max, LDMS_V_F32, pos_temp_abs_max) \
+        WRAP("temp_soft_thresh", temp_soft_thresh, LDMS_V_F32, pos_temp_soft_thresh) \
         WRAP("temp_hard_thresh", temp_hard_thresh, LDMS_V_U32, pos_temp_hard_thresh) \
 	WRAP("freq_cpu", freq_cpu[MAX_CPUS_PER_SOC], LDMS_V_U32_ARRAY, pos_freq_cpu) \
 	WRAP("tmon_cpu", tmon_cpu[MAX_CPUS_PER_SOC], LDMS_V_U16_ARRAY, pos_tmon_cpu) \
-	WRAP("tmon_soc_avg", tmon_soc_avg, LDMS_V_U32, pos_tmon_soc_avg) \
+	WRAP("tmon_soc_avg", tmon_soc_avg, LDMS_V_F32, pos_tmon_soc_avg) \
 	WRAP("freq_mem_net", freq_mem_net, LDMS_V_U32, pos_freq_mem_net) \
 	WRAP("freq_socs", freq_socs, LDMS_V_U32, pos_freq_socs) \
 	WRAP("freq_socn", freq_socn, LDMS_V_U32, pos_freq_socn) \
 	WRAP("freq_max", freq_max, LDMS_V_U32, pos_freq_max) \
 	WRAP("freq_min", freq_min, LDMS_V_U32, pos_freq_min) \
-	WRAP("pwr_core", pwr_core, LDMS_V_U32, pos_pwr_core) \
-	WRAP("pwr_sram", pwr_sram, LDMS_V_U32, pos_pwr_sram) \
-	WRAP("pwr_mem", pwr_mem, LDMS_V_U32, pos_pwr_mem) \
-	WRAP("pwr_soc", pwr_soc, LDMS_V_U32, pos_pwr_soc) \
-	WRAP("v_core", v_core, LDMS_V_U32, pos_v_core) \
-	WRAP("v_sram", v_sram, LDMS_V_U32, pos_v_sram) \
-	WRAP("v_mem", v_mem, LDMS_V_U32, pos_v_mem) \
-	WRAP("v_soc", v_soc, LDMS_V_U32, pos_v_soc) \
+	WRAP("pwr_core", pwr_core, LDMS_V_F32, pos_pwr_core) \
+	WRAP("pwr_sram", pwr_sram, LDMS_V_F32, pos_pwr_sram) \
+	WRAP("pwr_mem", pwr_mem, LDMS_V_F32, pos_pwr_mem) \
+	WRAP("pwr_soc", pwr_soc, LDMS_V_F32, pos_pwr_soc) \
+	WRAP("v_core", v_core, LDMS_V_F32, pos_v_core) \
+	WRAP("v_sram", v_sram, LDMS_V_F32, pos_v_sram) \
+	WRAP("v_mem", v_mem, LDMS_V_F32, pos_v_mem) \
+	WRAP("v_soc", v_soc, LDMS_V_F32, pos_v_soc) \
 	WRAP("active_evt", active_evt, LDMS_V_U32, pos_active_evt) \
 	WRAP("temp_evt_cnt", temp_evt_cnt, LDMS_V_U32, pos_temp_evt_cnt) \
 	WRAP("pwr_evt_cnt", pwr_evt_cnt, LDMS_V_U32, pwr_evt_cnt) \
@@ -136,12 +136,6 @@ MCP_LIST(DECLPOS);
 	} \
 	p = rc;
 
-
-//#define MCSAMPLE(n, m, t, p) \
-	ldms_metric_set_u32(set[0], p, (uint32_t)mcp_ldms.m);
-
-//#define MCSAMPLE1(n, m, t, p) \
-        ldms_metric_set_u32(set[1], p, (uint32_t)mcp_ldms1.m);
 
 /*
  * Plug-in data structure and access method.
@@ -404,7 +398,7 @@ static int create_metric_set(base_data_t base)
 		
 		ldms_set_producer_name_set(set[i], base->producer_name);
         	ldms_metric_set_u64(set[i], BASE_COMPONENT_ID, base->component_id);
-        	ldms_metric_set_u64(set[i], BASE_JOB_ID, cpu_instance_index);
+        	ldms_metric_set_u64(set[i], BASE_JOB_ID, 0);
         	ldms_metric_set_u64(set[i], BASE_APP_ID, 0);
        		base_auth_set(&base->auth, set[i]);
 		
@@ -415,7 +409,7 @@ static int create_metric_set(base_data_t base)
 			errno = rc;
 			base->log(LDMSD_LERROR,"base_set_new: ldms_set_publish failed for %s\n",
                                 base->instance_name);
-        	        return NULL;
+        	        return EINVAL;
 	        }
 		ldmsd_set_register(set[i], base->pi_name);
 		
@@ -572,7 +566,7 @@ static int read_cpu_info(struct cpu_info *s)
         else
                 s->throttling_available =  0;
        
-	//msglog(LDMSD_LDEBUG, SAMP ": This is what's in the tmon_soc_avg thing before %f \n", (float)op->tmon_soc_avg);
+	msglog(LDMSD_LDEBUG, SAMP ": This is what's in the tmon_soc_avg thing before %f \n", (float)op->tmon_soc_avg);
 	//Comment the following section if you are debugging. The following converts the mr_oper_regtion struct variables. The dump function will try to convert these values again which will lead to inaccurate results of the node table/output.
 	op->temp_soft_thresh = to_c(op->temp_soft_thresh);
         op->temp_abs_max = to_c(op->temp_abs_max);
@@ -582,12 +576,12 @@ static int read_cpu_info(struct cpu_info *s)
 	op->v_mem = to_v(op->v_mem);
 	op->v_soc = to_v(op->v_soc);
 	op->pwr_core = to_w(op->pwr_core);
-	pwr_sram = to_w(op->pwr_sram);
-	pwr_mem = to_w(op->pwr_mem);
-	pwr_soc = to_w(op->pwr_soc);
+	op->pwr_sram = to_w(op->pwr_sram);
+	op->pwr_mem = to_w(op->pwr_mem);
+	op->pwr_soc = to_w(op->pwr_soc);
 	
 	
-	//msglog(LDMSD_LDEBUG, SAMP ": This is what's in the tmon_soc_avg thing after being converted %6.2f \n", (float)op->tmon_soc_avg);
+	msglog(LDMSD_LDEBUG, SAMP ": This is what's in the tmon_soc_avg thing after being converted %6.2f \n", (float)op->tmon_soc_avg);
 	return 1;
 }
 
