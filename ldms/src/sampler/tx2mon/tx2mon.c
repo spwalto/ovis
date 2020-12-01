@@ -68,9 +68,6 @@
 #define SAMP "tx2mon"
 
 #define N 2
-#define MASK 0xFF
-
-static ldms_schema_t sc;
 static ldmsd_msg_log_f msglog;
 static ldms_set_t set[MAX_CPUS_PER_SOC];
 
@@ -83,11 +80,8 @@ static struct tx2mon_sampler *tx2mon = &tx2mon_s;
 static struct cpu_info cp_s = {0};
 static struct cpu_info *cp = &cp_s;
 
-
 #define MCP_STR_WRAP(NAME) #NAME
 #define MCP_LISTWRAP(NAME) MCP_ ## NAME
-//#define MCP1_STR_WRAP(NAME) #NAME
-//#define MCP1_LISTWRAP(NAME) MCP_ ## NAME
 
 #define MC_OPER_REGION_0 0x4
 #define MC_OPER_REGION_1 0x4
@@ -128,55 +122,8 @@ static char *pids = "self";
 	WRAP("ext_throttle_ms", ext_throttle_ms , LDMS_V_U32, ext_throttle_ms) 
 	
 
-/*#define MCP1_LIST(WRAP) \
-        WRAP("cmd_status -     ------------------------ node 1", cmd_status, LDMS_V_U32, pos_cmd_status1) \
-        WRAP("counter", counter, LDMS_V_U32, pos_counter1) \
-        WRAP("resv0", resv0, LDMS_V_U32, pos_resv01) \
-        WRAP("temp_abs_max", temp_abs_max, LDMS_V_U32, pos_temp_abs_max1) \
-        WRAP("temp_soft_thresh", temp_soft_thresh, LDMS_V_U32, pos_temp_soft_thresh1) \
-        WRAP("temp_hard_thresh", temp_hard_thresh, LDMS_V_U32, pos_temp_hard_thresh1) \
-        WRAP("resv1", resv1, LDMS_V_U32, pos_resv1_1) \
-        WRAP("resv2", resv2, LDMS_V_U32, pos_resv21) \
-        WRAP("freq_cpu", freq_cpu[MAX_CPUS_PER_SOC], LDMS_V_U32_ARRAY, pos_freq_cpu1) \
-        WRAP("resv3", resv3[MAX_CPUS_PER_SOC], LDMS_V_U32_ARRAY, pos_resv31) \
-        WRAP("tmon_cpu", tmon_cpu[MAX_CPUS_PER_SOC], LDMS_V_U16_ARRAY, pos_tmon_cpu1) \
-        WRAP("tmon_soc_avg", tmon_soc_avg, LDMS_V_U32, pos_tmon_soc_avg1) \
-        WRAP("freq_mem_net", freq_mem_net, LDMS_V_U32, pos_freq_mem_net1) \
-        WRAP("freq_socs", freq_socs, LDMS_V_U32, pos_freq_socs1) \
-        WRAP("freq_socn", freq_socn, LDMS_V_U32, pos_freq_socn1) \
-        WRAP("freq_max", freq_max, LDMS_V_U32, pos_freq_max1) \
-        WRAP("freq_min", freq_min, LDMS_V_U32, pos_freq_min1) \
-        WRAP("pwr_core", pwr_core, LDMS_V_U32, pos_pwr_core1) \
-        WRAP("pwr_sram", pwr_sram, LDMS_V_U32, pos_pwr_sram1) \
-        WRAP("pwr_mem", pwr_mem, LDMS_V_U32, pos_pwr_mem1) \
-        WRAP("pwr_soc", pwr_soc, LDMS_V_U32, pos_pwr_soc1) \
-        WRAP("v_core", v_core, LDMS_V_U32, pos_v_core1) \
-        WRAP("v_sram", v_sram, LDMS_V_U32, pos_v_sram1) \
-        WRAP("v_mem", v_mem, LDMS_V_U32, pos_v_mem1) \
-        WRAP("v_soc", v_soc, LDMS_V_U32, pos_v_soc1) \
-        WRAP("resv4", resv4, LDMS_V_U32, pos_resv41) \
-        WRAP("resv5", resv5, LDMS_V_U32, pos_resv51) \
-        WRAP("resv6", resv6, LDMS_V_U32, pos_resv61) \
-        WRAP("resv7", resv7, LDMS_V_U32, pos_resv71) \
-        WRAP("resv8", resv8, LDMS_V_U32, pos_resv81) \
-        WRAP("resv9", resv9, LDMS_V_U32, pos_resv91) \
-        WRAP("resv10", resv10, LDMS_V_U32, pos_resv101) \
-        WRAP("resv11", resv11, LDMS_V_U32, pos_resv111) \
-        WRAP("resv12", resv12, LDMS_V_U32, pos_resv121) \
-        WRAP("resv13", resv13, LDMS_V_U32, pos_resv131) \
-        WRAP("resv14", resv14, LDMS_V_U32, pos_resv141) \
-        WRAP("active_evt", active_evt, LDMS_V_U32, pos_active_evt1) \
-        WRAP("temp_evt_cnt", temp_evt_cnt, LDMS_V_U32, pos_temp_evt_cnt1) \
-        WRAP("pwr_evt_cnt", pwr_evt_cnt, LDMS_V_U32, pwr_evt_cnt1) \
-        WRAP("ext_evt_cnt", ext_evt_cnt, LDMS_V_U32, ext_evt_cnt1) \
-        WRAP("temp_throttle_ms", temp_throttle_ms, LDMS_V_U32, temp_throttle_ms1) \
-        WRAP("pwr_throttle_ms", pwr_throttle_ms, LDMS_V_U32, pwr_throttle_ms1) \
-        WRAP("ext_throttle_ms", ext_throttle_ms , LDMS_V_U32, ext_throttle_ms1)
-*/
-
 #define DECLPOS(n, m, t, p) static int p = -1;
 MCP_LIST(DECLPOS);
-//MCP1_LIST(DECLPOS);
 #define META(n, m, t, p) \
 	rc = ldms_schema_meta_add(schema, n, t); \
 	if (rc < 0) { \
@@ -250,7 +197,7 @@ static int config(struct ldmsd_plugin *self, struct attr_value_list *kwl, struct
 	if (set[i]) {
 		msglog(LDMSD_LERROR, SAMP ": Set already created.\n");
 		return EINVAL;
-	}
+		}
 	}
 	
 
@@ -261,10 +208,7 @@ static int config(struct ldmsd_plugin *self, struct attr_value_list *kwl, struct
 
 	base = base_config(avl, SAMP, SAMP, msglog);
 	if (!base) {
-		rc = EINVAL;
-                base_del(base);
-                msglog(LDMSD_LDEBUG, SAMP ": config fail.\n");
-		return rc;
+		goto err;
 	}
 	msglog(LDMSD_LDEBUG, SAMP ": Got to this point 1. \n");
 	char *domcp, *domcp1;
@@ -273,34 +217,28 @@ static int config(struct ldmsd_plugin *self, struct attr_value_list *kwl, struct
 	if (!domcp && !domcp1) {
 		pidopts = (MC_OPER_REGION_0 | MC_OPER_REGION_1);
 	} 
-	/*else {
-		if (domcp && get_bool(domcp, "mc_oper_region"))
-			pidopts |= MC_OPER_REGION_0;
-			
-		if (domcp && get_bool(domcp, "mc_oper_region"))
-			pidopts |= MC_OPER_REGION_1;
-	}*/
 
 	if (!pidopts) {
 		msglog(LDMSD_LERROR, SAMP ": configured with nothing to do.\n");
-		rc = EINVAL;
-		base_del(base);
-		msglog(LDMSD_LDEBUG, SAMP ": config fail.\n");
-		return rc;
+		goto err;
 	}
 	
 	rc = create_metric_set(base);
 	msglog(LDMSD_LDEBUG, SAMP ": Got to this point 3. This is rc: %i \n", rc);
 	if (rc) {
 		msglog(LDMSD_LERROR, SAMP ": failed to create metric set.\n");
-		rc = EINVAL;
-                base_del(base);
-                msglog(LDMSD_LDEBUG, SAMP ": config fail.\n");
-                return rc;
+		goto err;
 	}
 	msglog(LDMSD_LDEBUG, SAMP ": config done. \n");
 
 	return 0;
+
+err:
+	rc = EINVAL;
+	base_del(base);
+	msglog(LDMSD_LDEBUG, SAMP ": config fail.\n");
+	return rc;
+
 }
 
 static const char *usage(struct ldmsd_plugin *self)
@@ -321,6 +259,7 @@ static void term(struct ldmsd_plugin *self)
 
 static int sample(struct ldmsd_sampler *self)
 {
+	return 0;
 	int rc = 0;
 	for (int i = 0; i < 2; i++)
 		if (!set[i]) {
@@ -373,12 +312,17 @@ static ldms_set_t get_set(struct ldmsd_sampler *self)
 static int create_metric_set(base_data_t base)
 {
 	int i; 
-	int rc, ret2;
+	int rc, ret;
 	int mcprc = -1;
 	MC_OPER_REGION_DATA;
+	size_t instance_len = strlen(base->instance_name) + 12;
+
+	char buf[instance_len];
+	char cpu_instance_index[12];
+
 	if (pidopts & MC_OPER_REGION_0 && pidopts & MC_OPER_REGION_1) {
-		ret2 = parse_socinfo();
-		if (ret2 < 0){
+		ret = parse_socinfo();
+		if (ret < 0){
 			msglog(LDMSD_LERROR, SAMP ": Check that you loaded tx2mon module. \n");
 			exit (1);
 		}
@@ -402,29 +346,45 @@ static int create_metric_set(base_data_t base)
 	}
 
 	for (int i = 0; i < 2; i++){
-		msglog(LDMSD_LDEBUG, SAMP ": Got to this point - in create metric set before setting base \n");
-		//set[i] = base_set_new(base);
-		base->set=set[i];
-		//char append = i;
-		if (i == 0){
-			set[i] = ldms_set_new("Node0", schema);
-		}
-		else if (i == 1){
-			set[i] = ldms_set_new("Node1", schema);
-		}
-		//base->instance_name = strcat(base->instance_name, append);
+		//buf[0] = '\0';
+		snprintf(cpu_instance_index, instance_len, ".%d", i);
+		
+		strncpy(buf, base->instance_name, instance_len);
+		strncat(buf, cpu_instance_index, 12); 
+		
+		//ovis_join_buf(buf, instance_len, ".", base->instance_name, cpu_instance_index, NULL);
+		msglog(LDMSD_LDEBUG, SAMP ": This is what's in base instance name %s \n", buf);
+		msglog(LDMSD_LDEBUG, SAMP ": This is what's in cpu instance name %s \n", cpu_instance_index);
+		//base->set = set[i];
+		set[i] = ldms_set_new(buf, schema);
+		
 		if (!set[i]) {
 			rc = errno;
-			msglog(LDMSD_LERROR,"base_set_new: ldms_set_new failed %d for %s\n",
+			msglog(LDMSD_LERROR, SAMP ": ldms_set_new failed %d for %s\n",
                                 errno, base->instance_name);
 			goto err;
 		}
+		
 		ldms_set_producer_name_set(set[i], base->producer_name);
         	ldms_metric_set_u64(set[i], BASE_COMPONENT_ID, base->component_id);
         	ldms_metric_set_u64(set[i], BASE_JOB_ID, 0);
         	ldms_metric_set_u64(set[i], BASE_APP_ID, 0);
        		base_auth_set(&base->auth, set[i]);
+		
+		rc = ldms_set_publish(set[i]);
+		if (rc) {
+			ldms_set_delete(base->set);
+			base->set = NULL;
+			errno = rc;
+			base->log(LDMSD_LERROR,"base_set_new: ldms_set_publish failed for %s\n",
+                                base->instance_name);
+        	        return NULL;
+	        }
+		ldmsd_set_register(set[i], base->pi_name);
+		
+		base->set = set[i];
 		base_sample_begin(base);
+
 		if (i == 0){
 			if (pidopts & MC_OPER_REGION_0) {
         		        MCP_LIST(MCSAMPLE);
@@ -432,12 +392,12 @@ static int create_metric_set(base_data_t base)
 		}
 		if (i == 1)
 			if (pidopts & MC_OPER_REGION_1) {
-			MCP_LIST(MCSAMPLE1);
+				MCP_LIST(MCSAMPLE1);
 		}
 
 		base_sample_end(base);
+		base->set = NULL;
 	}
-	base->set = NULL;
 	msglog(LDMSD_LDEBUG, SAMP ": Got to this point - in create metric set 3\n");
 	
 }
