@@ -40,13 +40,13 @@ static int config(struct ldmsd_plugin *self, struct attr_value_list *kwl, struct
 static const char *usage(struct ldmsd_plugin *self);
 static ldms_set_t get_set(struct ldmsd_sampler *self);			/* Obsolete */
 static int sample(struct ldmsd_sampler *self);
-
 static int create_metric_set(base_data_t base);
 
 //Definitions and functions used to parse and dump cpu data to screen
 #define CORES_PER_ROW 4
 #define PIDFMAX 32
 #define BUFMAX 512
+
 static struct termios *ts_saved;
 static int display_extra = 0;
 static int display_throttling = 1;
@@ -95,14 +95,6 @@ struct cpu_info {
 	struct	mc_oper_region mcp;	/* mmapped data structure (from fd) */
 	unsigned int throttling_available:1;
 	int	node;
-	LIST_ENTRY(tx2mon_soc) entry; /**< List entry */
-	uint16_t meta_init;
-	int 	soc_number;
-	char schema_name[24];
-	char structname[24];
-	ldms_set_t set;
-	struct timeval last_fail;
-	char *srclist;
 };
 
 /*
@@ -120,12 +112,6 @@ struct tx2mon_sampler {
 	int 	samples;
 	struct base_auth auth;
 	struct cpu_info cpu[TX2MON_MAX_CPU];
-	ldms_schema_t soc_schema;
-	/** list of ports expected from configuration file list */
-	LIST_HEAD(tx2mon_soc_list, tx2mon_soc) cpus;
-	
-	int delta_retry;
-	bool debug;
 } ;
 
 /*brief parse on soc info and fill provides struct.
@@ -146,12 +132,8 @@ static int read_cpu_info(struct cpu_info *s);
 /*Read and query cpu data for each node and map to data strucutre. Can also be used for debugging
  * by displaying the data to the ldmsd log file*/
 
-static int display(struct mc_oper_region *s);
+static int parse_mc_oper_region(struct mc_oper_region *s);
 
 static char *get_throttling_cause(unsigned int active_event, const char *sep, char *buf, int bufsz);
 
-static int tx2mon_data_sets_init(struct tx2mon_sampler *d,const char *soc_schema_name);
-
-struct tx2mon_sampler *tx2mon_data_new(ldmsd_msg_log_f log, struct attr_value_list *avl, struct attr_value_list *kwl);
-
-void tx2mon_data_sample(struct tx2mon_sampler *d);
+static int tx2mon_set_metrics(struct mc_oper_region *s, int i);
