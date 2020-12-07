@@ -63,7 +63,6 @@
 #include <termios.h>
 #include <term.h>
 #include <string.h>
-//#include "parse_mc_oper_region.c"
 
 #define SAMP "tx2mon"
 
@@ -279,7 +278,7 @@ static void term(struct ldmsd_plugin *self)
 {
 	if (base)
 		base_del(base);
-	for (int i = 0; i < 2; i++){
+	for (int i = 0; i < tx2mon->n_cpu; i++){
 	if (set[i])
 		ldms_set_delete(set[i]);
 	set[i] = NULL;
@@ -321,34 +320,47 @@ static int  tx2mon_set_metrics (struct mc_oper_region *s, int i)
 {
 	int rc = 0;
 	s = &tx2mon->cpu[i].mcp;
-
+	
 #define MCSAMPLE(n, m, t, p) \
-	switch (t) {\
-	case LDMS_V_U32: \
-		ldms_metric_set_u32(set[i], p, (uint32_t)s->m);\
-		break;\
-	case LDMS_V_F32: \
-		ldms_metric_set_float(set[i], p, (float)s->m);\
-		break;\
-	case LDMS_V_U32_ARRAY: \
-		for (int c = 0;  c < 2; c++) {\
-			ldms_metric_array_set_u32(set[i], p, c, (uint32_t)s->m);\
-		}\
-		break;\
-	case LDMS_V_U16_ARRAY: \
-		for (int c = 0;  c < 2; c++) {\
-			ldms_metric_array_set_u16(set[i], p, c, (uint16_t)s->m);\
-			}\
-		break;\
-	default: \
+		rc = tx2mon_array_conv(&s->m, p, 32, i, t);\
+	if (rc != 0){ \
 		rc = EINVAL; \
 		msglog(LDMSD_LERROR, SAMP ": sample " n " not correctly defined.\n"); \
 		}
 	
 	MCP_LIST(MCSAMPLE);
 	
-	return 0;
+	return rc;
 
+}
+
+
+static int tx2mon_array_conv(uint32_t *s, int p, int idx, int i, uint32_t t)
+{
+	int rc = 0;
+	if (t == LDMS_V_U16_ARRAY){ 
+                for (int c = 0; c < idx; c++){
+			msglog(LDMSD_LDEBUG, SAMP ": This is what's in the result before being converted: *(s + %d) - %f \n", c, (float)s[c]);
+			msglog(LDMSD_LDEBUG, SAMP ": This is what's in the result after being converted: *(s + %d) - %f \n", c, (float)to_c(s[c]));
+                	ldms_metric_array_set_float(set[i], p, c, (float)to_c(s[c]));
+			}
+                }
+	if (t == LDMS_V_U32_ARRAY){
+                for (int c = 0; c < idx; c++){
+			msglog(LDMSD_LDEBUG, SAMP ": This is what's in set s for the uint32 array:  *(s + %d) - %f \n", c, (uint32_t)(s[c]));
+                        ldms_metric_array_set_u32(set[i], p, c, (uint32_t)(s[c]));
+                        }
+                }
+	if(t == LDMS_V_F32){
+		if (p >= 16 && p <= 23)
+			ldms_metric_set_float(set[i], p, (float)(*s/1000.0));
+		else
+			ldms_metric_set_float(set[i], p, (float)to_c(*s));
+		
+		}	
+	if (t == LDMS_V_U32)
+		ldms_metric_set_u32(set[i], p, (uint32_t)*s);
+	return rc;
 }
 
 /*
@@ -480,8 +492,8 @@ static inline unsigned int cpu_freq(struct cpu_info *d, int c)
 static inline double to_v(int mv)
 {
 	double result;
-	msglog(LDMSD_LDEBUG, SAMP ": Inside the to_v function \n");
-	msglog(LDMSD_LDEBUG, SAMP ": This is what the variable mv is : %i \n", mv);
+	//msglog(LDMSD_LDEBUG, SAMP ": Inside the to_v function \n");
+	//msglog(LDMSD_LDEBUG, SAMP ": This is what the variable mv is : %i \n", mv);
 	result = mv/1000.0;
 	
 	msglog(LDMSD_LDEBUG, SAMP ": This is the result of the number being divided by 1000.0: %6.2f\n", result);
@@ -718,19 +730,19 @@ static int parse_mc_oper_region(struct mc_oper_region *op)
 		msglog(LDMSD_LDEBUG, SAMP ": This is what's in v_sram before being converted %6.2f \n", (float)op->v_sram);
 		msglog(LDMSD_LDEBUG, SAMP ": This is what's in pwr_core before being converted %6.2f \n", (float)op->pwr_core);
 		msglog(LDMSD_LDEBUG, SAMP ": This is what's in pwr_sram before being converted %6.2f \n", (float)op->pwr_sram);
-		op->temp_soft_thresh = to_c(op->temp_soft_thresh);
-		op->temp_abs_max = to_c(op->temp_abs_max);
-		op->tmon_soc_avg = to_c(op->tmon_soc_avg);
-		op->v_core = to_v(op->v_core);
-		op->v_sram = to_v(op->v_sram);
-		op->v_mem = to_v(op->v_mem);
-		op->v_soc = to_v(op->v_soc);
-		op->pwr_core = to_w(op->pwr_core);
-		op->pwr_sram = to_w(op->pwr_sram);
-		op->pwr_mem = to_w(op->pwr_mem);
-		op->pwr_soc = to_w(op->pwr_soc);
+		//op->temp_soft_thresh = to_c(op->temp_soft_thresh);
+		//op->temp_abs_max = to_c(op->temp_abs_max);
+		//op->tmon_soc_avg = to_c(op->tmon_soc_avg);
+		//op->v_core = to_v(op->v_core);
+		//op->v_sram = to_v(op->v_sram);
+		//op->v_mem = to_v(op->v_mem);
+		//op->v_soc = to_v(op->v_soc);
+		//op->pwr_core = to_w(op->pwr_core);
+		//op->pwr_sram = to_w(op->pwr_sram);
+		//op->pwr_mem = to_w(op->pwr_mem);
+		//op->pwr_soc = to_w(op->pwr_soc);
 		for (int c = 0;  c < tx2mon->n_core; c++) {
-			op->tmon_cpu[c] = (float)to_c(op->tmon_cpu[c]);
+			//op->tmon_cpu[c] = (float)to_c(op->tmon_cpu[c]);
 			msglog(LDMSD_LDEBUG, SAMP ": This is what's in tmon_cpu array after being converted %.2d \n", (uint16_t)op->tmon_cpu[c]);
 			msglog(LDMSD_LDEBUG, SAMP ": This is what's in freq_cpu array after being converted %.2d \n", (uint32_t)op->freq_cpu[c]);	//op->tmon_cpu[5] = 235532;
         		}

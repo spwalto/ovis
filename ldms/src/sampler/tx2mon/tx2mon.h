@@ -64,8 +64,6 @@ static struct term_seq {
  */
 #define	TX2MON_SYSFS_PATH	"/sys/bus/platform/devices/tx2mon/"
 #define	TX2MON_SOCINFO_PATH	TX2MON_SYSFS_PATH "socinfo"
-#define	TX2MON_NODE_PATH_0	TX2MON_SYSFS_PATH "node0_raw"
-#define TX2MON_NODE_PATH_1      TX2MON_SYSFS_PATH "node1_raw"
 #define TX2MON_NODE_PATH      TX2MON_SYSFS_PATH "node%d_raw"
 /*
  * Max number of CPUs (TX2 chips) supported.
@@ -137,3 +135,6 @@ static int parse_mc_oper_region(struct mc_oper_region *s);
 static char *get_throttling_cause(unsigned int active_event, const char *sep, char *buf, int bufsz);
 
 static int tx2mon_set_metrics(struct mc_oper_region *s, int i);
+
+static int tx2mon_array_conv(uint32_t *s, int p, int idx, int i, uint32_t t);
+
