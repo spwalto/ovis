@@ -82,7 +82,6 @@ static struct tx2mon_sampler *tx2mon = &tx2mon_s;
 #define MCP_LISTWRAP(NAME) MCP_ ## NAME
 
 #define MC_OPER_REGION 0x1
-#define MC_OPER_REGION_DATA struct mc_oper_region mcp_ldms;
 
 static int pidopts = 0;
 static char *pids = "self";
@@ -93,8 +92,8 @@ static char *pids = "self";
 	WRAP("temp_abs_max", temp_abs_max, LDMS_V_F32, pos_temp_abs_max) \
 	WRAP("temp_soft_thresh", temp_soft_thresh, LDMS_V_F32, pos_temp_soft_thresh) \
 	WRAP("temp_hard_thresh", temp_hard_thresh, LDMS_V_U32, pos_temp_hard_thresh) \
-	WRAP("freq_cpu", freq_cpu[MAX_CPUS_PER_SOC], LDMS_V_U32_ARRAY, pos_freq_cpu) \
-	WRAP("tmon_cpu", tmon_cpu[MAX_CPUS_PER_SOC], LDMS_V_U16_ARRAY, pos_tmon_cpu) \
+	WRAP("freq_cpu", freq_cpu[0], LDMS_V_U32_ARRAY, pos_freq_cpu) \
+	WRAP("tmon_cpu", tmon_cpu[0], LDMS_V_F32_ARRAY, pos_tmon_cpu) \
 	WRAP("tmon_soc_avg", tmon_soc_avg, LDMS_V_F32, pos_tmon_soc_avg) \
 	WRAP("freq_mem_net", freq_mem_net, LDMS_V_U32, pos_freq_mem_net) \
 	WRAP("freq_socs", freq_socs, LDMS_V_U32, pos_freq_socs) \
@@ -126,7 +125,7 @@ MCP_LIST(DECLPOS);
 	case LDMS_V_U32_ARRAY: \
 		rc = ldms_schema_meta_array_add(schema, n, t, MAX_CPUS_PER_SOC);\
 		break;\
-	case LDMS_V_U16_ARRAY: \
+	case LDMS_V_F32_ARRAY: \
 		rc = ldms_schema_meta_array_add(schema, n, t, MAX_CPUS_PER_SOC);\
 		break;\
 	default:\
@@ -144,7 +143,7 @@ MCP_LIST(DECLPOS);
 	case LDMS_V_U32_ARRAY: \
 		rc = ldms_schema_metric_array_add(schema, n, t, MAX_CPUS_PER_SOC);\
 		break;\
-	case LDMS_V_U16_ARRAY: \
+	case LDMS_V_F32_ARRAY: \
 		rc = ldms_schema_metric_array_add(schema, n, t, MAX_CPUS_PER_SOC);\
 		break;\
 	default:\
@@ -225,7 +224,8 @@ static bool get_bool(const char *val, char *name)
 static int config(struct ldmsd_plugin *self, struct attr_value_list *kwl, struct attr_value_list *avl)
 {
 	int rc = -1;
-
+	char *domcp;
+	
 	for (int i = 0; i < tx2mon->n_cpu; i++){
 	if (set[i]) {
 		msglog(LDMSD_LERROR, SAMP ": Set already created.\n");
@@ -239,8 +239,7 @@ static int config(struct ldmsd_plugin *self, struct attr_value_list *kwl, struct
 	if (!base) {
 		goto err;
 	}
-	//msglog(LDMSD_LDEBUG, SAMP ": Got to this point 1. \n");
-	char *domcp;
+	
 	domcp = av_value(avl, "mc_oper_region");
 	if (!domcp) {
 		pidopts = MC_OPER_REGION;
@@ -252,13 +251,15 @@ static int config(struct ldmsd_plugin *self, struct attr_value_list *kwl, struct
 	}
 	
 	rc = create_metric_set(base);
-	//msglog(LDMSD_LDEBUG, SAMP ": Got to this point 3. This is rc: %i \n", rc);
+	
 	if (rc) {
 		msglog(LDMSD_LERROR, SAMP ": failed to create metric set.\n");
 		goto err;
 	}
-	msglog(LDMSD_LDEBUG, SAMP ": config done. \n");
+	
 
+	msglog(LDMSD_LDEBUG, SAMP ": config done. \n");
+	
 	return 0;
 
 err:
@@ -288,21 +289,21 @@ static void term(struct ldmsd_plugin *self)
 static int sample(struct ldmsd_sampler *self)
 {
 	int rc = 0;
+	int mcprc = -1;
 	for (int i = 0; i < tx2mon->n_cpu; i++)
 		if (!set[i]) {
 		msglog(LDMSD_LDEBUG, SAMP ": plugin not initialized\n");
 		return EINVAL;
 	}
-	MC_OPER_REGION_DATA;
-	int mcprc = -1;
 	if (pidopts & MC_OPER_REGION) 
-		mcprc = parse_mc_oper_region(&mcp_ldms);
-	
+		mcprc = parse_mc_oper_region();
+		
 	for (int i = 0; i < tx2mon->n_cpu; i ++)
 	{
+		//msglog(LDMSD_LDEBUG, SAMP ": tx2mon->cpu in sample function: %p, \n", &tx2mon->cpu[i].mcp);
 		base_sample_begin(base);
 		if (!mcprc) {
-			rc = tx2mon_set_metrics(&mcp_ldms, i);
+			rc = tx2mon_set_metrics(i);
 		if (rc) {
 			msglog(LDMSD_LERROR, SAMP ": failed to create metric set.\n");
 			rc = EINVAL;
@@ -316,14 +317,16 @@ static int sample(struct ldmsd_sampler *self)
 	return rc;
 }
 
-static int  tx2mon_set_metrics (struct mc_oper_region *s, int i)
+static int  tx2mon_set_metrics (int i)
 {
+	struct mc_oper_region *s;
 	int rc = 0;
 	s = &tx2mon->cpu[i].mcp;
+	//msglog(LDMSD_LDEBUG, SAMP ": s  variable after setting it to tx2mon->cpu: %p, \n", s);
 	
 #define MCSAMPLE(n, m, t, p) \
-		rc = tx2mon_array_conv(&s->m, p, 32, i, t);\
-	if (rc != 0){ \
+	rc = tx2mon_array_conv(&s->m, p, 32, i, t);\
+	if (rc){ \
 		rc = EINVAL; \
 		msglog(LDMSD_LERROR, SAMP ": sample " n " not correctly defined.\n"); \
 		}
@@ -334,32 +337,54 @@ static int  tx2mon_set_metrics (struct mc_oper_region *s, int i)
 
 }
 
-
-static int tx2mon_array_conv(uint32_t *s, int p, int idx, int i, uint32_t t)
+static float my_to_c_u32(uint32_t t)
 {
+	return to_c(t);
+
+}
+static float my_to_c_u16(uint16_t t)
+{
+	return to_c(t);
+}
+
+static int tx2mon_array_conv(void *s, int p, int idx, int i, uint32_t t)
+{
+	
+	//msglog(LDMSD_LDEBUG, SAMP ": tx2mon_array_conv args s, p, idx, i, t: %p, %i, %i, %i, %s \n", s, p, idx, i, ldms_metric_type_to_str(t));
 	int rc = 0;
-	if (t == LDMS_V_U16_ARRAY){ 
+	if (t == LDMS_V_F32_ARRAY){ 
+		//s = (void *)0xffffac9685c4;
+		uint16_t *s16 = (uint16_t*)s;
                 for (int c = 0; c < idx; c++){
-			msglog(LDMSD_LDEBUG, SAMP ": This is what's in the result before being converted: *(s + %d) - %f \n", c, (float)s[c]);
-			msglog(LDMSD_LDEBUG, SAMP ": This is what's in the result after being converted: *(s + %d) - %f \n", c, (float)to_c(s[c]));
-                	ldms_metric_array_set_float(set[i], p, c, (float)to_c(s[c]));
+		//	msglog(LDMSD_LDEBUG, SAMP ": This is what's in the result before being converted: %u \n", s16[c]);
+		//	msglog(LDMSD_LDEBUG, SAMP ": tx2mon_array_conv args s, p, idx, i, t: %p, %i, %i, %i, %s \n", s16[c], p, idx, i, ldms_metric_type_to_str(t));
+		//	msglog(LDMSD_LDEBUG, SAMP ": This is what's in the result after being converted: %f \n", my_to_c_u16(s16[c]));
+                	ldms_metric_array_set_float(set[i], p, c, my_to_c_u16(s16[c]));
 			}
+			//msglog(LDMSD_LDEBUG, SAMP ": This is what's in tmon_cpu address: %p \n", s16);
                 }
 	if (t == LDMS_V_U32_ARRAY){
+		//s = (void *)0xffffac9684c4;
+		uint32_t *s32 = (uint32_t*)s;
                 for (int c = 0; c < idx; c++){
-			msglog(LDMSD_LDEBUG, SAMP ": This is what's in set s for the uint32 array:  *(s + %d) - %f \n", c, (uint32_t)(s[c]));
-                        ldms_metric_array_set_u32(set[i], p, c, (uint32_t)(s[c]));
+			//msglog(LDMSD_LDEBUG, SAMP ": This is what's in set s for the uint32 array:  %.2u \n", s32[c]);
+                        ldms_metric_array_set_u32(set[i], p, c, s32[c]);
                         }
                 }
 	if(t == LDMS_V_F32){
+		uint32_t *f32 = (uint32_t*)s;
 		if (p >= 16 && p <= 23)
-			ldms_metric_set_float(set[i], p, (float)(*s/1000.0));
+			ldms_metric_set_float(set[i], p, (*f32/1000.0));
 		else
-			ldms_metric_set_float(set[i], p, (float)to_c(*s));
+			ldms_metric_set_float(set[i], p, my_to_c_u32(*f32));
 		
 		}	
 	if (t == LDMS_V_U32)
-		ldms_metric_set_u32(set[i], p, (uint32_t)*s);
+		ldms_metric_set_u32(set[i], p, *(uint32_t*)s);
+	
+	else
+		rc = EINVAL;
+		
 	return rc;
 }
 
@@ -392,7 +417,6 @@ static int create_metric_set(base_data_t base)
 {
 	int rc, ret;
 	int mcprc = -1;
-	MC_OPER_REGION_DATA;
 	size_t instance_len = strlen(base->instance_name) + 12;
 
 	char buf[instance_len];
@@ -404,7 +428,9 @@ static int create_metric_set(base_data_t base)
 			msglog(LDMSD_LERROR, SAMP ": Check that you loaded tx2mon module. \n");
 			exit (1);
 		}
-		mcprc = parse_mc_oper_region(&mcp_ldms);
+		mcprc = parse_mc_oper_region();
+		//msglog(LDMSD_LDEBUG, SAMP ": tx2mon->cpu in create metric set function after parsing : %p, \n", &tx2mon->cpu[0].mcp);
+		//msglog(LDMSD_LDEBUG, SAMP ": tx2mon->cpu in create metric set function after parsing : %p, \n", &tx2mon->cpu[1].mcp);
 		if (mcprc != 0) {
 			msglog(LDMSD_LERROR, SAMP ": unable to read the node file for the sample (%s)\n",
 				pids, strerror(mcprc));
@@ -412,12 +438,10 @@ static int create_metric_set(base_data_t base)
 		}
 	
 	schema = base_schema_new(base);
-	//msglog(LDMSD_LDEBUG, SAMP ": Got to this point - in create metric set 0\n");
 	if (!schema) {
 		rc = ENOMEM;
 		goto err;
 	}
-	//msglog(LDMSD_LDEBUG, SAMP ": Got to this point - in create metric set 1\n");
 	if (pidopts & MC_OPER_REGION) {
 		MCP_LIST(METRIC);
 	}
@@ -457,7 +481,7 @@ static int create_metric_set(base_data_t base)
 		base_sample_begin(base);
 
 		if (pidopts & MC_OPER_REGION) {
-			rc = tx2mon_set_metrics(&mcp_ldms, i);
+			rc = tx2mon_set_metrics(i);
 			if (rc) {
 				msglog(LDMSD_LERROR, SAMP ": failed to create metric set.\n");
 				rc = EINVAL;
@@ -467,7 +491,6 @@ static int create_metric_set(base_data_t base)
 		base_sample_end(base);
 		base->set = NULL;
 	}
-	msglog(LDMSD_LDEBUG, SAMP ": Got to this point - in create metric set 3\n");
 	
 }
 
@@ -476,63 +499,6 @@ err:
 	if(schema)
 		ldms_schema_delete(schema);
 	return rc;
-}
-
-
-static inline double cpu_temp(struct cpu_info *d, int c)
-{
-	return to_c(d->mcp.tmon_cpu[c]);
-}
-
-static inline unsigned int cpu_freq(struct cpu_info *d, int c)
-{
-	return d->mcp.freq_cpu[c];
-}
-
-static inline double to_v(int mv)
-{
-	double result;
-	//msglog(LDMSD_LDEBUG, SAMP ": Inside the to_v function \n");
-	//msglog(LDMSD_LDEBUG, SAMP ": This is what the variable mv is : %i \n", mv);
-	result = mv/1000.0;
-	
-	msglog(LDMSD_LDEBUG, SAMP ": This is the result of the number being divided by 1000.0: %6.2f\n", result);
-	return mv/1000.0;
-}
-
-static inline double to_w(int mw)
-{
-	return mw/1000.0;
-}
-
-static void term_init_save(void)
-{
-	static struct termios nts;
-
-	if (!isatty(1)) {
-		term_seq.cl = "";
-		term_seq.nl = "\n";
-		return;
-	}
-	ts_saved = malloc(sizeof(*ts_saved));
-	if (tcgetattr(0, ts_saved) < 0)
-		goto fail;
-
-	nts = *ts_saved;
-	nts.c_lflag &= ~(ICANON | ECHO);
-	nts.c_cc[VMIN] = 1;
-	nts.c_cc[VTIME] = 0;
-	if (tcsetattr (0, TCSANOW, &nts) < 0)
-		goto fail;
-
-	term_seq.nl = "\r\n";
-	return;
-fail:
-	if (ts_saved) {
-		free(ts_saved);
-		ts_saved = NULL;
-	}
-	msglog(LDMSD_LERROR, SAMP ": Failed to set up  terminal %i", errno);
 }
 
 static int parse_socinfo(void){
@@ -611,6 +577,63 @@ static int read_cpu_info(struct cpu_info *s)
       return 1;
 }
 
+#ifdef debug
+
+static inline double cpu_temp(struct cpu_info *d, int c)
+{
+        return to_c(d->mcp.tmon_cpu[c]);
+}
+
+static inline unsigned int cpu_freq(struct cpu_info *d, int c)
+{
+        return d->mcp.freq_cpu[c];
+}
+
+static inline double to_v(int mv)
+{
+        return mv/1000.0;
+}
+
+static inline double to_w(int mw)
+{
+        return mw/1000.0;
+}
+
+/* Used for debugging
+ *  * Prints out data in table format similar to tx2mon program */
+static void term_init_save(void)
+{
+        static struct termios nts;
+
+        if (!isatty(1)) {
+                term_seq.cl = "";
+                term_seq.nl = "\n";
+                return;
+        }
+        ts_saved = malloc(sizeof(*ts_saved));
+        if (tcgetattr(0, ts_saved) < 0)
+                goto fail;
+
+        nts = *ts_saved;
+        nts.c_lflag &= ~(ICANON | ECHO);
+        nts.c_cc[VMIN] = 1;
+        nts.c_cc[VTIME] = 0;
+        if (tcsetattr (0, TCSANOW, &nts) < 0)
+                goto fail;
+
+        term_seq.nl = "\r\n";
+        return;
+fail:
+        if (ts_saved) {
+                free(ts_saved);
+                ts_saved = NULL;
+        }
+        msglog(LDMSD_LERROR, SAMP ": Failed to set up  terminal %i", errno);
+}
+
+
+/* Used for debugging:
+ * Dump out the information stored in the nodes of each core*/
 static void dump_cpu_info(struct cpu_info *s)
 {
 	struct mc_oper_region *op = &s->mcp;
@@ -666,6 +689,8 @@ static void dump_cpu_info(struct cpu_info *s)
 	printf("%s", t->nl);
 }
 
+/* Used for debugging:
+ * Prints out the throttling "active events"*/
 static char *get_throttling_cause(unsigned int active_event, const char *sep, char *buf, int bufsz)
 {
 	const char *causes[] = { "Temperature", "Power", "External", "Unk3", "Unk4", "Unk5"};
@@ -689,25 +714,25 @@ static char *get_throttling_cause(unsigned int active_event, const char *sep, ch
 	}
 	return rbuf;
 }
-
-static int parse_mc_oper_region(struct mc_oper_region *op)
+#endif
+static int parse_mc_oper_region()
 {
 	int ret, ret1;
 	int fd;
 	int i;
-	char filename[sizeof(TX2MON_NODE_PATH) + 2];  // for up to 3 digit numbers
+	char filename[sizeof(TX2MON_NODE_PATH) + 2];
 	ret = ret1 = 1;
 	/* Check that the node file paths exist. Set fd to each node file found depending on number of CPUS
 	Loop through each cpu_info struct depending on the MAX_CPU found
 	*/
 	assert(tx2mon != NULL);
 	for(i = 0; i < tx2mon->n_cpu; i++) {
+		
 		//Get node path name(s)
 		snprintf(filename, sizeof(filename), TX2MON_NODE_PATH, i);
 		//set number of nodes for each cpu found
 		tx2mon->cpu[i].node = i;
 		fd = open(filename, O_RDONLY);
-		msglog(LDMSD_LDEBUG, SAMP ": This is what's in filename: %s \n", filename);
 		if (fd < 0){
 			msglog(LDMSD_LERROR, SAMP ": Error reading node%i entry.\n", i);
 			exit (1);
@@ -719,41 +744,19 @@ static int parse_mc_oper_region(struct mc_oper_region *op)
 			return EINVAL;
 		}
 		/* UNCOMMENT THE FOLLOWING FOR DEBUGGING */
-		/*if (ret > 0) {
+#ifdef debug
+		if (ret > 0) {
 			tx2mon->samples++;
-		//Function to display data in nice format - similar to tx2mon program
+			//Function to display data in table format - similar to tx2mon program
 			term_init_save();
 			dump_cpu_info(&tx2mon->cpu[i]);
-		}*/
-		op = &tx2mon->cpu[i].mcp;
-		msglog(LDMSD_LDEBUG, SAMP ": This is what's in v_core before being converted %6.2f \n", (float)op->v_core);
-		msglog(LDMSD_LDEBUG, SAMP ": This is what's in v_sram before being converted %6.2f \n", (float)op->v_sram);
-		msglog(LDMSD_LDEBUG, SAMP ": This is what's in pwr_core before being converted %6.2f \n", (float)op->pwr_core);
-		msglog(LDMSD_LDEBUG, SAMP ": This is what's in pwr_sram before being converted %6.2f \n", (float)op->pwr_sram);
-		//op->temp_soft_thresh = to_c(op->temp_soft_thresh);
-		//op->temp_abs_max = to_c(op->temp_abs_max);
-		//op->tmon_soc_avg = to_c(op->tmon_soc_avg);
-		//op->v_core = to_v(op->v_core);
-		//op->v_sram = to_v(op->v_sram);
-		//op->v_mem = to_v(op->v_mem);
-		//op->v_soc = to_v(op->v_soc);
-		//op->pwr_core = to_w(op->pwr_core);
-		//op->pwr_sram = to_w(op->pwr_sram);
-		//op->pwr_mem = to_w(op->pwr_mem);
-		//op->pwr_soc = to_w(op->pwr_soc);
-		for (int c = 0;  c < tx2mon->n_core; c++) {
-			//op->tmon_cpu[c] = (float)to_c(op->tmon_cpu[c]);
-			msglog(LDMSD_LDEBUG, SAMP ": This is what's in tmon_cpu array after being converted %.2d \n", (uint16_t)op->tmon_cpu[c]);
-			msglog(LDMSD_LDEBUG, SAMP ": This is what's in freq_cpu array after being converted %.2d \n", (uint32_t)op->freq_cpu[c]);	//op->tmon_cpu[5] = 235532;
-        		}
-
-
-		msglog(LDMSD_LDEBUG, SAMP ": This is what's in v_core after being converted %.2d \n", (int)op->v_core);
-		msglog(LDMSD_LDEBUG, SAMP ": This is what's in v_sram after being converted %6.2f \n", (float)op->v_sram);
-		msglog(LDMSD_LDEBUG, SAMP ": This is what's in pwr_core after being converted %6.2f \n", (float)op->pwr_core);
-		msglog(LDMSD_LDEBUG, SAMP ": This is what's in pwr_sram after being converted %6.2f \n", (float)op->pwr_sram);
+		}
+#endif
+		//msglog(LDMSD_LDEBUG, SAMP ": This is the address for tx2mon: %p \n", &tx2mon->cpu[i].mcp);
+		//msglog(LDMSD_LDEBUG, SAMP ": This is what's in tmon_cpu address for tx2mon: %p \n", &tx2mon->cpu[i].mcp.tmon_cpu[0]);
+		//msglog(LDMSD_LDEBUG, SAMP ": This is what's in freq_cpu address for tx2mon: %p \n", &tx2mon->cpu[i].mcp.freq_cpu[0]);
 		
-		close(tx2mon->cpu[i].fd);
+		close(fd);
 		
 	}
 	return 0;

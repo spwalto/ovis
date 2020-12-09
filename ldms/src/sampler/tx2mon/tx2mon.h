@@ -46,17 +46,6 @@ static int create_metric_set(base_data_t base);
 #define CORES_PER_ROW 4
 #define PIDFMAX 32
 #define BUFMAX 512
-
-static struct termios *ts_saved;
-static int display_extra = 0;
-static int display_throttling = 1;
-
-static struct term_seq {
-        char *cl;
-        char *nl;
-} term_seq;
-
-
 /*
  * Location of the sysfs entries created by the kernel module.
  *
@@ -81,10 +70,6 @@ static struct term_seq {
 typedef enum {CAP_BASIC = 0x00, CAP_THROTTLE = 0x01} tx2mon_cap;
 	
 /*
- * Housekeeping structures used internally.
- */
-
-/*
  * Per-CPU record keeping
  */
 struct cpu_info {
@@ -97,8 +82,6 @@ struct cpu_info {
 
 /*
  * Per-sampler record keeping
- *
- * TODO: Investigate pulling base & set into here.
  */
 struct tx2mon_sampler {
 	int	n_cpu;		/* number of CPUs (e.g. TX2 chips) present */
@@ -108,7 +91,6 @@ struct tx2mon_sampler {
 	
 	FILE	*fileout;
 	int 	samples;
-	struct base_auth auth;
 	struct cpu_info cpu[TX2MON_MAX_CPU];
 } ;
 
@@ -116,25 +98,30 @@ struct tx2mon_sampler {
    * \return 0 on success, errno from fopen, ENODATA from
     * failed fgets, ENOKEY or ENAMETOOLONG from failed parse.
     */
-
 static int parse_socinfo(void);
 
-/* Dump out the information stored in the nodes of each core*/
-
-static void  dump_cpu_info(struct cpu_info *s);
-
 /* Read the information located in th the node file directory*/
-
 static int read_cpu_info(struct cpu_info *s);
 
 /*Read and query cpu data for each node and map to data strucutre. Can also be used for debugging
  * by displaying the data to the ldmsd log file*/
+static int parse_mc_oper_region();
 
-static int parse_mc_oper_region(struct mc_oper_region *s);
+/* Define metric list and call tx2mon_array_conv */
+static int tx2mon_set_metrics(int i);
 
+/* Convert metric values to temp, voltage and power units. Output results in float and uint32_t types */
+static int tx2mon_array_conv(void *s, int p, int idx, int i, uint32_t t);
+
+#ifdef debug
 static char *get_throttling_cause(unsigned int active_event, const char *sep, char *buf, int bufsz);
+static struct termios *ts_saved;
+static int display_extra = 0;
+static int display_throttling = 1;
 
-static int tx2mon_set_metrics(struct mc_oper_region *s, int i);
+static struct term_seq {
+        char *cl;
+        char *nl;
+} term_seq;
 
-static int tx2mon_array_conv(uint32_t *s, int p, int idx, int i, uint32_t t);
-
+#endif
