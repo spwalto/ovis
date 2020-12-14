@@ -66,7 +66,6 @@
 
 #define SAMP "tx2mon"
 
-#define N 2
 static ldmsd_msg_log_f msglog;
 static ldms_set_t set[MAX_CPUS_PER_SOC];
 static ldms_set_t sc;
@@ -84,8 +83,18 @@ static struct tx2mon_sampler *tx2mon = &tx2mon_s;
 #define MC_OPER_REGION 0x1
 
 static int pidopts = 0;
+static int pidarray = 0;
 static char *pids = "self";
 
+/* 
+ * - Define metric list found in /usr/include/tx2mon/mc_oper_region.h. 
+ * - Create list with the following arguments: name, metric name, type, position in the metric list.
+ * - Add schema meta data with ldms_schema_meta_array_add() and ldms_schema_add().
+ * - Add schema metric data with ldms_schema_metric_array_add() and ldms_schema_add().
+ * - Set the total length of the arrays to the number of cores found in /sys/bus/platform/devices/tx2mon/socinfo.
+ * - If "noarray = true/1/t", set the length of the arrays to the number of values that will be included. 
+ * 	For this sampler, only the maximum and minimum values will be included so the length will be set to 2.
+ * */
 #define MCP_LIST(WRAP) \
 	WRAP("cmd_status", cmd_status, LDMS_V_U32, pos_cmd_status) \
 	WRAP("counter", counter, LDMS_V_U32, pos_counter) \
@@ -123,10 +132,16 @@ MCP_LIST(DECLPOS);
 #define META(n, m, t, p) \
 	switch (t) {\
 	case LDMS_V_U32_ARRAY: \
-		rc = ldms_schema_meta_array_add(schema, n, t, MAX_CPUS_PER_SOC);\
+		if (!pidarray)\
+			rc = ldms_schema_meta_array_add(schema, n, t, tx2mon->n_core);\
+		else \
+			rc = ldms_schema_meta_array_add(schema, n, t, 2);\
 		break;\
 	case LDMS_V_F32_ARRAY: \
-		rc = ldms_schema_meta_array_add(schema, n, t, MAX_CPUS_PER_SOC);\
+		if (!pidarray)\
+			rc = ldms_schema_meta_array_add(schema, n, t, tx2mon->n_core);\
+		else \
+                        rc = ldms_schema_meta_array_add(schema, n, t, 2);\
 		break;\
 	default:\
 		rc = ldms_schema_meta_add(schema, n, t); \
@@ -141,10 +156,16 @@ MCP_LIST(DECLPOS);
 #define METRIC(n, m, t, p) \
 	switch (t) {\
 	case LDMS_V_U32_ARRAY: \
-		rc = ldms_schema_metric_array_add(schema, n, t, MAX_CPUS_PER_SOC);\
+		if (!pidarray)\
+			rc = ldms_schema_metric_array_add(schema, n, t, tx2mon->n_core);\
+		else\
+			rc = ldms_schema_metric_array_add(schema, n, t, 2);\
 		break;\
 	case LDMS_V_F32_ARRAY: \
-		rc = ldms_schema_metric_array_add(schema, n, t, MAX_CPUS_PER_SOC);\
+		if (!pidarray)\
+		rc = ldms_schema_metric_array_add(schema, n, t, tx2mon->n_core);\
+		else\
+                        rc = ldms_schema_metric_array_add(schema, n, t, 2);\
 		break;\
 	default:\
 		rc = ldms_schema_metric_add(schema, n, t); \
@@ -175,7 +196,8 @@ static struct ldmsd_sampler tx2mon_plugin = {
 struct ldmsd_plugin *get_plugin(ldmsd_msg_log_f pf)
 {
 	msglog = pf;
-	for (int i = 0; i < MAX_CPUS_PER_SOC; i++)
+	int i;
+	for (i = 0; i < MAX_CPUS_PER_SOC; i++)
 		set[i] = NULL;
 	return &tx2mon_plugin.base;
 }
@@ -224,9 +246,9 @@ static bool get_bool(const char *val, char *name)
 static int config(struct ldmsd_plugin *self, struct attr_value_list *kwl, struct attr_value_list *avl)
 {
 	int rc = -1;
-	char *domcp;
-	
-	for (int i = 0; i < tx2mon->n_cpu; i++){
+	char *noarray;
+	int i;
+	for (i = 0; i < tx2mon->n_cpu; i++){
 	if (set[i]) {
 		msglog(LDMSD_LERROR, SAMP ": Set already created.\n");
 		return EINVAL;
@@ -240,10 +262,11 @@ static int config(struct ldmsd_plugin *self, struct attr_value_list *kwl, struct
 		goto err;
 	}
 	
-	domcp = av_value(avl, "mc_oper_region");
-	if (!domcp) {
-		pidopts = MC_OPER_REGION;
-	}
+	noarray = av_value(avl, "noarray");
+	pidopts = MC_OPER_REGION;
+
+	if (noarray && get_bool(noarray, "noarray"))
+		pidarray = 1;
 
 	if (!pidopts) {
 		msglog(LDMSD_LERROR, SAMP ": configured with nothing to do.\n");
@@ -272,14 +295,28 @@ err:
 
 static const char *usage(struct ldmsd_plugin *self)
 {
-	return SAMP ": Lorem Ipsum";
+	return 
+	"config name=" SAMP " [port-number=<num>]\n"
+	"       [producer=<name>] [instance=<name>] [component_id=<uint64_t>] [schema=<name_base>] [noarray=<bool>] \n"
+	"       [uid=<user-id>] [gid=<group-id>] [perm=<mode_t permission bits>]\n"
+	"    producer     A unique name for the host providing the timing data (default $HOSTNAME)\n"
+	"    instance     A unique name for the timing metric set (default $HOSTNAME/" SAMP ")\n"
+	"    component_id A unique number for the component being monitoring, Defaults to zero.\n"
+	"    schema       The base name of the port metrics schema, Defaults to " SAMP ".\n"
+	"    noarray      Includs only the minimum and maximum values of each array in the metric set. \n" 
+	" 		  If false, all array values are included. Default is FALSE.\n"
+	"    uid	  The user-id of the set's owner\n"
+	"    gid	  The group id of the set's owner\n"
+	"    perm	  The set's access permissions\n"
+	;
 }
 
 static void term(struct ldmsd_plugin *self)
 {
+	int i;
 	if (base)
 		base_del(base);
-	for (int i = 0; i < tx2mon->n_cpu; i++){
+	for (i = 0; i < tx2mon->n_cpu; i++){
 	if (set[i])
 		ldms_set_delete(set[i]);
 	set[i] = NULL;
@@ -289,8 +326,9 @@ static void term(struct ldmsd_plugin *self)
 static int sample(struct ldmsd_sampler *self)
 {
 	int rc = 0;
+	int i;
 	int mcprc = -1;
-	for (int i = 0; i < tx2mon->n_cpu; i++)
+	for (i = 0; i < tx2mon->n_cpu; i++)
 		if (!set[i]) {
 		msglog(LDMSD_LDEBUG, SAMP ": plugin not initialized\n");
 		return EINVAL;
@@ -298,9 +336,8 @@ static int sample(struct ldmsd_sampler *self)
 	if (pidopts & MC_OPER_REGION) 
 		mcprc = parse_mc_oper_region();
 		
-	for (int i = 0; i < tx2mon->n_cpu; i ++)
+	for (i = 0; i < tx2mon->n_cpu; i ++)
 	{
-		//msglog(LDMSD_LDEBUG, SAMP ": tx2mon->cpu in sample function: %p, \n", &tx2mon->cpu[i].mcp);
 		base_sample_begin(base);
 		if (!mcprc) {
 			rc = tx2mon_set_metrics(i);
@@ -317,15 +354,25 @@ static int sample(struct ldmsd_sampler *self)
 	return rc;
 }
 
+/* 
+ * - Define all metrics in the structure list "MCP_LIST". This definition will be used to sample the metric set
+ * - Call tx2mon_array_conv. 
+ * - tx2mon_array_conv converts each metric and array to the necessary types (float, uint16 and uint32) and sets 
+ * 	the metrics with ldms_metric_set_<type>() and ldms_metric_array_set_<type>(). 
+ * - If "noarray = true/1/t/T", the two arrays in "MCP_LIST" (freq_cpu and tmon_cpu) will contain only the maximum and minimum
+ * - values found in the array after they have been converted with my_to_c_u16() and my_to_c_u32().
+ * - Fail with rc = EINVAL if a metric type does not exist
+ * */
+
 static int  tx2mon_set_metrics (int i)
 {
+
 	struct mc_oper_region *s;
 	int rc = 0;
 	s = &tx2mon->cpu[i].mcp;
-	//msglog(LDMSD_LDEBUG, SAMP ": s  variable after setting it to tx2mon->cpu: %p, \n", s);
 	
 #define MCSAMPLE(n, m, t, p) \
-	rc = tx2mon_array_conv(&s->m, p, 32, i, t);\
+	rc = tx2mon_array_conv(&s->m, p, tx2mon->n_core, i, t);\
 	if (rc){ \
 		rc = EINVAL; \
 		msglog(LDMSD_LERROR, SAMP ": sample " n " not correctly defined.\n"); \
@@ -349,41 +396,64 @@ static float my_to_c_u16(uint16_t t)
 
 static int tx2mon_array_conv(void *s, int p, int idx, int i, uint32_t t)
 {
-	
-	//msglog(LDMSD_LDEBUG, SAMP ": tx2mon_array_conv args s, p, idx, i, t: %p, %i, %i, %i, %s \n", s, p, idx, i, ldms_metric_type_to_str(t));
 	int rc = 0;
+	int c = 0;
 	if (t == LDMS_V_F32_ARRAY){ 
-		//s = (void *)0xffffac9685c4;
 		uint16_t *s16 = (uint16_t*)s;
-                for (int c = 0; c < idx; c++){
-		//	msglog(LDMSD_LDEBUG, SAMP ": This is what's in the result before being converted: %u \n", s16[c]);
-		//	msglog(LDMSD_LDEBUG, SAMP ": tx2mon_array_conv args s, p, idx, i, t: %p, %i, %i, %i, %s \n", s16[c], p, idx, i, ldms_metric_type_to_str(t));
-		//	msglog(LDMSD_LDEBUG, SAMP ": This is what's in the result after being converted: %f \n", my_to_c_u16(s16[c]));
-                	ldms_metric_array_set_float(set[i], p, c, my_to_c_u16(s16[c]));
+		if (pidarray){
+                        uint16_t *min_max16 = (uint16_t*)s;
+			min_max16[0] = s16[0];
+			min_max16[1] = s16[0];
+                        for (c = 0; c < idx; c++){
+				if (my_to_c_u16(s16[c]) < my_to_c_u16(min_max16[0]))
+                                        min_max16[0] = s16[c];
+				if (my_to_c_u16(s16[c]) > my_to_c_u16(min_max16[1]))
+                                        min_max16[1] =s16[c];
+				}
+			for (c = 0; c < 2; c++)
+	                       	ldms_metric_array_set_float(set[i], p, c, my_to_c_u16(min_max16[c]));
 			}
-			//msglog(LDMSD_LDEBUG, SAMP ": This is what's in tmon_cpu address: %p \n", s16);
-                }
+		
+                else if (!pidarray) {
+        		for (c = 0; c < idx; c++)
+                		ldms_metric_array_set_float(set[i], p, c, my_to_c_u16(s16[c]));
+		}
+	}
+	
 	if (t == LDMS_V_U32_ARRAY){
-		//s = (void *)0xffffac9684c4;
 		uint32_t *s32 = (uint32_t*)s;
-                for (int c = 0; c < idx; c++){
-			//msglog(LDMSD_LDEBUG, SAMP ": This is what's in set s for the uint32 array:  %.2u \n", s32[c]);
-                        ldms_metric_array_set_u32(set[i], p, c, s32[c]);
-                        }
-                }
+		if (pidarray) {
+                        uint32_t *min_max32 = (uint32_t*)s;
+			min_max32[0] = s32[0];
+			min_max32[1] = s32[0];
+                        for (c = 0; c < idx; c++){
+                                if (s32[c] < min_max32[0])
+                                        min_max32[0] = s32[c];
+				if (s32[c] > min_max32[1])
+					min_max32[1] =s32[c];
+				}
+			for (c = 0; c < 2; c++)
+				ldms_metric_array_set_u32(set[i], p, c, min_max32[c]);
+			}
+
+		else if (!pidarray){
+                	for (c = 0; c < idx; c++)
+                        	ldms_metric_array_set_u32(set[i], p, c, s32[c]);
+		}
+	}
+	
 	if(t == LDMS_V_F32){
 		uint32_t *f32 = (uint32_t*)s;
-		if (p >= 16 && p <= 23)
+		if (p >= 16)
 			ldms_metric_set_float(set[i], p, (*f32/1000.0));
 		else
 			ldms_metric_set_float(set[i], p, my_to_c_u32(*f32));
 		
-		}	
+		}
+
 	if (t == LDMS_V_U32)
 		ldms_metric_set_u32(set[i], p, *(uint32_t*)s);
 	
-	else
-		rc = EINVAL;
 		
 	return rc;
 }
@@ -408,14 +478,14 @@ static ldms_set_t get_set(struct ldmsd_sampler *self)
  *    configure.)
  *  - Establish the capabilities reported, based on the version number of
  *    the data structure.
- *  - Set up schema, and update housekeeping data.
+ *  - Set up metrics, update data and sample.
  *
  *    Return 0 iff all good, else report useful error message, clean up,
  *    and return appropriate errno.
  */
 static int create_metric_set(base_data_t base)
 {
-	int rc, ret;
+	int rc, ret, i;
 	int mcprc = -1;
 	size_t instance_len = strlen(base->instance_name) + 12;
 
@@ -429,8 +499,6 @@ static int create_metric_set(base_data_t base)
 			exit (1);
 		}
 		mcprc = parse_mc_oper_region();
-		//msglog(LDMSD_LDEBUG, SAMP ": tx2mon->cpu in create metric set function after parsing : %p, \n", &tx2mon->cpu[0].mcp);
-		//msglog(LDMSD_LDEBUG, SAMP ": tx2mon->cpu in create metric set function after parsing : %p, \n", &tx2mon->cpu[1].mcp);
 		if (mcprc != 0) {
 			msglog(LDMSD_LERROR, SAMP ": unable to read the node file for the sample (%s)\n",
 				pids, strerror(mcprc));
@@ -445,7 +513,7 @@ static int create_metric_set(base_data_t base)
 	if (pidopts & MC_OPER_REGION) {
 		MCP_LIST(METRIC);
 	}
-	for (int i = 0; i < 2; i++){
+	for (i = 0; i < 2; i++){
 		snprintf(cpu_instance_index, instance_len, ".%d", i);
 		
 		strncpy(buf, base->instance_name, instance_len);
@@ -715,16 +783,21 @@ static char *get_throttling_cause(unsigned int active_event, const char *sep, ch
 	return rbuf;
 }
 #endif
+
+/* - Loop through each cpu struct determined in /sys/bus/platform/devices/tx2mon/socinfo
+ * - Check that the node file path for each cpu struct exist. 
+ * - Read cpu information in /sys/bus/platform/devices/tx2mon/node<i>_raw
+ * - Close file path 
+ * - Define "debug" to output all structs and their metric values in table format
+ *   similar to tx2mon program (term_init_save() does this).
+ */
+
 static int parse_mc_oper_region()
 {
 	int ret, ret1;
-	int fd;
 	int i;
 	char filename[sizeof(TX2MON_NODE_PATH) + 2];
 	ret = ret1 = 1;
-	/* Check that the node file paths exist. Set fd to each node file found depending on number of CPUS
-	Loop through each cpu_info struct depending on the MAX_CPU found
-	*/
 	assert(tx2mon != NULL);
 	for(i = 0; i < tx2mon->n_cpu; i++) {
 		
@@ -732,31 +805,24 @@ static int parse_mc_oper_region()
 		snprintf(filename, sizeof(filename), TX2MON_NODE_PATH, i);
 		//set number of nodes for each cpu found
 		tx2mon->cpu[i].node = i;
-		fd = open(filename, O_RDONLY);
-		if (fd < 0){
+		tx2mon->cpu[i].fd = open(filename, O_RDONLY);
+		if (tx2mon->cpu[i].fd < 0){
 			msglog(LDMSD_LERROR, SAMP ": Error reading node%i entry.\n", i);
 			exit (1);
 		}
-		tx2mon->cpu[i].fd=fd;
 		ret = read_cpu_info(&tx2mon->cpu[i]);
 		if (ret < 0){
 			printf("Unexpected read error!\n");
 			return EINVAL;
 		}
-		/* UNCOMMENT THE FOLLOWING FOR DEBUGGING */
 #ifdef debug
 		if (ret > 0) {
 			tx2mon->samples++;
-			//Function to display data in table format - similar to tx2mon program
 			term_init_save();
 			dump_cpu_info(&tx2mon->cpu[i]);
 		}
 #endif
-		//msglog(LDMSD_LDEBUG, SAMP ": This is the address for tx2mon: %p \n", &tx2mon->cpu[i].mcp);
-		//msglog(LDMSD_LDEBUG, SAMP ": This is what's in tmon_cpu address for tx2mon: %p \n", &tx2mon->cpu[i].mcp.tmon_cpu[0]);
-		//msglog(LDMSD_LDEBUG, SAMP ": This is what's in freq_cpu address for tx2mon: %p \n", &tx2mon->cpu[i].mcp.freq_cpu[0]);
-		
-		close(fd);
+		close(tx2mon->cpu[i].fd);
 		
 	}
 	return 0;

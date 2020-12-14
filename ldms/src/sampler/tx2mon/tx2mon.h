@@ -46,6 +46,7 @@ static int create_metric_set(base_data_t base);
 #define CORES_PER_ROW 4
 #define PIDFMAX 32
 #define BUFMAX 512
+//#define debug
 /*
  * Location of the sysfs entries created by the kernel module.
  *
@@ -116,7 +117,7 @@ static int tx2mon_array_conv(void *s, int p, int idx, int i, uint32_t t);
 #ifdef debug
 static char *get_throttling_cause(unsigned int active_event, const char *sep, char *buf, int bufsz);
 static struct termios *ts_saved;
-static int display_extra = 0;
+static int display_extra = 1;
 static int display_throttling = 1;
 
 static struct term_seq {
