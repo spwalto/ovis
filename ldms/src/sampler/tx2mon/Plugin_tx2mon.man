@@ -17,7 +17,7 @@ The tx2mon plugin provides cpu and soc information from /sys/bus/platform/device
 
 .TP
 .BR config
-name=<plugin_name> component_id=<comp_id> [noarray=<bool>] set=<set_name> 
+name=<plugin_name> component_id=<comp_id> set=<set_name> [noarray=<bool>]
 .br
  configuration line
 .RS
@@ -50,10 +50,6 @@ The component id numerical value.
 noarray=<bool>
 .br
 Include the metrics from /user/include/mc_oper_region.sh and max and min values from all array metrics. If false (0) all metric array values will be included.
-.TP
-fd=<bool>
-.br
-Include the number of open file descriptors found in /sys/bus/platform/devices/tx2mon/node<i>_raw.
 .RE
 
 .SH DATA
@@ -103,9 +99,8 @@ uint32_t	ext_throttle_ms;		Time duration of all external events in ms.
 
 The structure /usr/include/tx2mon/mc_oper_region.h is recycled for each new /sys/bus/platform/devices/tx2mon/node<i>_raw identified.
 .PP
-Requesting fd (which may be high overhead) requires explicitly requesting it. 
+Requesting noarray (which may be high overhead) requires explicitly requesting it. 
 .PP
-This is the LDMSD answer to the ancient question "Quis custodiet ipsos custodes?"
 
 .SH SEE ALSO
 ldmsd(8), README file for tx2mon plugin. 
