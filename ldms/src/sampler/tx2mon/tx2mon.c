@@ -93,7 +93,7 @@ static char *pids = "self";
  * - Add schema metric data with ldms_schema_metric_array_add() and ldms_schema_add().
  * - Set the total length of the arrays to the number of cores found in /sys/bus/platform/devices/tx2mon/socinfo.
  * - If "noarray = true/1/t", set the length of the arrays to the number of values that will be included. 
- * 	For this sampler, only the maximum and minimum values will be included so the length will be set to 2.
+ *	For this sampler, only the maximum and minimum values will be included so the length will be set to 2.
  * */
 #define MCP_LIST(WRAP) \
 	WRAP("cmd_status", cmd_status, LDMS_V_U32, pos_cmd_status) \
@@ -141,7 +141,7 @@ MCP_LIST(DECLPOS);
 		if (!pidarray)\
 			rc = ldms_schema_meta_array_add(schema, n, t, tx2mon->n_core);\
 		else \
-                        rc = ldms_schema_meta_array_add(schema, n, t, 2);\
+			rc = ldms_schema_meta_array_add(schema, n, t, 2);\
 		break;\
 	default:\
 		rc = ldms_schema_meta_add(schema, n, t); \
@@ -165,7 +165,7 @@ MCP_LIST(DECLPOS);
 		if (!pidarray)\
 		rc = ldms_schema_metric_array_add(schema, n, t, tx2mon->n_core);\
 		else\
-                        rc = ldms_schema_metric_array_add(schema, n, t, 2);\
+			rc = ldms_schema_metric_array_add(schema, n, t, 2);\
 		break;\
 	default:\
 		rc = ldms_schema_metric_add(schema, n, t); \
@@ -297,14 +297,14 @@ static const char *usage(struct ldmsd_plugin *self)
 {
 	return 
 	"config name=" SAMP " [port-number=<num>]\n"
-	"       [producer=<name>] [instance=<name>] [component_id=<uint64_t>] [schema=<name_base>] [noarray=<bool>] \n"
-	"       [uid=<user-id>] [gid=<group-id>] [perm=<mode_t permission bits>]\n"
-	"    producer     A unique name for the host providing the timing data (default $HOSTNAME)\n"
-	"    instance     A unique name for the timing metric set (default $HOSTNAME/" SAMP ")\n"
+	"	[producer=<name>] [instance=<name>] [component_id=<uint64_t>] [schema=<name_base>] [noarray=<bool>] \n"
+	"	[uid=<user-id>] [gid=<group-id>] [perm=<mode_t permission bits>]\n"
+	"    producer	  A unique name for the host providing the timing data (default $HOSTNAME)\n"
+	"    instance	  A unique name for the timing metric set (default $HOSTNAME/" SAMP ")\n"
 	"    component_id A unique number for the component being monitoring, Defaults to zero.\n"
-	"    schema       The base name of the port metrics schema, Defaults to " SAMP ".\n"
-	"    noarray      Includs only the minimum and maximum values of each array in the metric set. \n" 
-	" 		  If false, all array values are included. Default is FALSE.\n"
+	"    schema	  The base name of the port metrics schema, Defaults to " SAMP ".\n"
+	"    noarray	  Includs only the minimum and maximum values of each array in the metric set. \n" 
+	"		  If false, all array values are included. Default is FALSE.\n"
 	"    uid	  The user-id of the set's owner\n"
 	"    gid	  The group id of the set's owner\n"
 	"    perm	  The set's access permissions\n"
@@ -358,7 +358,7 @@ static int sample(struct ldmsd_sampler *self)
  * - Define all metrics in the structure list "MCP_LIST". This definition will be used to sample the metric set
  * - Call tx2mon_array_conv. 
  * - tx2mon_array_conv converts each metric and array to the necessary types (float, uint16 and uint32) and sets 
- * 	the metrics with ldms_metric_set_<type>() and ldms_metric_array_set_<type>(). 
+ *	the metrics with ldms_metric_set_<type>() and ldms_metric_array_set_<type>(). 
  * - If "noarray = true/1/t/T", the two arrays in "MCP_LIST" (freq_cpu and tmon_cpu) will contain only the maximum and minimum
  * - values found in the array after they have been converted with my_to_c_u16() and my_to_c_u32().
  * - Fail with rc = EINVAL if a metric type does not exist
@@ -401,34 +401,34 @@ static int tx2mon_array_conv(void *s, int p, int idx, int i, uint32_t t)
 	if (t == LDMS_V_F32_ARRAY){ 
 		uint16_t *s16 = (uint16_t*)s;
 		if (pidarray){
-                        uint16_t *min_max16 = (uint16_t*)s;
+			uint16_t *min_max16 = (uint16_t*)s;
 			min_max16[0] = s16[0];
 			min_max16[1] = s16[0];
-                        for (c = 0; c < idx; c++){
+			for (c = 0; c < idx; c++){
 				if (my_to_c_u16(s16[c]) < my_to_c_u16(min_max16[0]))
-                                        min_max16[0] = s16[c];
+					min_max16[0] = s16[c];
 				if (my_to_c_u16(s16[c]) > my_to_c_u16(min_max16[1]))
-                                        min_max16[1] =s16[c];
+					min_max16[1] =s16[c];
 				}
 			for (c = 0; c < 2; c++)
-	                       	ldms_metric_array_set_float(set[i], p, c, my_to_c_u16(min_max16[c]));
+				ldms_metric_array_set_float(set[i], p, c, my_to_c_u16(min_max16[c]));
 			}
 		
-                else if (!pidarray) {
-        		for (c = 0; c < idx; c++)
-                		ldms_metric_array_set_float(set[i], p, c, my_to_c_u16(s16[c]));
+		else if (!pidarray) {
+			for (c = 0; c < idx; c++)
+				ldms_metric_array_set_float(set[i], p, c, my_to_c_u16(s16[c]));
 		}
 	}
 	
 	if (t == LDMS_V_U32_ARRAY){
 		uint32_t *s32 = (uint32_t*)s;
 		if (pidarray) {
-                        uint32_t *min_max32 = (uint32_t*)s;
+			uint32_t *min_max32 = (uint32_t*)s;
 			min_max32[0] = s32[0];
 			min_max32[1] = s32[0];
-                        for (c = 0; c < idx; c++){
-                                if (s32[c] < min_max32[0])
-                                        min_max32[0] = s32[c];
+			for (c = 0; c < idx; c++){
+				if (s32[c] < min_max32[0])
+					min_max32[0] = s32[c];
 				if (s32[c] > min_max32[1])
 					min_max32[1] =s32[c];
 				}
@@ -437,8 +437,8 @@ static int tx2mon_array_conv(void *s, int p, int idx, int i, uint32_t t)
 			}
 
 		else if (!pidarray){
-                	for (c = 0; c < idx; c++)
-                        	ldms_metric_array_set_u32(set[i], p, c, s32[c]);
+			for (c = 0; c < idx; c++)
+				ldms_metric_array_set_u32(set[i], p, c, s32[c]);
 		}
 	}
 	
@@ -642,61 +642,61 @@ static int read_cpu_info(struct cpu_info *s)
 		s->throttling_available =  1;
 	else
 		s->throttling_available =  0;
-      return 1;
+	return 1;
 }
 
 #ifdef debug
 
 static inline double cpu_temp(struct cpu_info *d, int c)
 {
-        return to_c(d->mcp.tmon_cpu[c]);
+	return to_c(d->mcp.tmon_cpu[c]);
 }
 
 static inline unsigned int cpu_freq(struct cpu_info *d, int c)
 {
-        return d->mcp.freq_cpu[c];
+	return d->mcp.freq_cpu[c];
 }
 
 static inline double to_v(int mv)
 {
-        return mv/1000.0;
+	return mv/1000.0;
 }
 
 static inline double to_w(int mw)
 {
-        return mw/1000.0;
+	return mw/1000.0;
 }
 
 /* Used for debugging
  *  * Prints out data in table format similar to tx2mon program */
 static void term_init_save(void)
 {
-        static struct termios nts;
+	static struct termios nts;
 
-        if (!isatty(1)) {
-                term_seq.cl = "";
-                term_seq.nl = "\n";
-                return;
-        }
-        ts_saved = malloc(sizeof(*ts_saved));
-        if (tcgetattr(0, ts_saved) < 0)
-                goto fail;
+	if (!isatty(1)) {
+		term_seq.cl = "";
+		term_seq.nl = "\n";
+		return;
+	}
+	ts_saved = malloc(sizeof(*ts_saved));
+	if (tcgetattr(0, ts_saved) < 0)
+		goto fail;
 
-        nts = *ts_saved;
-        nts.c_lflag &= ~(ICANON | ECHO);
-        nts.c_cc[VMIN] = 1;
-        nts.c_cc[VTIME] = 0;
-        if (tcsetattr (0, TCSANOW, &nts) < 0)
-                goto fail;
+	nts = *ts_saved;
+	nts.c_lflag &= ~(ICANON | ECHO);
+	nts.c_cc[VMIN] = 1;
+	nts.c_cc[VTIME] = 0;
+	if (tcsetattr (0, TCSANOW, &nts) < 0)
+		goto fail;
 
-        term_seq.nl = "\r\n";
-        return;
+	term_seq.nl = "\r\n";
+	return;
 fail:
-        if (ts_saved) {
-                free(ts_saved);
-                ts_saved = NULL;
-        }
-        msglog(LDMSD_LERROR, SAMP ": Failed to set up  terminal %i", errno);
+	if (ts_saved) {
+		free(ts_saved);
+		ts_saved = NULL;
+	}
+	msglog(LDMSD_LERROR, SAMP ": Failed to set up  terminal %i", errno);
 }
 
 
