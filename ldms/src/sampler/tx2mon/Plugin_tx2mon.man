@@ -34,6 +34,10 @@ a unique hex value derived from the data selection options. If both schema and a
 array=<bool>
 .br
 For per-core data, report all array value elements if true. Report only maximum and minimum values if false. The default is false.
+.TP
+extra=<bool>
+.br
+For per-cor data, report additional information of the internal block frequencies. If false, additional information will not be reported. The default is false.
 .RE
 
 
@@ -62,8 +66,8 @@ freq_cpu[MAX_CPUS_PER_SOC]   Frequency reading of each core.
 tmon_cpu[MAX_CPUS_PER_SOC]   Temperature reading of each core. (deg. C)
 tmon_soc_avg       Average temperature on the SoC. (deg. C)
 freq_mem_net       Frequency reading of the SoC and ring connection.
-freq_socs          Internal block frequency.
-freq_socn          Internal block frequency.
+freq_socs          Internal block frequency of SOC South clock. (Mhz)
+freq_socn          Internal block frequency of SOC North clock. (Mhz)
 freq_max           Maximum limit of SoC frequency. Depends on the SKU.
 freq_min           Minimum limit of SoC frequency. Depends on the SKU.
 pwr_core           Power consumed by all cores on the SoC. (Watt).
@@ -75,7 +79,7 @@ v_sram             Voltage consumed by all internal SRAM on the SoC. (V)
 v_mem              Voltage consumed by the LLC ring on the SoC. (V)
 v_soc              Voltage consumed by SoC blocks that are misc. (V).
 active_evt         Provides a list of active evens that are causing 
-                   throttling. (V). ????????
+                   throttling. (V).
 temp_evt_cnt       Total number of temperature events.
 pwr_evt_cnt        Total number of power events.
 ext_evt_cnt        Total number of exteral events.
