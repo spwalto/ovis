@@ -46,7 +46,7 @@ static int create_metric_set(base_data_t base);
 #define CORES_PER_ROW 4
 #define PIDFMAX 32
 #define BUFMAX 512
-//#define debug
+#define debug
 /*
  * Location of the sysfs entries created by the kernel module.
  *

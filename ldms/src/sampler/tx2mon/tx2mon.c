@@ -61,6 +61,11 @@
 #include <stdint.h>
 #include <string.h>
 
+
+#include <signal.h>
+#include <termios.h>
+#include <term.h>
+
 #define SAMP "tx2mon"
 
 static ldmsd_msg_log_f msglog;
@@ -83,13 +88,14 @@ static struct tx2mon_sampler *tx2mon = &tx2mon_s;
 
 static int pidopts = 0;
 static int pidarray = 0;
+static int pidextra = 0;
 static char *pids = "self";
 
 /* 
  * - Define metric list found in /usr/include/tx2mon/mc_oper_region.h. 
  * - Create list with the following arguments: name, metric name, type, position in the metric list.
- * - Add schema meta data with ldms_schema_meta_array_add() and ldms_schema_add().
- * - Add schema metric data with ldms_schema_metric_array_add() and ldms_schema_add().
+ * - Add schema meta data with ldms_schema_meta_array_add() and ldms_schema_meta_add().
+ * - Add schema metric data with ldms_schema_metric_array_add() and ldms_schema_metric_add().
  * - Set the total length of the arrays to the number of cores found in /sys/bus/platform/devices/tx2mon/socinfo.
  * - If "array = true/1/t", add all arrays listed in MCP_LIST and their contents  - set array size to the number 
  *   	of n_cores found in /socinfo. 
@@ -101,9 +107,6 @@ static char *pids = "self";
 	WRAP("freq_cpu", freq_cpu[0], LDMS_V_U32_ARRAY, pos_freq_cpu) \
 	WRAP("tmon_cpu", tmon_cpu[0], LDMS_V_F32_ARRAY, pos_tmon_cpu) \
 	WRAP("tmon_soc_avg", tmon_soc_avg, LDMS_V_F32, pos_tmon_soc_avg) \
-	WRAP("freq_mem_net", freq_mem_net, LDMS_V_U32, pos_freq_mem_net) \
-	WRAP("freq_socs", freq_socs, LDMS_V_U32, pos_freq_socs) \
-	WRAP("freq_socn", freq_socn, LDMS_V_U32, pos_freq_socn) \
 	WRAP("pwr_core", pwr_core, LDMS_V_F32, pos_pwr_core) \
 	WRAP("pwr_sram", pwr_sram, LDMS_V_F32, pos_pwr_sram) \
 	WRAP("pwr_mem", pwr_mem, LDMS_V_F32, pos_pwr_mem) \
@@ -124,10 +127,12 @@ static char *pids = "self";
 #define META_MCP_LIST(WRAP) \
 	WRAP("temp_abs_max", temp_abs_max, LDMS_V_F32, pos_temp_abs_max) \
 	WRAP("temp_soft_thresh", temp_soft_thresh, LDMS_V_F32, pos_temp_soft_thresh) \
-	WRAP("temp_hard_thresh", temp_hard_thresh, LDMS_V_U32, pos_temp_hard_thresh) \
+	WRAP("temp_hard_thresh", temp_hard_thresh, LDMS_V_F32, pos_temp_hard_thresh) \
+	WRAP("freq_mem_net", freq_mem_net, LDMS_V_U32, pos_freq_mem_net) \
 	WRAP("freq_max", freq_max, LDMS_V_U32, pos_freq_max) \
-	WRAP("freq_min", freq_min, LDMS_V_U32, pos_freq_min) \
-
+        WRAP("freq_min", freq_min, LDMS_V_U32, pos_freq_min)\
+	WRAP("freq_socs", freq_socs, LDMS_V_U32, pos_freq_socs)\
+	WRAP("freq_socn", freq_socn, LDMS_V_U32, pos_freq_socn)\
 
 #define DECLPOS(n, m, t, p) static int p = -1;
 
@@ -135,12 +140,58 @@ MCP_LIST(DECLPOS);
 META_MCP_LIST(DECLPOS);
 
 #define META(n, m, t, p) \
-	rc = ldms_schema_meta_add(schema, n, t); \
+	rc = meta_filter(n, t);\
 	p = rc;\
 
 #define METRIC(n, m, t, p) \
 	rc = metric_filter(n, t);\
 	p = rc;\
+
+
+static int meta_filter(char *n, uint32_t t)
+{
+	int rc = 0;
+	if (!strcmp(n, "freq_socs") ||  !strcmp(n, "freq_socn")) {
+		if (pidextra){
+			rc = ldms_schema_meta_add(schema, n, t);
+                                }
+		else if (!pidextra)
+			return rc;
+		}
+	else	
+                 rc = ldms_schema_meta_add(schema, n, t);
+	return rc;
+}
+
+static int  tx2mon_get_throttling_events(unsigned int active, char *throt_buf, int bufsz)
+{
+        const char *causes[] = { "Temperature", "Power", "External", "Unk3", "Unk4", "Unk5"};
+        const int ncauses = sizeof(causes)/sizeof(causes[0]);
+        int sz, incr;
+        int rc = 0;
+        int events = 0;
+        const char *sep = ",";
+	int result=0;
+	
+	msglog(LDMSD_LDEBUG, SAMP ": this is what's in the variable active %i\n", active);
+	for (incr = 0, events = 0; incr < ncauses && bufsz > 0; incr++) {
+		msglog(LDMSD_LDEBUG, SAMP ": this is what's in the variable active: %i\n", active);
+		msglog(LDMSD_LDEBUG, SAMP ": this is what's in the variable result %i\n", (1<<incr));
+		if ((active & (1 << incr)) == 0)
+                                continue;
+		 msglog(LDMSD_LDEBUG, SAMP ": this is what's in the variable active in the for loop: %i\n", active);
+                sz = snprintf(throt_buf, bufsz, "%s%s", events ? sep : "", causes[incr]);
+                bufsz -= sz;
+                throt_buf += sz;
+                rc = ldms_schema_metric_add(schema, causes[incr], LDMS_V_U32);
+                msglog(LDMSD_LDEBUG, SAMP ": this is what's in the variable rc in get throttling: %i\n", rc);
+		msglog(LDMSD_LDEBUG, SAMP ": this is what's in the variable rc in events: %i\n", events);
+		++events;
+        }
+	return rc;
+}
+
+
 
 /* This function checks the value contained in pidarray and adds the corresponding metrics
  * as follows using a switch statement:
@@ -150,6 +201,11 @@ META_MCP_LIST(DECLPOS);
 static int metric_filter(char *n, uint32_t t)
 {
 	int rc = 0;
+        char throt_buf[64];
+	int active = 0;
+	int i;
+	struct mc_oper_region *s;
+
 	switch (t) {
         case LDMS_V_U32_ARRAY: 
                 if (pidarray){
@@ -171,6 +227,20 @@ static int metric_filter(char *n, uint32_t t)
                 rc = ldms_schema_metric_add(schema, n, t); 
                 break;
         }
+	/*
+	if (!strcmp(n, "active_evt")){
+		msglog(LDMSD_LDEBUG, SAMP ": this is what's in the variable rc in the name n:  %s\n", n);
+		for (i = 0; i < tx2mon->n_cpu; i++){
+			s = &tx2mon->cpu[i].mcp;
+			s->active_evt = 16;
+			msglog(LDMSD_LDEBUG, SAMP ": this is what's in the metric active event:  %i\n", s->active_evt);
+			if (s->active_evt > 0){
+				msglog(LDMSD_LDEBUG, SAMP ": this is what's in the variable rc in active in metric_filter: %i\n", active);
+				rc=tx2mon_get_throttling_events(s->active_evt, throt_buf, sizeof(throt_buf));}
+			}
+		return rc;
+	}*/
+
         if (rc < 0) { 
                 rc = ENOMEM; 
                 return rc; 
@@ -231,7 +301,7 @@ static bool get_bool(const char *val, char *name)
 static int config(struct ldmsd_plugin *self, struct attr_value_list *kwl, struct attr_value_list *avl)
 {
 	int rc = -1;
-	char *array;
+	char *array, *extra;
 	int i;
 	for (i = 0; i < tx2mon->n_cpu; i++){
 	if (set[i]) {
@@ -247,10 +317,13 @@ static int config(struct ldmsd_plugin *self, struct attr_value_list *kwl, struct
 	}
 	
 	array = av_value(avl, "array");
+	extra = av_value(avl, "extra");
 	pidopts = MC_OPER_REGION;
 
 	if (array && get_bool(array, "array"))
 		pidarray = 1;
+	if (extra && get_bool(extra, "extra"))
+		pidextra = 1;	
 
 	if (!pidopts) {
 		msglog(LDMSD_LERROR, SAMP ": configured with nothing to do.\n");
@@ -287,8 +360,10 @@ static const char *usage(struct ldmsd_plugin *self)
 	"    instance	  A unique name for the timing metric set (default $HOSTNAME/" SAMP ")\n"
 	"    component_id A unique number for the component being monitoring, Defaults to zero.\n"
 	"    schema	  The base name of the port metrics schema, Defaults to " SAMP ".\n"
-	"    array	  Includs only the minimum and maximum metric values of each array in the metric set. \n" 
-	"		  If false, all array values are included. Default is FALSE.\n"
+	"    array	  Includes only the minimum and maximum metric values of each array in the metric set. \n" 
+	"		  If true, all array values are included. Default is FALSE.\n"
+	"    extra	  Includes additional frequency metrics of the internal block. \n"
+	"		  If false, these metrics will be ommitted. Default is FALSE.\n"  
 	"    uid	  The user-id of the set's owner\n"
 	"    gid	  The group id of the set's owner\n"
 	"    perm	  The set's access permissions\n"
@@ -348,7 +423,6 @@ static float my_to_c_u16(uint16_t t)
         return to_c(t);
 }
 
-
 /* 
  * - Define all metrics in the structure list "MCP_LIST". This definition will be used to sample the metric set.
  * - Call tx2mon_array_conv. 
@@ -364,15 +438,19 @@ static int  tx2mon_set_metrics (int i)
 
 	struct mc_oper_region *s;
 	int rc = 0;
+	char throt_buf[64];
 	s = &tx2mon->cpu[i].mcp;
+	msglog(LDMSD_LDEBUG, SAMP ": this is what's in metric active event in set metrics before setting:  %i\n", s->active_evt);
+	s->active_evt = 16;
+	msglog(LDMSD_LDEBUG, SAMP ": this is what's in metric active event in set metrics after setting:  %i\n", s->active_evt);
 	
 #define MCSAMPLE(n, m, t, p) \
 	rc = tx2mon_array_conv(&s->m, p, tx2mon->n_core, i, t);\
 	if (rc){ \
 		rc = EINVAL; \
 		msglog(LDMSD_LERROR, SAMP ": sample " n " not correctly defined.\n"); \
-		}
-
+		return rc; }\
+	
 	MCP_LIST(MCSAMPLE);
 
 	return rc;
@@ -441,11 +519,11 @@ static int tx2mon_array_conv(void *s, int p, int idx, int i, uint32_t t)
 		uint32_t *f32 = (uint32_t*)s;
 		ldms_metric_set_float(set[i], p, my_to_c_u32(*f32));
 		if (!pidarray){
-			if (p >= 13 && p <= 20)
+			if (p >= 10 && p <= 17)
                         	ldms_metric_set_float(set[i], p, (*f32/1000.0));
 		}
 		else if (pidarray) {
-			if (p >= 11 && p <= 18)
+			if (p >= 8 && p <= 15)
 				ldms_metric_set_float(set[i], p, (*f32/1000.0));
 		}
 	}
@@ -453,14 +531,14 @@ static int tx2mon_array_conv(void *s, int p, int idx, int i, uint32_t t)
 	if (t == LDMS_V_U32){
 		uint32_t *u32 = (uint32_t*)s;
 		ldms_metric_set_u32(set[i], p, *u32);
-		if (pidarray){
-                	if (p == 26 || p == 27)
+		/*if (pidarray){
+                	if (p == 25)
                         	ldms_metric_set_float(set[i], p, my_to_c_u32(*u32));
 		}
         	else if (!pidarray){
-                	if (p == 28 ||  p== 29)
+                	if (p == 27)
                         	ldms_metric_set_float(set[i], p, my_to_c_u32(*u32));
-		}
+		}*/
 	}
 		
 	return rc;
@@ -497,10 +575,9 @@ static int create_metric_set(base_data_t base)
 	int mcprc = -1;
 	size_t instance_len = strlen(base->instance_name) + 12;
 	static struct mc_oper_region *s;
-
+	char throt_buf[64];
 	char buf[instance_len];
 	char cpu_instance_index[12];
-
 	if (pidopts & MC_OPER_REGION) {
 		ret = parse_socinfo();
 		if (ret < 0){
@@ -524,7 +601,7 @@ static int create_metric_set(base_data_t base)
 		META_MCP_LIST(META);
 	}
 	for (i = 0; i < 2; i++){
-		 s = &tx2mon->cpu[i].mcp;
+		s = &tx2mon->cpu[i].mcp;
 		snprintf(cpu_instance_index, instance_len, ".%d", i);
 		
 		strncpy(buf, base->instance_name, instance_len);
@@ -540,11 +617,12 @@ static int create_metric_set(base_data_t base)
 		}
 		
 #define META_MCSAMPLE(n, m, t, p)\
-	rc = tx2mon_array_conv(&s->m, p, tx2mon->n_core, i, t);\
+		msglog(LDMSD_LDEBUG, SAMP ": we are in META_MCSAMPLE macro and this is what's in t, n: %s, %s and rc is %i\n", ldms_metric_type_to_str(t), n, rc);\
+		rc = tx2mon_array_conv(&s->m, p, tx2mon->n_core, i, t);\
         if (rc){ \
                 rc = EINVAL; \
                 msglog(LDMSD_LERROR, SAMP ": sample " n " not correctly defined.\n"); \
-               }
+                return rc;}\
 
 		META_MCP_LIST(META_MCSAMPLE);
 		
@@ -567,7 +645,15 @@ static int create_metric_set(base_data_t base)
 		
 		base->set = set[i];
 		base_sample_begin(base);
-
+		s->active_evt = 16;
+       	 	rc = tx2mon_get_throttling_events(s->active_evt, throt_buf, sizeof(throt_buf));
+		ldms_metric_set_u32(set[i], BASE_APP_ID+1, 1);
+        /*	if (rc){ 
+                	rc = EINVAL; 
+                	msglog(LDMSD_LERROR, SAMP ": Failed to get throttling events.\n"); 
+			return rc;
+                }
+	*/
 		if (pidopts & MC_OPER_REGION) {
 			rc = tx2mon_set_metrics(i);
 			if (rc) {
@@ -578,7 +664,8 @@ static int create_metric_set(base_data_t base)
 		}
 		base_sample_end(base);
 		base->set = NULL;
-	}
+	
+	}	
 	
 }
 
@@ -662,6 +749,7 @@ static int read_cpu_info(struct cpu_info *s)
 		s->throttling_available =  1;
 	else
 		s->throttling_available =  0;
+	msglog(LDMSD_LDEBUG, SAMP "This is what's in cmd_status: %f \n", (float)op->cmd_status);
 	return 1;
 }
 
@@ -681,7 +769,6 @@ static inline double to_v(int mv)
 {
 	return mv/1000.0;
 }
-
 static inline double to_w(int mw)
 {
 	return mw/1000.0;
@@ -763,7 +850,6 @@ static void dump_cpu_info(struct cpu_info *s)
 		return;
 
 	if (s->throttling_available) {
-		printf("%s", t->nl);
 		printf("Throttling Active Events: %s%s",
 			 get_throttling_cause(op->active_evt, ",", buf, sizeof(buf)), t->nl);
 		printf("Throttle Events     Temp: %6d,	  Power: %6d,	 External: %6d%s",
@@ -785,20 +871,27 @@ static char *get_throttling_cause(unsigned int active_event, const char *sep, ch
 	const int ncauses = sizeof(causes)/sizeof(causes[0]);
 	int i, sz, events;
 	char *rbuf;
-
+	active_event = 1;
 	rbuf = buf;
 	if (active_event == 0) {
 		snprintf(buf, bufsz, "None");
 		return rbuf;
 	}
-
 	for (i = 0, events = 0; i < ncauses && bufsz > 0; i++) {
 		if ((active_event & (1 << i)) == 0)
 			continue;
 		sz = snprintf(buf, bufsz, "%s%s", events ? sep : "", causes[i]);
+		//msglog(LDMSD_LDEBUG, SAMP ": this is what's in sz: %d\n", sz);
+		//msglog(LDMSD_LDEBUG, SAMP ": this is what's in bufsz before: %d \n", bufsz);
 		bufsz -= sz;
+		//msglog(LDMSD_LDEBUG, SAMP ": this is what's in bufsz after: %d\n", bufsz);
+		//msglog(LDMSD_LDEBUG, SAMP ": this is what's in buf before: %d\n", buf);
 		buf += sz;
+		//msglog(LDMSD_LDEBUG, SAMP ": this is what's in buf after: %d\n", buf);
+		//msglog(LDMSD_LDEBUG, SAMP ": this is what's in causes : %s\n", causes[i]);
 		++events;
+		//msglog(LDMSD_LDEBUG, SAMP ": this is what's in events : %d\n", events);
+		active_event = 0;
 	}
 	return rbuf;
 }
