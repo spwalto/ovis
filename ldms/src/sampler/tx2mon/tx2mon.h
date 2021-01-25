@@ -46,7 +46,7 @@ static int create_metric_set(base_data_t base);
 #define CORES_PER_ROW 4
 #define PIDFMAX 32
 #define BUFMAX 512
-#define debug
+//#define debug
 /*
  * Location of the sysfs entries created by the kernel module.
  *
@@ -113,6 +113,9 @@ static int tx2mon_set_metrics(int i);
 
 /* Convert metric values to temp, voltage and power units. Output results in float and uint32_t types */
 static int tx2mon_array_conv(void *s, int p, int idx, int i, uint32_t t);
+
+/* Determine throttling causes from "active_evt" metric */
+//static int tx2mon_get_throtting_events(uint32_t *active, int i, int p, char *throt_buf, int bufsz);
 
 #ifdef debug
 static char *get_throttling_cause(unsigned int active_event, const char *sep, char *buf, int bufsz);

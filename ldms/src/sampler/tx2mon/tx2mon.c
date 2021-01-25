@@ -145,7 +145,6 @@ META_MCP_LIST(DECLPOS);
 
 #define METRIC(n, m, t, p) \
 	rc = metric_filter(n, t);\
-	msglog(LDMSD_LDEBUG, SAMP ": WE ARE HERE ADDING THE METRICS IN THE MACRO AFTER METRIC FILTER: %s, %s, %i \n", n,  ldms_metric_type_to_str(t), rc);\
 	p = rc;\
 /*
  * meta_filter() checks the stored value in "pidextra" variable and add/removes the following metrics respectively.
@@ -388,7 +387,7 @@ static int sample(struct ldmsd_sampler *self)
 
 static int  tx2mon_get_throttling_events(uint32_t *active, int i, int p, char *throt_buf, int bufsz)
 {
-        const char *causes[] = { "Temperature ", "Power ", "External ", "Unk3 ", "Unk4 ", "Unk5 "};
+        const char *causes[] = { "Temperature", "Power", "External", "Unk3", "Unk4", "Unk5"};
         const int ncauses = sizeof(causes)/sizeof(causes[0]);
         int sz, incr;
         int rc = 0;
@@ -402,18 +401,16 @@ static int  tx2mon_get_throttling_events(uint32_t *active, int i, int p, char *t
              return rc;
         }
 
-        msglog(LDMSD_LDEBUG, SAMP ": this is what's in the variable active %u\n", *active);
         for (incr = 0, events = 0; incr < ncauses && bufsz > 0; incr++) {
-                msglog(LDMSD_LDEBUG, SAMP ": this is what's in the variable active in the for loop: %i\n", *active);
                 if ((*active & (1 << incr)) == 0)
                                 continue;
                 sz = snprintf(throt_buf, bufsz, "%s%s", events ? sep : "", causes[incr]);
                 bufsz -= sz;
                 throt_buf += sz;
-                msglog(LDMSD_LDEBUG, SAMP ": this is what's in sizeof() in get throttling: %i\n", sizeof(causes));
                 ++events;
 		strcat(total_causes, causes[incr]);
 		ldms_metric_array_set_str(set[i], p, total_causes);
+		strcat(total_causes, ",");
         }
 
         return rc;
@@ -446,11 +443,8 @@ static int  tx2mon_set_metrics (int i)
 	struct mc_oper_region *s;
 	int rc = 0;
 	s = &tx2mon->cpu[i].mcp;
-	s->active_evt = 4;
-
 	
 #define MCSAMPLE(n, m, t, p) \
-	msglog(LDMSD_LDEBUG, SAMP ": tx2mon_array_conv args s, p, i, t: %p, %i, %i, %s, %s \n", &s->m, p, i, n,ldms_metric_type_to_str(t));\
 	rc = tx2mon_array_conv(&s->m, p, tx2mon->n_core, i, t);\
 	if (rc){ \
 		rc = EINVAL; \
@@ -582,7 +576,6 @@ static int create_metric_set(base_data_t base)
 	int mcprc = -1;
 	size_t instance_len = strlen(base->instance_name) + 12;
 	static struct mc_oper_region *s;
-	char throt_buf[64];
 	char buf[instance_len];
 	char cpu_instance_index[12];
 	if (pidopts & MC_OPER_REGION) {
@@ -651,12 +644,7 @@ static int create_metric_set(base_data_t base)
 		
 		base->set = set[i];
 		base_sample_begin(base);
-        /*	if (rc){ 
-                	rc = EINVAL; 
-                	msglog(LDMSD_LERROR, SAMP ": Failed to get throttling events.\n"); 
-			return rc;
-                }
-	*/
+		
 		if (pidopts & MC_OPER_REGION) {
 			rc = tx2mon_set_metrics(i);
 			if (rc) {
@@ -748,11 +736,11 @@ static int read_cpu_info(struct cpu_info *s)
 		return rv;
 	if (CMD_STATUS_READY(op->cmd_status) == 0)
 		return 0;
+	msglog(LDMSD_LDEBUG, SAMP ": This is what's in cmd_status: %f \n", (float)op->cmd_status);
 	if (CMD_VERSION(op->cmd_status) > 0)
 		s->throttling_available =  1;
 	else
 		s->throttling_available =  0;
-	msglog(LDMSD_LDEBUG, SAMP "This is what's in cmd_status: %f \n", (float)op->cmd_status);
 	return 1;
 }
 
@@ -874,7 +862,6 @@ static char *get_throttling_cause(unsigned int active_event, const char *sep, ch
 	const int ncauses = sizeof(causes)/sizeof(causes[0]);
 	int i, sz, events;
 	char *rbuf;
-	active_event = 1;
 	rbuf = buf;
 	if (active_event == 0) {
 		snprintf(buf, bufsz, "None");
