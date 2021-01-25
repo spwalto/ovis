@@ -53,7 +53,7 @@ node                 Number of socket i from
 
 The metrics listed here are named as their respective fields in tx2mon/mc_oper_region.h. Where applicable, metrics are converted to the units listed here from the raw values.
 .nf
-cmd_status         ????????
+cmd_status         Checks if the CMD is ready and the version of CMD?
 counter            Snapshot value of the cpu. Reported as a string
                    integer.
 temp_abs_max       Absolute maximum limit of temperature beyond
