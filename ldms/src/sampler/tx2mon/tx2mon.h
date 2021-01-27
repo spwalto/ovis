@@ -46,7 +46,6 @@ static int create_metric_set(base_data_t base);
 #define CORES_PER_ROW 4
 #define PIDFMAX 32
 #define BUFMAX 512
-//#define debug
 /*
  * Location of the sysfs entries created by the kernel module.
  *
@@ -102,7 +101,7 @@ struct tx2mon_sampler {
 static int parse_socinfo(void);
 
 /* Read the information located in th the node file directory*/
-static int read_cpu_info(struct cpu_info *s);
+static int read_node(struct cpu_info *d);
 
 /*Read and query cpu data for each node and map to data strucutre. Can also be used for debugging
  * by displaying the data to the ldmsd log file*/
@@ -115,17 +114,11 @@ static int tx2mon_set_metrics(int i);
 static int tx2mon_array_conv(void *s, int p, int idx, int i, uint32_t t);
 
 /* Determine throttling causes from "active_evt" metric */
-//static int tx2mon_get_throtting_events(uint32_t *active, int i, int p, char *throt_buf, int bufsz);
+static int tx2mon_get_throttling_events(uint32_t *active, int i, int p, char *throt_buf, int bufsz);
 
-#ifdef debug
-static char *get_throttling_cause(unsigned int active_event, const char *sep, char *buf, int bufsz);
-static struct termios *ts_saved;
-static int display_extra = 1;
-static int display_throttling = 1;
+/* Checks the stored value in "pidextra" variable and add/removes the following metrics respectively.*/
+static int metric_filter(char *n, uint32_t t);
 
-static struct term_seq {
-        char *cl;
-        char *nl;
-} term_seq;
-
-#endif
+/* Checks the value contained in pidarray and adds the corresponding metrics
+ *  * as follows using a switch statement*/
+static int meta_filter(char *n, uint32_t t);

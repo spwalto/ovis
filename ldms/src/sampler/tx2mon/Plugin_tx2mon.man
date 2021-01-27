@@ -37,7 +37,7 @@ For per-core data, report all array value elements if true. Report only maximum 
 .TP
 extra=<bool>
 .br
-For per-cor data, report additional information of the internal block frequencies. If false, additional information will not be reported. The default is false.
+For per-cor data, report additional information of the internal block frequencies and the set system metrics. These additional values are static. If false, additional information will not be reported. The default is false.
 .RE
 
 
@@ -53,39 +53,50 @@ node                 Number of socket i from
 
 The metrics listed here are named as their respective fields in tx2mon/mc_oper_region.h. Where applicable, metrics are converted to the units listed here from the raw values.
 .nf
-cmd_status         Checks if the CMD is ready and the version of CMD?
-counter            Snapshot value of the cpu. Reported as a string
-                   integer.
-temp_abs_max       Absolute maximum limit of temperature beyond
-                   which the SoC will throttle voltage and frequency.
-temp_soft_thresh   Soft limit of temperature beyond which the SoC will
-                   throttle voltage and frequency down.
-temp_hard_thresh   Hard limit of temperature beyond which the SoC will
-                   throttle voltage and frequency down.
-freq_cpu[MAX_CPUS_PER_SOC]   Frequency reading of each core.
-tmon_cpu[MAX_CPUS_PER_SOC]   Temperature reading of each core. (deg. C)
-tmon_soc_avg       Average temperature on the SoC. (deg. C)
-freq_mem_net       Frequency reading of the SoC and ring connection.
-freq_socs          Internal block frequency of SOC South clock. (Mhz)
-freq_socn          Internal block frequency of SOC North clock. (Mhz)
-freq_max           Maximum limit of SoC frequency. Depends on the SKU.
-freq_min           Minimum limit of SoC frequency. Depends on the SKU.
-pwr_core           Power consumed by all cores on the SoC. (Watt).
-pwr_sram           Power consumed by all internal SRAM on the SoC. (Watt).
-pwr_mem            Power consumed by the LLC ring on the SoC. (Watt)
-pwr_soc            Power consumed by SoC blocks that are misc. (Watt)
-v_core             Voltage consumed by all cores on the SoC. (V)
-v_sram             Voltage consumed by all internal SRAM on the SoC. (V)
-v_mem              Voltage consumed by the LLC ring on the SoC. (V)
-v_soc              Voltage consumed by SoC blocks that are misc. (V).
-active_evt         Provides a list of active evens that are causing 
-                   throttling. (V).
-temp_evt_cnt       Total number of temperature events.
-pwr_evt_cnt        Total number of power events.
-ext_evt_cnt        Total number of exteral events.
-temp_throttle_ms   Time duration of all temperature events in ms.
-pwr_throttle_ms    Time duration of all power events in ms.
-ext_throttle_ms    Time duration of all external events in ms.
+counter            		Snapshot value of the cpu. Reported as a string
+                   		integer.
+freq_cpu[MAX_CPUS_PER_SOC]   	Frequency reading of each core. Set with <array=true>.
+<freq_cpu_min>		   	Minimum value found in freq_cpu Set with <array=false>.
+<freq_cpu_max>         		Maximum value found in freq_cpu.Set with <array=false>.
+tmon_cpu[MAX_CPUS_PER_SOC]   	Temperature reading of each core. (deg. C). Set with <array=true>
+<tmon_cpu_min>			Minimum value found in tmon_cpu. (deg. C) Set with <array=false>.
+<tmon_cpu_max>		        Maximum value found in tmon_cpu. (deg. C) Set with <array=false>.
+tmon_soc_avg       		Average temperature on the SoC. (deg. C)
+pwr_core           		Power consumed by all cores on the SoC. (Watt).
+pwr_sram           		Power consumed by all internal SRAM on the SoC. (Watt).
+pwr_mem            		Power consumed by the LLC ring on the SoC. (Watt)
+pwr_soc            		Power consumed by SoC blocks that are misc. (Watt)
+v_core             		Voltage consumed by all cores on the SoC. (V)
+v_sram             		Voltage consumed by all internal SRAM on the SoC. (V)
+v_mem              		Voltage consumed by the LLC ring on the SoC. (V)
+v_soc              		Voltage consumed by SoC blocks that are misc. (V).
+active_evt         		Provides a list of active events that are causing 
+                   		throttling. (V).
+Temperature	   		Active event with a bit flag where 1 is true.
+Power		   		Active event with a bit flag where 1 is true.
+External	   		Active event with a bit flag where 1 is true.
+Unk3		   		Active event with a bit flag where 1 is true.
+Unk4		   		Active event with a bit flag where 1 is true.
+Unk5		   		Active event with a bit flag where 1 is true.
+temp_evt_cnt      		Total number of temperature events.
+pwr_evt_cnt        		Total number of power events.
+ext_evt_cnt        		Total number of exteral events.
+temp_throttle_ms   		Time duration of all temperature events in ms.
+pwr_throttle_ms    		Time duration of all power events in ms.
+ext_throttle_ms    		Time duration of all external events in ms.
+
+Set following metrics with <extra=true>:
+<temp_abs_max>                  Absolute maximum limit of temperature beyond
+                                which the SoC will throttle voltage and frequency.
+<temp_soft_thresh>              Soft limit of temperature beyond which the SoC will
+                                throttle voltage and frequency down.
+<temp_hard_thresh>              Hard limit of temperature beyond which the SoC will
+                                throttle voltage and frequency down.
+<freq_mem_net>                  Frequency reading of the SoC and ring connection.
+<freq_max>                      Maximum limit of SoC frequency. Depends on the SKU.
+<freq_min>                      Minimum limit of SoC frequency. Depends on the SKU.
+<freq_socs>                     Internal block frequency of SOC South clock. (Mhz)
+<freq_socn>                     Internal block frequency of SOC North clock. (Mhz)
 .fi
 
 .SH EXAMPLES

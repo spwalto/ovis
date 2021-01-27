@@ -1,3 +1,56 @@
+/* -*- c-basic-offset: 8 -*-
+ * Copyright (c) 2021 National Technology & Engineering Solutions
+ * of Sandia, LLC (NTESS). Under the terms of Contract DE-NA0003525 with
+ * NTESS, the U.S. Government retains certain rights in this software.
+ * Copyright (c) 2021 Open Grid Computing, Inc. All rights reserved.
+ *
+ * This software is available to you under a choice of one of two
+ * licenses.  You may choose to be licensed under the terms of the GNU
+ * General Public License (GPL) Version 2, available from the file
+ * COPYING in the main directory of this source tree, or the BSD-type
+ * license below:
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ *      Redistributions of source code must retain the above copyright
+ *      notice, this list of conditions and the following disclaimer.
+ *
+ *      Redistributions in binary form must reproduce the above
+ *      copyright notice, this list of conditions and the following
+ *      disclaimer in the documentation and/or other materials provided
+ *      with the distribution.
+ *
+ *      Neither the name of Sandia nor the names of any contributors may
+ *      be used to endorse or promote products derived from this software
+ *      without specific prior written permission.
+ *
+ *      Neither the name of Open Grid Computing nor the names of any
+ *      contributors may be used to endorse or promote products derived
+ *      from this software without specific prior written permission.
+ *
+ *      Modified source versions must be plainly marked as such, and
+ *      must not be misrepresented as being the original software.
+ *
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+/**
+ * \file tx2mon.c
+ */
+
 /*
  * tx2mon.c -	LDMS sampler for basic Marvell TX2 chip telemetry.
  *
@@ -60,11 +113,7 @@
 #include "stdbool.h"
 #include <stdint.h>
 #include <string.h>
-
-
-#include <signal.h>
-#include <termios.h>
-#include <term.h>
+#include "tx2mon_cli.c"
 
 #define SAMP "tx2mon"
 
@@ -458,7 +507,8 @@ static int  tx2mon_get_throttling_events(uint32_t *active, int i, int p, char *t
 	return rc;
 }
 
-
+/* Converts unsigned 32 and 16 integers to temperature units and returns a float. to_c is the
+temperature calulation defined in mc_oper_region.h*/
 static float my_to_c_u32(uint32_t t)
 {
 	return to_c(t);
@@ -485,7 +535,6 @@ static int  tx2mon_set_metrics (int i)
 	struct mc_oper_region *s;
 	int rc = 0;
 	s = &tx2mon->cpu[i].mcp;
-	s->active_evt=15;
 	
 #define MCSAMPLE(n, m, t, p) \
 	rc = tx2mon_array_conv(&s->m, p, tx2mon->n_core, i, t);\
@@ -763,162 +812,27 @@ static int parse_socinfo(void){
 
 }
 
-
-static int read_cpu_info(struct cpu_info *s)
+/*
+static int read_node(struct cpu_info *d)
 {
-	assert(s!=NULL);
+	assert(d!=NULL);
 	int rv;
-	struct mc_oper_region *op = &s->mcp;
-	rv = lseek(s->fd, 0, SEEK_SET);
+	struct mc_oper_region *op = &d->mcp;
+	rv = lseek(d->fd, 0, SEEK_SET);
 	if (rv < 0)
 	       return rv;
-	rv = read(s->fd, op, sizeof(*op));
+	rv = read(d->fd, op, sizeof(*op));
 	if (rv < sizeof(*op))
 		return rv;
 	if (CMD_STATUS_READY(op->cmd_status) == 0)
 		return 0;
 	if (CMD_VERSION(op->cmd_status) > 0)
-		s->throttling_available =  1;
+		d->throttling_available =  1;
 	else
-		s->throttling_available =  0;
+		d->throttling_available =  0;
 	return 1;
 }
-
-#ifdef debug
-
-static inline double cpu_temp(struct cpu_info *d, int c)
-{
-	return to_c(d->mcp.tmon_cpu[c]);
-}
-
-static inline unsigned int cpu_freq(struct cpu_info *d, int c)
-{
-	return d->mcp.freq_cpu[c];
-}
-
-static inline double to_v(int mv)
-{
-	return mv/1000.0;
-}
-static inline double to_w(int mw)
-{
-	return mw/1000.0;
-}
-
-/* Used for debugging
- *  * Prints out data in table format similar to tx2mon program */
-static void term_init_save(void)
-{
-	static struct termios nts;
-
-	if (!isatty(1)) {
-		term_seq.cl = "";
-		term_seq.nl = "\n";
-		return;
-	}
-	ts_saved = malloc(sizeof(*ts_saved));
-	if (tcgetattr(0, ts_saved) < 0)
-		goto fail;
-
-	nts = *ts_saved;
-	nts.c_lflag &= ~(ICANON | ECHO);
-	nts.c_cc[VMIN] = 1;
-	nts.c_cc[VTIME] = 0;
-	if (tcsetattr (0, TCSANOW, &nts) < 0)
-		goto fail;
-
-	term_seq.nl = "\r\n";
-	return;
-fail:
-	if (ts_saved) {
-		free(ts_saved);
-		ts_saved = NULL;
-	}
-	msglog(LDMSD_LERROR, SAMP ": Failed to set up  terminal %i", errno);
-}
-
-
-/* Used for debugging:
- * Dump out the information stored in the nodes of each core*/
-static void dump_cpu_info(struct cpu_info *s)
-{
-	struct mc_oper_region *op = &s->mcp;
-	struct term_seq *t = &term_seq;
-	int i, c, n;
-	char buf[64];
-	
-	printf("Node: %d  Snapshot: %u%s", s->node, op->counter, t->nl);
-	printf("Freq (Min/Max): %u/%u MHz     Temp Thresh (Soft/Max): %6.2f/%6.2f C%s",
-		op->freq_min, op->freq_max, to_c(op->temp_soft_thresh),
-		to_c(op->temp_abs_max), t->nl);
-	printf("%s", t->nl);
-	n = tx2mon->n_core < CORES_PER_ROW ? tx2mon->n_core : CORES_PER_ROW;
-	for (i = 0; i < n; i++)
-		printf("|Core  Temp   Freq ");
-	printf("|%s", t->nl);
-	for (i = 0; i < n; i++)
-		printf("+------------------");
-	printf("+%s", t->nl);
-	for (c = 0;  c < tx2mon->n_core; ) {
-		for (i = 0; i < CORES_PER_ROW && c < tx2mon->n_core; i++, c++)
-			printf("|%3d: %6.2f %5d ", c,
-					cpu_temp(s, c), cpu_freq(s, c));
-		printf("|%s", t->nl);
-	}
-	printf("%s", t->nl);
-	printf("SOC Center Temp: %6.2f C%s\n", to_c(op->tmon_soc_avg), t->nl);
-	printf("Voltage    Core: %6.2f V, SRAM: %5.2f V,  Mem: %5.2f V, SOC: %5.2f V%s",
-		to_v(op->v_core), to_v(op->v_sram), to_v(op->v_mem),
-		to_v(op->v_soc), t->nl);
-	printf("Power	   Core: %6.2f W, SRAM: %5.2f W,  Mem: %5.2f W, SOC: %5.2f W%s",
-		to_w(op->pwr_core), to_w(op->pwr_sram), to_w(op->pwr_mem),
-		to_w(op->pwr_soc), t->nl);
-	printf("Frequency    Memnet: %4d MHz", op->freq_mem_net);
-	if (display_extra)
-		printf(", SOCS: %4d MHz, SOCN: %4d MHz", op->freq_socs, op->freq_socn);
-	printf("%s%s", t->nl, t->nl);
-	if (!display_throttling)
-		return;
-
-	if (s->throttling_available) {
-		printf("Throttling Active Events: %s%s",
-			 get_throttling_cause(op->active_evt, ",", buf, sizeof(buf)), t->nl);
-		printf("Throttle Events     Temp: %6d,	  Power: %6d,	 External: %6d%s",
-				op->temp_evt_cnt, op->pwr_evt_cnt, op->ext_evt_cnt, t->nl);
-		printf("Throttle Durations  Temp: %6d ms, Power: %6d ms, External: %6d ms%s",
-				op->temp_throttle_ms, op->pwr_throttle_ms,
-				op->ext_throttle_ms, t->nl);
-	} else {
-		printf("Throttling events not supported.%s", t->nl);
-	}
-	printf("%s", t->nl);
-}
-
-/* Used for debugging:
- * Prints out the throttling "active events"*/
-static char *get_throttling_cause(unsigned int active_event, const char *sep, char *buf, int bufsz)
-{
-	const char *causes[] = { "Temperature", "Power", "External", "Unk3", "Unk4", "Unk5"};
-	const int ncauses = sizeof(causes)/sizeof(causes[0]);
-	int i, sz, events;
-	char *rbuf;
-	rbuf = buf;
-	if (active_event == 0) {
-		snprintf(buf, bufsz, "None");
-		return rbuf;
-	}
-	for (i = 0, events = 0; i < ncauses && bufsz > 0; i++) {
-		if ((active_event & (1 << i)) == 0)
-			continue;
-		sz = snprintf(buf, bufsz, "%s%s", events ? sep : "", causes[i]);
-		bufsz -= sz;
-		buf += sz;
-		++events;
-	}
-	return rbuf;
-}
-#endif
-
+*/
 /* - Loop through number of cpu structs defined in /sys/bus/platform/devices/tx2mon/socinfo 
  *	and set in parse_socinfo().
  * - Check the node file path for each cpu struct exist. 
@@ -947,19 +861,21 @@ static int parse_mc_oper_region()
 			msglog(LDMSD_LERROR, SAMP ": Error reading node%i entry.\n", i);
 			exit (1);
 		}
-		ret = read_cpu_info(&tx2mon->cpu[i]);
+		ret = read_node(&tx2mon->cpu[i]);
 
 		if (ret < 0){
 			printf("Unexpected read error!\n");
 			return EINVAL;
 		}
+		
 #ifdef debug
-		if (ret > 0) {
-			tx2mon->samples++;
-			term_init_save();
-			dump_cpu_info(&tx2mon->cpu[i]);
-		}
+                if (ret > 0) {
+                        tx2mon->samples++;
+                        term_init_save();
+                        dump_cpu_info(&tx2mon->cpu[i]);
+                }
 #endif
+
 		close(tx2mon->cpu[i].fd);
 		
 	}
