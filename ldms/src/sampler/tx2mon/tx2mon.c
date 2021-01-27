@@ -98,11 +98,10 @@ static char *pids = "self";
  * - Add schema metric data with ldms_schema_metric_array_add() and ldms_schema_metric_add().
  * - Set the total length of the arrays to the number of cores found in /sys/bus/platform/devices/tx2mon/socinfo.
  * - If "array = true/1/t", add all arrays listed in MCP_LIST and their contents  - set array size to the number 
- *   	of n_cores found in /socinfo. 
+ *	of n_cores found in /socinfo. 
  * - If "array = false/0/f", add metrics "min" and "max" for each array listed in MCP_LIST.
  * */
 #define MCP_LIST(WRAP) \
-	WRAP("cmd_status", cmd_status, LDMS_V_U32, pos_cmd_status) \
 	WRAP("counter", counter, LDMS_V_U32, pos_counter) \
 	WRAP("freq_cpu", freq_cpu[0], LDMS_V_U32_ARRAY, pos_freq_cpu) \
 	WRAP("tmon_cpu", tmon_cpu[0], LDMS_V_F32_ARRAY, pos_tmon_cpu) \
@@ -130,7 +129,7 @@ static char *pids = "self";
 	WRAP("temp_hard_thresh", temp_hard_thresh, LDMS_V_F32, pos_temp_hard_thresh) \
 	WRAP("freq_mem_net", freq_mem_net, LDMS_V_U32, pos_freq_mem_net) \
 	WRAP("freq_max", freq_max, LDMS_V_U32, pos_freq_max) \
-        WRAP("freq_min", freq_min, LDMS_V_U32, pos_freq_min)\
+	WRAP("freq_min", freq_min, LDMS_V_U32, pos_freq_min)\
 	WRAP("freq_socs", freq_socs, LDMS_V_U32, pos_freq_socs)\
 	WRAP("freq_socn", freq_socn, LDMS_V_U32, pos_freq_socn)\
 
@@ -155,16 +154,18 @@ META_MCP_LIST(DECLPOS);
 static int meta_filter(char *n, uint32_t t)
 {
 	int rc = 0;
-	if (!strcmp(n, "freq_socs") ||  !strcmp(n, "freq_socn")) {
-		if (pidextra){
+	int pos = -1;
+		if (pidextra)
 			rc = ldms_schema_meta_add(schema, n, t);
-                                }
 		else if (!pidextra)
 			return rc;
-		}
-	else	
-                 rc = ldms_schema_meta_add(schema, n, t);
-	return rc;
+
+	if (rc > -1)
+		pos = rc;
+	else{
+		rc = ENOMEM;	
+		return rc;}
+	return pos;
 }
 
 
@@ -177,39 +178,69 @@ static int meta_filter(char *n, uint32_t t)
 static int metric_filter(char *n, uint32_t t)
 {
 	int rc = 0;
-
+	int pos = -1;
 	switch (t) {
-        case LDMS_V_U32_ARRAY: 
-                if (pidarray){
-                        rc = ldms_schema_metric_array_add(schema, n, t, tx2mon->n_core);}
-                else{
-                        rc = ldms_schema_metric_add(schema, "freq_cpu_min", LDMS_V_F32);
-                        rc = ldms_schema_metric_add(schema, "freq_cpu_max", LDMS_V_F32);
-                        }
-                break;
-        case LDMS_V_F32_ARRAY: 
-                if (pidarray)
-                        rc = ldms_schema_metric_array_add(schema, n, t, tx2mon->n_core);
-                else{
-                        rc = ldms_schema_metric_add(schema, "tmon_cpu_min", LDMS_V_U32);
-                        rc = ldms_schema_metric_add(schema, "tmon_cpu_max", LDMS_V_U32);
-                        }
+	case LDMS_V_U32_ARRAY: 
+		if (pidarray){
+			rc = ldms_schema_metric_array_add(schema, n, t, tx2mon->n_core);}
+		else{
+			rc = ldms_schema_metric_add(schema, "freq_cpu_min", LDMS_V_U32);
+			rc = ldms_schema_metric_add(schema, "freq_cpu_max", LDMS_V_U32);
+			}
+			if (rc > -1)
+				pos = rc;
+			else
+				goto err;
+		break;
+	case LDMS_V_F32_ARRAY: 
+		if (pidarray){
+			rc = ldms_schema_metric_array_add(schema, n, t, tx2mon->n_core);}
+		else{
+			rc = ldms_schema_metric_add(schema, "tmon_cpu_min", LDMS_V_F32);
+			rc = ldms_schema_metric_add(schema, "tmon_cpu_max", LDMS_V_F32);
+			}
+			if (rc> -1)
+				pos = rc;
+			else
+				goto err;
 		break;
 	case LDMS_V_CHAR_ARRAY:
 			rc = ldms_schema_metric_array_add(schema, n, t, 50);
-                break; 
-	default:
-                rc = ldms_schema_metric_add(schema, n, t); 
-                break;
-        }
-	
- 
-       if (rc < 0) { 
-                rc = ENOMEM; 
-                return rc; 
-        }
-	return rc;
+			if (rc> -1)
+				pos = rc;
+			else
+				goto err;
+			if (!strcmp(n, "active_evt")){
+			rc = ldms_schema_metric_add(schema, "Temperature", LDMS_V_U32);
+			rc = ldms_schema_metric_add(schema, "Power", LDMS_V_U32);
+			rc = ldms_schema_metric_add(schema, "External", LDMS_V_U32);
+			rc = ldms_schema_metric_add(schema, "Unk3", LDMS_V_U32);
+			rc = ldms_schema_metric_add(schema, "Unk4", LDMS_V_U32);
+			rc = ldms_schema_metric_add(schema, "Unk5", LDMS_V_U32);
+			if (rc > -1){
+				return pos;
+				}
+			else
+				goto err;
+			}
 
+
+		break; 
+	default:
+			rc = ldms_schema_metric_add(schema, n, t); 
+			if (rc > -1)
+				pos = rc;
+			else
+				goto err;
+		break;
+	}
+
+return pos;
+	
+err:
+	 rc = ENOMEM; 
+	 return rc; 
+	
 }
 
 /*
@@ -387,44 +418,55 @@ static int sample(struct ldmsd_sampler *self)
 
 static int  tx2mon_get_throttling_events(uint32_t *active, int i, int p, char *throt_buf, int bufsz)
 {
-        const char *causes[] = { "Temperature", "Power", "External", "Unk3", "Unk4", "Unk5"};
-        const int ncauses = sizeof(causes)/sizeof(causes[0]);
-        int sz, incr;
-        int rc = 0;
-        int events = 0;
-        const char *sep = ",";
+	const char *causes[] = { "Temperature", "Power", "External", "Unk3", "Unk4", "Unk5"};
+	const int ncauses = sizeof(causes)/sizeof(causes[0]);
+	int sz, incr;
+	int rc = 0;
+	int events = 0;
+	const char *sep = ",";
+	int pos = p;
 	char total_causes[sizeof(causes)+2];
 	strcpy(total_causes, "");
 
 	if (!*active){
-             ldms_metric_array_set_str(set[i], p, "None");
-             return rc;
-        }
+	     ldms_metric_array_set_str(set[i], p, "None");
+	     return rc;
+	}
+	
+	if (!tx2mon->cpu[i].throttling_available){
+		for (pos = p; p <= ncauses; pos++){
+			ldms_metric_set_u32(set[i], p, 0);}
+		msglog(LDMSD_LDEBUG, SAMP ": Throttling events not supported. \n");
+		return rc;
+	 }
 
-        for (incr = 0, events = 0; incr < ncauses && bufsz > 0; incr++) {
-                if ((*active & (1 << incr)) == 0)
-                                continue;
-                sz = snprintf(throt_buf, bufsz, "%s%s", events ? sep : "", causes[incr]);
-                bufsz -= sz;
-                throt_buf += sz;
-                ++events;
+
+	for (incr = 0, events = 0; incr < ncauses && bufsz > 0; incr++) {
+		pos++;
+		if ((*active & (1 << incr)) == 0)
+				continue;
+		sz = snprintf(throt_buf, bufsz, "%s%s", events ? sep : "", causes[incr]);
+		bufsz -= sz;
+		throt_buf += sz;
+		++events;
 		strcat(total_causes, causes[incr]);
 		ldms_metric_array_set_str(set[i], p, total_causes);
+		ldms_metric_set_u32(set[i], pos, 1);
 		strcat(total_causes, ",");
-        }
+	}
 
-        return rc;
+	return rc;
 }
 
 
 static float my_to_c_u32(uint32_t t)
 {
-        return to_c(t);
+	return to_c(t);
 
 }
 static float my_to_c_u16(uint16_t t)
 {
-        return to_c(t);
+	return to_c(t);
 }
 
 /* 
@@ -443,6 +485,7 @@ static int  tx2mon_set_metrics (int i)
 	struct mc_oper_region *s;
 	int rc = 0;
 	s = &tx2mon->cpu[i].mcp;
+	s->active_evt=15;
 	
 #define MCSAMPLE(n, m, t, p) \
 	rc = tx2mon_array_conv(&s->m, p, tx2mon->n_core, i, t);\
@@ -450,6 +493,7 @@ static int  tx2mon_set_metrics (int i)
 		rc = EINVAL; \
 		msglog(LDMSD_LERROR, SAMP ": sample " n " not correctly defined.\n"); \
 		return rc; }\
+		
 
 	MCP_LIST(MCSAMPLE);
 	
@@ -477,10 +521,8 @@ static int tx2mon_array_conv(void *s, int p, int idx, int i, uint32_t t)
 					min_max16[1] =s16[c];
 					
 				}
-			c = 0;
-			for (temp_p = 5; temp_p < 7; temp_p++){
-				ldms_metric_set_float(set[i], temp_p, my_to_c_u16(min_max16[c]));
-                                c++;
+			for (temp_p = -1; temp_p < 1; temp_p++){
+				ldms_metric_set_float(set[i], p+temp_p, my_to_c_u16(min_max16[temp_p+1]));
 				}
 		
 			}
@@ -503,10 +545,8 @@ static int tx2mon_array_conv(void *s, int p, int idx, int i, uint32_t t)
 				if (s32[c] > min_max32[1])
 					min_max32[1] =s32[c];
 				}
-			c = 0;
-                        for (temp_p = 7; temp_p < 9; temp_p++){
-                                  ldms_metric_set_u32(set[i], temp_p, min_max32[c]);
-                                  c++;
+			for (temp_p = -1; temp_p < 1; temp_p++){
+				  ldms_metric_set_u32(set[i], p+temp_p, min_max32[temp_p+1]);
 				}
 			}
 
@@ -520,11 +560,11 @@ static int tx2mon_array_conv(void *s, int p, int idx, int i, uint32_t t)
 		uint32_t *f32 = (uint32_t*)s;
 		ldms_metric_set_float(set[i], p, my_to_c_u32(*f32));
 		if (!pidarray){
-			if (p >= 10 && p <= 17)
-                        	ldms_metric_set_float(set[i], p, (*f32/1000.0));
+			if (p >= 9 && p <= 16)
+				ldms_metric_set_float(set[i], p, (*f32/1000.0));
 		}
 		else if (pidarray) {
-			if (p >= 8 && p <= 15)
+			if (p >= 7 && p <= 14)
 				ldms_metric_set_float(set[i], p, (*f32/1000.0));
 		}
 	}
@@ -541,6 +581,7 @@ static int tx2mon_array_conv(void *s, int p, int idx, int i, uint32_t t)
 		uint32_t *str = (uint32_t*)s;
 			rc = tx2mon_get_throttling_events(str, i, p, throt_buf, sizeof(throt_buf));
 		}		
+	
 		
 	return rc;
 }
@@ -618,10 +659,10 @@ static int create_metric_set(base_data_t base)
 		
 #define META_MCSAMPLE(n, m, t, p)\
 		rc = tx2mon_array_conv(&s->m, p, tx2mon->n_core, i, t);\
-        	if (rc){ \
-                rc = EINVAL; \
-                msglog(LDMSD_LERROR, SAMP ": sample " n " not correctly defined.\n"); \
-                return rc;}\
+		if (rc){ \
+		rc = EINVAL; \
+		msglog(LDMSD_LERROR, SAMP ": sample " n " not correctly defined.\n"); \
+		return rc;}\
 
 		META_MCP_LIST(META_MCSAMPLE);
 		
@@ -736,7 +777,6 @@ static int read_cpu_info(struct cpu_info *s)
 		return rv;
 	if (CMD_STATUS_READY(op->cmd_status) == 0)
 		return 0;
-	msglog(LDMSD_LDEBUG, SAMP ": This is what's in cmd_status: %f \n", (float)op->cmd_status);
 	if (CMD_VERSION(op->cmd_status) > 0)
 		s->throttling_available =  1;
 	else
@@ -880,7 +920,7 @@ static char *get_throttling_cause(unsigned int active_event, const char *sep, ch
 #endif
 
 /* - Loop through number of cpu structs defined in /sys/bus/platform/devices/tx2mon/socinfo 
- * 	and set in parse_socinfo().
+ *	and set in parse_socinfo().
  * - Check the node file path for each cpu struct exist. 
  * - Read cpu information in /sys/bus/platform/devices/tx2mon/node<i>_raw
  * - Close file path.
