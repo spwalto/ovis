@@ -812,27 +812,7 @@ static int parse_socinfo(void){
 
 }
 
-/*
-static int read_node(struct cpu_info *d)
-{
-	assert(d!=NULL);
-	int rv;
-	struct mc_oper_region *op = &d->mcp;
-	rv = lseek(d->fd, 0, SEEK_SET);
-	if (rv < 0)
-	       return rv;
-	rv = read(d->fd, op, sizeof(*op));
-	if (rv < sizeof(*op))
-		return rv;
-	if (CMD_STATUS_READY(op->cmd_status) == 0)
-		return 0;
-	if (CMD_VERSION(op->cmd_status) > 0)
-		d->throttling_available =  1;
-	else
-		d->throttling_available =  0;
-	return 1;
-}
-*/
+
 /* - Loop through number of cpu structs defined in /sys/bus/platform/devices/tx2mon/socinfo 
  *	and set in parse_socinfo().
  * - Check the node file path for each cpu struct exist. 
