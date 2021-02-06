@@ -1,3 +1,5 @@
+#ifndef tx2mon_h
+#define tx2mon_h
 /*
  * tx2mon.h -	LDMS sampler for basic Marvell TX2 chip telemetry.
  */
@@ -24,28 +26,20 @@
 
 /*
  * Header file from github.com/jchandra-cavm/tx2mon.git, which
- * is required to be checked out elsewhere on the build system,
+ * is required to be installed elsewhere on the build system,
  * and pointed to during the configure phase.
  *
- * TODO: insert exact configure command line required here.
+ * configure --enable-tx2mon
+ *
+ * If there is no tx2mon/mc_oper_region.h in /usr/include,
+ * provide CFLAGS=$(tx2mon_include_path) pointing to the header location.
  */
+#include <stdint.h>
 #include <tx2mon/mc_oper_region.h>
 
 #include <limits.h>
-/*
- * Forward declarations.
- */
-static void term(struct ldmsd_plugin *self);
-static int config(struct ldmsd_plugin *self, struct attr_value_list *kwl, struct attr_value_list *avl);
-static const char *usage(struct ldmsd_plugin *self);
-static ldms_set_t get_set(struct ldmsd_sampler *self);			/* Obsolete */
-static int sample(struct ldmsd_sampler *self);
-static int create_metric_set(base_data_t base);
+#include <stdio.h>
 
-//Definitions and functions used to parse and dump cpu data to screen
-#define CORES_PER_ROW 4
-#define PIDFMAX 32
-#define BUFMAX 512
 /*
  * Location of the sysfs entries created by the kernel module.
  *
@@ -60,24 +54,14 @@ static int create_metric_set(base_data_t base);
 #define	TX2MON_MAX_CPU	(2)
 
 /*
- * Size of temporary buffer used when registering schema etc
- */
-#define	TMP_BUF_SIZE	(512)
-
-/*
- * Set of possible capabilities supported by the kernel module.
- */
-typedef enum {CAP_BASIC = 0x00, CAP_THROTTLE = 0x01} tx2mon_cap;
-	
-/*
  * Per-CPU record keeping
  */
 struct cpu_info {
 	int	fd;		/* fd of raw file opened */
 	int	metric_offset;	/* starting offset into schema for this CPU */
-	struct	mc_oper_region mcp;	/* mmapped data structure (from fd) */
-	unsigned int throttling_available:1;
+	unsigned int throttling_available;
 	int	node;
+	struct	mc_oper_region mcp;	/* mmapped data structure (from fd) */
 };
 
 /*
@@ -87,38 +71,14 @@ struct tx2mon_sampler {
 	int	n_cpu;		/* number of CPUs (e.g. TX2 chips) present */
 	int	n_core;		/* cores *per CPU* */
 	int	n_thread;	/* threads *per core* (unused currently) */
-	tx2mon_cap	cap;	/* capabilites of kernel module */
-	
 	FILE	*fileout;
 	int 	samples;
 	struct cpu_info cpu[TX2MON_MAX_CPU];
 } ;
 
-/*brief parse on soc info and fill provides struct.
-   * \return 0 on success, errno from fopen, ENODATA from
-    * failed fgets, ENOKEY or ENAMETOOLONG from failed parse.
-    */
-static int parse_socinfo(void);
+/* Read the information located in th the node file directory.
+ * @return 1 if ok, 2 if read is short, 0 if data is unready, 
+ * -1 if error (see errno). */
+int tx2mon_read_node(struct cpu_info *d);
 
-/* Read the information located in th the node file directory*/
-static int read_node(struct cpu_info *d);
-
-/*Read and query cpu data for each node and map to data strucutre. Can also be used for debugging
- * by displaying the data to the ldmsd log file*/
-static int parse_mc_oper_region();
-
-/* Define metric list and call tx2mon_array_conv */
-static int tx2mon_set_metrics(int i);
-
-/* Convert metric values to temp, voltage and power units. Output results in float and uint32_t types */
-static int tx2mon_array_conv(void *s, int p, int idx, int i, uint32_t t);
-
-/* Determine throttling causes from "active_evt" metric */
-static int tx2mon_get_throttling_events(uint32_t *active, int i, int p, char *throt_buf, int bufsz);
-
-/* Checks the stored value in "pidextra" variable and add/removes the following metrics respectively.*/
-static int metric_filter(char *n, uint32_t t);
-
-/* Checks the value contained in pidarray and adds the corresponding metrics
- *  * as follows using a switch statement*/
-static int meta_filter(char *n, uint32_t t);
+#endif

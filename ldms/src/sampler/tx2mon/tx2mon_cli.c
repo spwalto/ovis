@@ -2,37 +2,26 @@
 /*
  * Copyright (c) 2018 Marvell International Ltd.
  */
-
-/*
- *  Copyright [2020] Hewlett Packard Enterprise Development LP
- * 
- * This program is free software; you can redistribute it and/or modify it 
- * under the terms of version 2 of the GNU General Public License as published 
- * by the Free Software Foundation.
- * 
- * This program is distributed in the hope that it will be useful, but 
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY 
- * or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for 
- * more details.
- * 
- * You should have received a copy of the GNU General Public License along with 
- * this program; if not, write to:
- * 
- *   Free Software Foundation, Inc.
- *   51 Franklin Street, Fifth Floor
- *   Boston, MA 02110-1301, USA.
+/* Extracted from tx2mon.c in
+ * https://github.com/jchandra-cavm/tx2mon/
  */
-static int read_node(struct cpu_info *d)
+#include "tx2mon.h"
+#include "assert.h"
+#include "stdlib.h"
+#include <sys/types.h>
+#include <unistd.h>
+
+int tx2mon_read_node(struct cpu_info *d)
 {
         assert(d!=NULL);
         int rv;
         struct mc_oper_region *op = &d->mcp;
         rv = lseek(d->fd, 0, SEEK_SET);
-        if (rv < 0)
+        if (rv == (off_t) -1)
                return rv;
         rv = read(d->fd, op, sizeof(*op));
         if (rv < sizeof(*op))
-                return rv;
+                return 2;
         if (CMD_STATUS_READY(op->cmd_status) == 0)
                 return 0;
         if (CMD_VERSION(op->cmd_status) > 0)

@@ -113,7 +113,6 @@
 #include "stdbool.h"
 #include <stdint.h>
 #include <string.h>
-#include "tx2mon_cli.c"
 
 #define SAMP "tx2mon"
 
@@ -292,30 +291,6 @@ err:
 	
 }
 
-/*
- * Plug-in data structure and access method.
- */
-static struct ldmsd_sampler tx2mon_plugin = {
-	.base = {
-		.name = SAMP,
-		.type = LDMSD_PLUGIN_SAMPLER,
-		.term = term,
-		.config = config,
-		.usage = usage,
-	},
-	.get_set = get_set,
-	.sample = sample,
-};
-
-struct ldmsd_plugin *get_plugin(ldmsd_msg_log_f pf)
-{
-	msglog = pf;
-	int i;
-	for (i = 0; i < MAX_CPUS_PER_SOC; i++)
-		set[i] = NULL;
-	return &tx2mon_plugin.base;
-}
-
 static bool get_bool(const char *val, char *name)
 {
 	if (!val)
@@ -340,310 +315,25 @@ static bool get_bool(const char *val, char *name)
 		return false;
 	}
 }
-
-static int config(struct ldmsd_plugin *self, struct attr_value_list *kwl, struct attr_value_list *avl)
-{
-	int rc = -1;
-	char *array, *extra;
-	int i;
-	for (i = 0; i < tx2mon->n_cpu; i++){
-	if (set[i]) {
-		msglog(LDMSD_LERROR, SAMP ": Set already created.\n");
-		return EINVAL;
-		}
-	}	
-	msglog(LDMSD_LDEBUG, SAMP ": config started. \n");
-
-	base = base_config(avl, SAMP, SAMP, msglog);
-	if (!base) {
-		goto err;
-	}
-	
-	array = av_value(avl, "array");
-	extra = av_value(avl, "extra");
-	pidopts = MC_OPER_REGION;
-
-	if (array && get_bool(array, "array"))
-		pidarray = 1;
-	if (extra && get_bool(extra, "extra"))
-		pidextra = 1;	
-
-	if (!pidopts) {
-		msglog(LDMSD_LERROR, SAMP ": configured with nothing to do.\n");
-		goto err;
-	}
-	
-	rc = create_metric_set(base);
-	
-	if (rc) {
-		msglog(LDMSD_LERROR, SAMP ": failed to create metric set.\n");
-		goto err;
-	}
-	
-
-	msglog(LDMSD_LDEBUG, SAMP ": config done. \n");
-	
-	return 0;
-
-err:
-	rc = EINVAL;
-	base_del(base);
-	msglog(LDMSD_LDEBUG, SAMP ": config fail.\n");
-	return rc;
-
-}
-
-static const char *usage(struct ldmsd_plugin *self)
-{
-	return 
-	"config name=" SAMP " [port-number=<num>]\n"
-	"	[producer=<name>] [instance=<name>] [component_id=<uint64_t>] [schema=<name_base>] [array=<bool>] \n"
-	"	[uid=<user-id>] [gid=<group-id>] [perm=<mode_t permission bits>]\n"
-	"    producer	  A unique name for the host providing the timing data (default $HOSTNAME)\n"
-	"    instance	  A unique name for the timing metric set (default $HOSTNAME/" SAMP ")\n"
-	"    component_id A unique number for the component being monitoring, Defaults to zero.\n"
-	"    schema	  The base name of the port metrics schema, Defaults to " SAMP ".\n"
-	"    array	  Includes only the minimum and maximum metric values of each array in the metric set. \n" 
-	"		  If true, all array values are included. Default is FALSE.\n"
-	"    extra	  Includes additional frequency metrics of the internal block. \n"
-	"		  If false, these metrics will be ommitted. Default is FALSE.\n"  
-	"    uid	  The user-id of the set's owner\n"
-	"    gid	  The group id of the set's owner\n"
-	"    perm	  The set's access permissions\n"
-	;
-}
-
-static void term(struct ldmsd_plugin *self)
-{
-	int i;
-	if (base)
-		base_del(base);
-	for (i = 0; i < tx2mon->n_cpu; i++){
-	if (set[i])
-		ldms_set_delete(set[i]);
-	set[i] = NULL;
-	}
-}
-
-static int sample(struct ldmsd_sampler *self)
-{
-	int rc = 0;
-	int i;
-	int mcprc = -1;
-	for (i = 0; i < tx2mon->n_cpu; i++)
-		if (!set[i]) {
-		msglog(LDMSD_LDEBUG, SAMP ": plugin not initialized\n");
-		return EINVAL;
-	}
-	if (pidopts & MC_OPER_REGION) 
-		mcprc = parse_mc_oper_region();
-		
-	for (i = 0; i < tx2mon->n_cpu; i ++)
-	{
-		base_sample_begin(base);
-		if (!mcprc) {
-			rc = tx2mon_set_metrics(i);
-		if (rc) {
-			msglog(LDMSD_LERROR, SAMP ": failed to create metric set.\n");
-			rc = EINVAL;
-			return rc;
-			}
-
-		}
-	
-		base_sample_end(base);
-	}
-	return rc;
-}
-
-/*
- *tx2mon_get_throttling_events() checks the value of the "active_evt" metric. If the metric is zero, the character array will be set to 
- * "None" and it will exit the function(). 
- *If "active_evt" is not 0, the function will iterate through the causes and perform a left shift to determine what the cause is. 
- *If there is more than one cause, the strings will be concatinated and returned as a single const char array.
- * EXAMPLE: If active_evt = 5 (binary:101) and, starting from the far right and iterating by 1 to the left, the initial (zero) and second 
- * bits are set to 1 (active). Since "Temperature and External" are indexes 0 and 2 then the returned array will be "Temperature External" 
+/***************************************************************************/
+/*brief parse on soc info and fill provides struct.
+ * \return 0 on success, errno from fopen, ENODATA from
+ * failed fgets, ENOKEY or ENAMETOOLONG from failed parse.
  */
+static int parse_socinfo(void);
 
-static int  tx2mon_get_throttling_events(uint32_t *active, int i, int p, char *throt_buf, int bufsz)
-{
-	const char *causes[] = { "Temperature", "Power", "External", "Unk3", "Unk4", "Unk5"};
-	const int ncauses = sizeof(causes)/sizeof(causes[0]);
-	int sz, incr;
-	int rc = 0;
-	int events = 0;
-	const char *sep = ",";
-	int pos = p;
-	char total_causes[sizeof(causes)+2];
-	strcpy(total_causes, "");
+/* Read and query cpu data for each node and map to data structure. Can also be used for debugging
+ * by displaying the data to the ldmsd log file*/
+static int parse_mc_oper_region();
 
-	if (!*active){
-	     ldms_metric_array_set_str(set[i], p, "None");
-	     return rc;
-	}
-	
-	if (!tx2mon->cpu[i].throttling_available){
-		for (pos = p; p <= ncauses; pos++){
-			ldms_metric_set_u32(set[i], p, 0);}
-		msglog(LDMSD_LDEBUG, SAMP ": Throttling events not supported. \n");
-		return rc;
-	 }
+/* Define metric list and call tx2mon_array_conv */
+static int tx2mon_set_metrics(int i);
+
+/* Convert metric values to temp, voltage and power units. Output results in float and uint32_t types */
+static int tx2mon_array_conv(void *s, int p, int idx, int i, uint32_t t);
 
 
-	for (incr = 0, events = 0; incr < ncauses && bufsz > 0; incr++) {
-		pos++;
-		if ((*active & (1 << incr)) == 0)
-				continue;
-		sz = snprintf(throt_buf, bufsz, "%s%s", events ? sep : "", causes[incr]);
-		bufsz -= sz;
-		throt_buf += sz;
-		++events;
-		strcat(total_causes, causes[incr]);
-		ldms_metric_array_set_str(set[i], p, total_causes);
-		ldms_metric_set_u32(set[i], pos, 1);
-		strcat(total_causes, ",");
-	}
-
-	return rc;
-}
-
-/* Converts unsigned 32 and 16 integers to temperature units and returns a float. to_c is the
-temperature calulation defined in mc_oper_region.h*/
-static float my_to_c_u32(uint32_t t)
-{
-	return to_c(t);
-
-}
-static float my_to_c_u16(uint16_t t)
-{
-	return to_c(t);
-}
-
-/* 
- * - Define all metrics in the structure list "MCP_LIST". This definition will be used to sample the metric set.
- * - Call tx2mon_array_conv. 
- * - tx2mon_array_conv converts each metric and array to the necessary types (float, uint16 and uint32) and sets 
- *	the metrics with ldms_metric_set_<type>() and ldms_metric_array_set_<type>(). 
- * - If "array = true/1/t/T", both arrays in "MCP_LIST" (freq_cpu and tmon_cpu) will be included.
- * - Values found in the array are converted to temp, voltage and power with my_to_c_u16() and my_to_c_u32().
- * - Fail with rc = EINVAL if a metric type does not exist
- * */
-
-static int  tx2mon_set_metrics (int i)
-{
-
-	struct mc_oper_region *s;
-	int rc = 0;
-	s = &tx2mon->cpu[i].mcp;
-	
-#define MCSAMPLE(n, m, t, p) \
-	rc = tx2mon_array_conv(&s->m, p, tx2mon->n_core, i, t);\
-	if (rc){ \
-		rc = EINVAL; \
-		msglog(LDMSD_LERROR, SAMP ": sample " n " not correctly defined.\n"); \
-		return rc; }\
-		
-
-	MCP_LIST(MCSAMPLE);
-	
-
-	return rc;
-
-}
-
-static int tx2mon_array_conv(void *s, int p, int idx, int i, uint32_t t)
-{
-	int rc = 0;
-	int c = 0;
-	char throt_buf[64];
-	int temp_p = 0;
-	if (t == LDMS_V_F32_ARRAY){ 
-		uint16_t *s16 = (uint16_t*)s;
-		if (!pidarray){
-			uint16_t *min_max16 = (uint16_t*)s;
-			min_max16[0] = s16[0];
-			min_max16[1] = s16[0];
-			for (c = 0; c < idx; c++){
-				if (my_to_c_u16(s16[c]) < my_to_c_u16(min_max16[0]))
-					min_max16[0] = s16[c];
-				if (my_to_c_u16(s16[c]) > my_to_c_u16(min_max16[1]))
-					min_max16[1] =s16[c];
-					
-				}
-			for (temp_p = -1; temp_p < 1; temp_p++){
-				ldms_metric_set_float(set[i], p+temp_p, my_to_c_u16(min_max16[temp_p+1]));
-				}
-		
-			}
-		
-		else if (pidarray) {
-			for (c = 0; c < idx; c++)
-				ldms_metric_array_set_float(set[i], p, c, my_to_c_u16(s16[c]));
-			}
-	}
-	
-	if (t == LDMS_V_U32_ARRAY){
-		uint32_t *s32 = (uint32_t*)s;
-		if (!pidarray) {
-			uint32_t *min_max32 = (uint32_t*)s;
-			min_max32[0] = s32[0];
-			min_max32[1] = s32[0];
-			for (c = 0; c < idx; c++){
-				if (s32[c] < min_max32[0])
-					min_max32[0] = s32[c];
-				if (s32[c] > min_max32[1])
-					min_max32[1] =s32[c];
-				}
-			for (temp_p = -1; temp_p < 1; temp_p++){
-				  ldms_metric_set_u32(set[i], p+temp_p, min_max32[temp_p+1]);
-				}
-			}
-
-		else if (pidarray){
-			for (c = 0; c < idx; c++)
-				ldms_metric_array_set_u32(set[i], p, c, s32[c]);
-		}
-	}
-	
-	if(t == LDMS_V_F32){
-		uint32_t *f32 = (uint32_t*)s;
-		ldms_metric_set_float(set[i], p, my_to_c_u32(*f32));
-		if (!pidarray){
-			if (p >= 9 && p <= 16)
-				ldms_metric_set_float(set[i], p, (*f32/1000.0));
-		}
-		else if (pidarray) {
-			if (p >= 7 && p <= 14)
-				ldms_metric_set_float(set[i], p, (*f32/1000.0));
-		}
-	}
-
-	
-	if (t == LDMS_V_U32){
-		uint32_t *u32 = (uint32_t*)s;
-		ldms_metric_set_u32(set[i], p, *u32);
-
-		}
-
-	if (t == LDMS_V_CHAR_ARRAY)		
-		{
-		uint32_t *str = (uint32_t*)s;
-			rc = tx2mon_get_throttling_events(str, i, p, throt_buf, sizeof(throt_buf));
-		}		
-	
-		
-	return rc;
-}
-
-/*
- *     get_set() - Obsolete call, no longer used.
- *		       Return safe value, just in case.
- *		       */
-
-static ldms_set_t get_set(struct ldmsd_sampler *self)
-{
-		return sc;
-}
+/***************************************************************************/
 
 /*
  * Create the schema and metric set.
@@ -651,8 +341,7 @@ static ldms_set_t get_set(struct ldmsd_sampler *self)
  *  - Read & parse TX2MON_SOCINFO_PATH to learn about the system config, and
  *    test that the kernel module is loaded etc. This file is plain ascii.
  *  - Open & mmap TX2MON_NODE?_PATH files. These are binary data structures
- *    defined in mc_oper_region.h (that we were magically pointed to during
- *    configure.)
+ *    defined in mc_oper_region.h.
  *  - Establish the capabilities reported, based on the version number of
  *    the data structure.
  *  - Set up metrics, update data and sample.
@@ -757,6 +446,371 @@ err:
 	return rc;
 }
 
+/* compute unique schema name based on options.
+ * no options: base = tx2mon
+ * schema=xxx: use xxx as the base of the unique name
+ * pidarray or pidextra: add schema suffix based on set content.
+ * @return name which the caller must arrange to free eventually.
+ */
+static char * compute_schema_name(int pidarray, int pidextra, struct attr_value_list *avl)
+{
+	char *schema_name = av_value(avl, "schema");
+	if (!schema_name) {
+		schema_name = SAMP;
+	}
+	if (pidarray || pidextra) {
+		size_t blen = strlen(schema_name) + 6;
+		char *buf = malloc(blen);
+		if (buf) {
+			snprintf(buf, blen, "%s_%c%c", schema_name,
+				(pidarray ?  '1' : '0'),
+				(pidextra ?  '1' : '0'));
+		}
+		return buf;
+	} else {
+		return strdup(schema_name);
+	}
+}
+
+/*
+ * Plug-in data structure and access method.
+ */
+
+static int config(struct ldmsd_plugin *self, struct attr_value_list *kwl, struct attr_value_list *avl)
+{
+	int rc = -1;
+	char *array, *extra;
+	char *sbuf = NULL;
+	int i;
+	for (i = 0; i < tx2mon->n_cpu; i++) {
+		if (set[i]) {
+			msglog(LDMSD_LERROR, SAMP ": Set already created.\n");
+			return EINVAL;
+		}
+	}	
+
+	array = av_value(avl, "array");
+	extra = av_value(avl, "extra");
+	pidopts = MC_OPER_REGION;
+
+	if (array && get_bool(array, "array"))
+		pidarray = 1;
+	if (extra && get_bool(extra, "extra"))
+		pidextra = 1;	
+
+	if (!pidopts) {
+		msglog(LDMSD_LERROR, SAMP ": configured with nothing to do.\n");
+		goto err;
+	}
+
+	sbuf = compute_schema_name(pidarray, pidextra, avl);
+	if (!sbuf) {
+		msglog(LDMSD_LERROR, SAMP ": out of memory computing schema name.\n");
+		goto err;
+	}
+	
+	base = base_config(avl, SAMP, sbuf, msglog);
+	if (!base) {
+		goto err;
+	}
+	char *as = av_value(avl, "auto-schema");
+	bool dosuffix = (as && get_bool(as, "auto-schema") );
+	if (dosuffix && strcmp(base->schema_name, sbuf) != 0) {
+		free(base->schema_name);
+		base->schema_name = sbuf;
+		sbuf = NULL;
+	}
+	
+	rc = create_metric_set(base);
+	if (rc) {
+		msglog(LDMSD_LERROR, SAMP ": failed to create metric set.\n");
+		goto err;
+	}
+	
+	msglog(LDMSD_LDEBUG, SAMP ": config done. \n");
+	
+	free(sbuf);
+	return 0;
+
+err:
+	rc = EINVAL;
+	base_del(base);
+	free(sbuf);
+	msglog(LDMSD_LDEBUG, SAMP ": config fail.\n");
+	return rc;
+
+}
+
+static const char *usage(struct ldmsd_plugin *self)
+{
+	return 
+	"config name=" SAMP " [port-number=<num>]\n"
+	"	[producer=<name>] [instance=<name>] [component_id=<uint64_t>] [schema=<name_base>] [array=<bool>] \n"
+	"	[uid=<user-id>] [gid=<group-id>] [perm=<mode_t permission bits>]\n"
+	"    producer	  A unique name for the host providing the timing data (default $HOSTNAME)\n"
+	"    instance	  A unique name for the timing metric set (default $HOSTNAME/" SAMP ")\n"
+	"    component_id A unique number for the component being monitoring, Defaults to zero.\n"
+	"    schema	  The base name of the port metrics schema, Defaults to " SAMP ".\n"
+	"    array	  Includes only the minimum and maximum metric values of each array in the metric set. \n" 
+	"		  If true, all array values are included. Default is FALSE.\n"
+	"    extra	  Includes additional frequency metrics of the internal block. \n"
+	"		  If false, these metrics will be ommitted. Default is FALSE.\n"  
+	"    uid	  The user-id of the set's owner\n"
+	"    gid	  The group id of the set's owner\n"
+	"    perm	  The set's access permissions\n"
+	;
+}
+
+static void term(struct ldmsd_plugin *self)
+{
+	int i;
+	if (base)
+		base_del(base);
+	for (i = 0; i < tx2mon->n_cpu; i++){
+	if (set[i])
+		ldms_set_delete(set[i]);
+	set[i] = NULL;
+	}
+}
+
+static int sample(struct ldmsd_sampler *self)
+{
+	int rc = 0;
+	int i;
+	int mcprc = -1;
+	for (i = 0; i < tx2mon->n_cpu; i++) {
+		if (!set[i]) {
+			msglog(LDMSD_LERROR, SAMP ": plugin not initialized\n");
+			return EINVAL;
+		}
+	}
+	if (pidopts & MC_OPER_REGION) 
+		mcprc = parse_mc_oper_region();
+		
+	for (i = 0; i < tx2mon->n_cpu; i ++)
+	{
+		base_sample_begin(base);
+		if (!mcprc) {
+			rc = tx2mon_set_metrics(i);
+		if (rc) {
+			msglog(LDMSD_LERROR, SAMP ": failed to create metric set.\n");
+			rc = EINVAL;
+			return rc;
+			}
+
+		}
+	
+		base_sample_end(base);
+	}
+	return rc;
+}
+
+static ldms_set_t get_set(struct ldmsd_sampler *self)
+{
+		return sc;
+}
+
+static struct ldmsd_sampler tx2mon_plugin = {
+	.base = {
+		.name = SAMP,
+		.type = LDMSD_PLUGIN_SAMPLER,
+		.term = term,
+		.config = config,
+		.usage = usage,
+	},
+	.get_set = get_set,
+	.sample = sample,
+};
+
+struct ldmsd_plugin *get_plugin(ldmsd_msg_log_f pf)
+{
+	msglog = pf;
+	int i;
+	for (i = 0; i < MAX_CPUS_PER_SOC; i++)
+		set[i] = NULL;
+	return &tx2mon_plugin.base;
+}
+
+/***************************************************************************/
+
+/*
+ * tx2mon_get_throttling_events() checks the value of the "active_evt" metric. 
+ * If the metric is zero, the character array will be set to 
+ * "None".
+ * If "active_evt" is not 0, the function will iterate through the causes 
+ * and perform a left shift to determine what the cause is. 
+ * If there is more than one cause, the strings will be concatinated and 
+ * returned as a single char array.
+ * EXAMPLE: If active_evt = 5 (binary:101) and, starting from the far 
+ * right and iterating by 1 to the left, the initial (zero) and second 
+ * bits are set to 1 (active). Since "Temperature and External" are 
+ * indexes 0 and 2 then the returned array will be "Temperature External" 
+ */
+
+static int  tx2mon_get_throttling_events(uint32_t *active, int i, int p, char *throt_buf, int bufsz)
+{
+	const char *causes[] = { "Temperature", "Power", "External", "Unk3", "Unk4", "Unk5"};
+	const int ncauses = sizeof(causes)/sizeof(causes[0]);
+	int sz, incr;
+	int rc = 0;
+	int events = 0;
+	const char *sep = ",";
+	int pos = p;
+	char total_causes[sizeof(causes)+2];
+	strcpy(total_causes, "");
+
+	if (!*active){
+	     ldms_metric_array_set_str(set[i], p, "None");
+	     return rc;
+	}
+	
+	if (!tx2mon->cpu[i].throttling_available){
+		for (pos = p; p <= ncauses; pos++){
+			ldms_metric_set_u32(set[i], p, 0);}
+		msglog(LDMSD_LDEBUG, SAMP ": Throttling events not supported. \n");
+		return rc;
+	 }
+
+
+	for (incr = 0, events = 0; incr < ncauses && bufsz > 0; incr++) {
+		pos++;
+		if ((*active & (1 << incr)) == 0)
+				continue;
+		sz = snprintf(throt_buf, bufsz, "%s%s", events ? sep : "", causes[incr]);
+		bufsz -= sz;
+		throt_buf += sz;
+		++events;
+		strcat(total_causes, causes[incr]);
+		ldms_metric_array_set_str(set[i], p, total_causes);
+		ldms_metric_set_u32(set[i], pos, 1);
+		strcat(total_causes, ",");
+	}
+
+	return rc;
+}
+
+/* Converts unsigned 32 and 16 integers to temperature units and returns a float. to_c is the
+temperature calulation defined in mc_oper_region.h*/
+static float my_to_c_u32(uint32_t t)
+{
+	return to_c(t);
+
+}
+static float my_to_c_u16(uint16_t t)
+{
+	return to_c(t);
+}
+
+/* 
+ * - Define all metrics in the structure list "MCP_LIST". This definition will be used to sample the metric set.
+ * - Call tx2mon_array_conv. 
+ * - tx2mon_array_conv converts each metric and array to the necessary types (float, uint16 and uint32) and sets 
+ *	the metrics with ldms_metric_set_<type>() and ldms_metric_array_set_<type>(). 
+ * - If "array = true/1/t/T", both arrays in "MCP_LIST" (freq_cpu and tmon_cpu) will be included.
+ * - Values found in the array are converted to temp, voltage and power with my_to_c_u16() and my_to_c_u32().
+ * - Fail with rc = EINVAL if a metric type does not exist
+ * */
+
+static int tx2mon_set_metrics (int i)
+{
+
+	struct mc_oper_region *s;
+	int rc = 0;
+	s = &tx2mon->cpu[i].mcp;
+	
+#define MCSAMPLE(n, m, t, p) \
+	rc = tx2mon_array_conv(&s->m, p, tx2mon->n_core, i, t);\
+	if (rc){ \
+		rc = EINVAL; \
+		msglog(LDMSD_LERROR, SAMP ": sample " n " not correctly defined.\n"); \
+		return rc; }\
+		
+
+	MCP_LIST(MCSAMPLE);
+	return rc;
+
+}
+
+static int tx2mon_array_conv(void *s, int p, int idx, int i, uint32_t t)
+{
+	int rc = 0;
+	int c = 0;
+	char throt_buf[64];
+	int temp_p = 0;
+	if (t == LDMS_V_F32_ARRAY) { 
+		uint16_t *s16 = (uint16_t*)s;
+		if (!pidarray) {
+			uint16_t *min_max16 = (uint16_t*)s;
+			min_max16[0] = s16[0];
+			min_max16[1] = s16[0];
+			for (c = 0; c < idx; c++) {
+				if (my_to_c_u16(s16[c]) < my_to_c_u16(min_max16[0]))
+					min_max16[0] = s16[c];
+				if (my_to_c_u16(s16[c]) > my_to_c_u16(min_max16[1]))
+					min_max16[1] =s16[c];
+					
+			}
+			for (temp_p = -1; temp_p < 1; temp_p++) {
+				ldms_metric_set_float(set[i], p+temp_p, my_to_c_u16(min_max16[temp_p+1]));
+			}
+		
+		} else {
+			for (c = 0; c < idx; c++)
+				ldms_metric_array_set_float(set[i], p, c, my_to_c_u16(s16[c]));
+		}
+	}
+	
+	if (t == LDMS_V_U32_ARRAY) {
+		uint32_t *s32 = (uint32_t*)s;
+		if (!pidarray) {
+			uint32_t *min_max32 = (uint32_t*)s;
+			min_max32[0] = s32[0];
+			min_max32[1] = s32[0];
+			for (c = 0; c < idx; c++){
+				if (s32[c] < min_max32[0])
+					min_max32[0] = s32[c];
+				if (s32[c] > min_max32[1])
+					min_max32[1] =s32[c];
+			}
+			for (temp_p = -1; temp_p < 1; temp_p++) {
+				  ldms_metric_set_u32(set[i], p+temp_p, min_max32[temp_p+1]);
+			}
+		} else {
+			for (c = 0; c < idx; c++)
+				ldms_metric_array_set_u32(set[i], p, c, s32[c]);
+		}
+	}
+	
+	if (t == LDMS_V_F32) {
+		uint32_t *f32 = (uint32_t*)s;
+		ldms_metric_set_float(set[i], p, my_to_c_u32(*f32));
+		if (!pidarray){
+			if (p >= 9 && p <= 16)
+				ldms_metric_set_float(set[i], p, (*f32/1000.0));
+		} else {
+			if (p >= 7 && p <= 14)
+				ldms_metric_set_float(set[i], p, (*f32/1000.0));
+		}
+	}
+	
+	if (t == LDMS_V_U32) {
+		uint32_t *u32 = (uint32_t*)s;
+		ldms_metric_set_u32(set[i], p, *u32);
+	}
+
+	if (t == LDMS_V_CHAR_ARRAY) {
+		uint32_t *str = (uint32_t*)s;
+		rc = tx2mon_get_throttling_events(str, i, p, throt_buf, sizeof(throt_buf));
+	}
+		
+	return rc;
+}
+
+/*
+ *     get_set() - Obsolete call, no longer used.
+ *		       Return safe value, just in case.
+ *		       */
+
 static int parse_socinfo(void){
 	FILE *socinfo;
 	char *path;
@@ -806,8 +860,6 @@ static int parse_socinfo(void){
 		tx2mon->n_core = MAX_CPUS_PER_SOC;
 	}
 
-
-	tx2mon->cap = CAP_BASIC;
 	return 0;
 
 }
@@ -839,9 +891,10 @@ static int parse_mc_oper_region()
 		tx2mon->cpu[i].fd = open(filename, O_RDONLY);
 		if (tx2mon->cpu[i].fd < 0){
 			msglog(LDMSD_LERROR, SAMP ": Error reading node%i entry.\n", i);
-			exit (1);
+			msglog(LDMSD_LERROR, SAMP ": Is tx2mon_kmod in the kernel?\n", i);
+			return errno;
 		}
-		ret = read_node(&tx2mon->cpu[i]);
+		ret = tx2mon_read_node(&tx2mon->cpu[i]);
 
 		if (ret < 0){
 			printf("Unexpected read error!\n");
