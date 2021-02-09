@@ -2,7 +2,7 @@ export plugname=tx2mon
 portbase=61086
 VGARGS="--leak-check=full --track-origins=yes"
 DAEMONS $(seq 1 6)
-vgon
+#vgon
 LDMSD -p prolog.sampler 1
 LDMSD 2 3 4 5
 LDMSD -p prolog.sampler 6
