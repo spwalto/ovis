@@ -263,7 +263,6 @@ OPTION_DEFAULT_ENABLE([clock], [ENABLE_CLOCK])
 OPTION_DEFAULT_ENABLE([synthetic], [ENABLE_SYNTHETIC])
 OPTION_DEFAULT_ENABLE([varset], [ENABLE_VARSET])
 OPTION_DEFAULT_ENABLE([lnet_stats], [ENABLE_LNET_STATS])
-OPTION_DEFAULT_DISABLE([tx2mon], [ENABLE_TX2MON])
 OPTION_DEFAULT_ENABLE([meminfo], [ENABLE_MEMINFO])
 OPTION_DEFAULT_DISABLE([filesingle], [ENABLE_FILESINGLE])
 OPTION_DEFAULT_DISABLE([msr_interlagos], [ENABLE_MSR_INTERLAGOS])
@@ -353,6 +352,20 @@ AS_IF([test "x$enable_papi" != xno],[
 AM_CONDITIONAL([HAVE_LIBPAPI], [test "x$HAVE_LIBPAPI" = xyes])
 AM_CONDITIONAL([HAVE_LIBPFM], [test "x$HAVE_LIBPFM" = xyes])
 
+# enable tx2mon by default only when sensible.
+AC_ARG_ENABLE([tx2mon],
+	[AS_HELP_STRING([--enable-tx2mon], [require components that depend upon tx2mon header) @<:@default=check@:>@])],
+	[],
+	[enable_tx2mon="check"])
+AS_IF([test "x$enable_tx2mon" != xno],[
+	AC_CHECK_HEADER([tx2mon/mc_oper_region.h], [HAVE_TX2MON=yes; enable_tx2mon=yes], [HAVE_TX2MON=no], [#include <stdint.h>])
+	AS_IF([test "x$enable_tx2mon" != xcheck],[
+		AS_IF([test "x$HAVE_TX2MON" = xno], [AC_MSG_ERROR([tx2mon headers not found. Install tx2mon package and (at runtime) kernel module on ThunderX2 platforms.])])
+	])
+])
+AM_CONDITIONAL([HAVE_TX2MON], [test "x$HAVE_TX2MON" = xyes])
+AM_CONDITIONAL([ENABLE_TX2MON], [test "$enable_tx2mon" = "yes"])
+
 if test -z "$ENABLE_KOKKOS_TRUE"; then
 	dnl kokkos needs sos (not the storesos).
 	CHECK_SOS=1
@@ -408,11 +421,6 @@ AX_LIB_READLINE
 LDFLAGS_READLINE=$LIBS
 AC_SUBST([LDFLAGS_READLINE])
 LIBS=$TMPLIBS
-
-if test -z "$ENABLE_TX2MON_TRUE"; then
-	AC_CHECK_HEADER(tx2mon/mc_oper_region.h, [], AC_MSG_ERROR([tx2mon/mc_oper_region.h not found.
-use --disable-tx2mon except on thunderx2 with the tx2mon package installed.]))
-fi
 
 dnl Munge library check
 if test -z "$ENABLE_MUNGE_TRUE"; then
