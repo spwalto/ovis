@@ -54,18 +54,15 @@ The tx2mon code is available [here](https://github.com/jchandra-cavm/tx2mon),
 it contains two components:
 * kernel module
 
-  This makes the data structures from the M3 manangement processor on each TX2 die available in sysfs
+  This makes the data structures from the M3 manangement processor on each TX2 die available in sysfs.
+  The tx2mon\_kmod kernel module must be present for the sampler to operate.
+
 * user application
 
   This mmaps the sysfs files, and displays their contents in real time.
 
 This sampler requires the kernel module to be loaded.
 ## Building
-TODO: add --enable=tx2mon, and other options, once they are defined.
+In order to build the tx2mon sampler, the Marvell tx2mon header needs to be resident on the build system.
+By default, the plugin is enabled if the header is present and disabled if it is not found automatically.
 
-In order to build the tx2mon sampler, the Marvell tx2mon source code needs to be resident on the build system.
-
-TODO: describe how to point the ldms build at tx2mon so it can find the file(s) it needs.
-
-## Schema
-TODO: Describe how the schema gets populated, core counts etc etc.
