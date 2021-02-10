@@ -72,19 +72,19 @@
 
 /*
  *  Copyright [2020] Hewlett Packard Enterprise Development LP
- * 
- * This program is free software; you can redistribute it and/or modify it 
- * under the terms of version 2 of the GNU General Public License as published 
+ *
+ * This program is free software; you can redistribute it and/or modify it
+ * under the terms of version 2 of the GNU General Public License as published
  * by the Free Software Foundation.
- * 
- * This program is distributed in the hope that it will be useful, but 
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY 
- * or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for 
+ *
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+ * or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
  * more details.
- * 
- * You should have received a copy of the GNU General Public License along with 
+ *
+ * You should have received a copy of the GNU General Public License along with
  * this program; if not, write to:
- * 
+ *
  *   Free Software Foundation, Inc.
  *   51 Franklin Street, Fifth Floor
  *   Boston, MA 02110-1301, USA.
@@ -136,14 +136,14 @@ static int pidarray = 0;
 static int pidextra = 0;
 static char *pids = "self";
 
-/* 
- * - Define metric list found in /usr/include/tx2mon/mc_oper_region.h. 
+/*
+ * - Define metric list found in /usr/include/tx2mon/mc_oper_region.h.
  * - Create list with the following arguments: name, metric name, type, position in the metric list.
  * - Add schema meta data with ldms_schema_meta_array_add() and ldms_schema_meta_add().
  * - Add schema metric data with ldms_schema_metric_array_add() and ldms_schema_metric_add().
  * - Set the total length of the arrays to the number of cores found in /sys/bus/platform/devices/tx2mon/socinfo.
- * - If "array = true/1/t", add all arrays listed in MCP_LIST and their contents  - set array size to the number 
- *	of n_cores found in /socinfo. 
+ * - If "array = true/1/t", add all arrays listed in MCP_LIST and their contents  - set array size to the number
+ *	of n_cores found in /socinfo.
  * - If "array = false/0/f", add metrics "min" and "max" for each array listed in MCP_LIST.
  * */
 #define MCP_LIST(WRAP) \
@@ -165,7 +165,7 @@ static char *pids = "self";
 	WRAP("ext_evt_cnt", ext_evt_cnt, LDMS_V_U32, pos_ext_evt_cnt) \
 	WRAP("temp_throttle_ms", temp_throttle_ms, LDMS_V_U32, pos_temp_throttle_ms) \
 	WRAP("pwr_throttle_ms", pwr_throttle_ms, LDMS_V_U32, pos_pwr_throttle_ms) \
-	WRAP("ext_throttle_ms", ext_throttle_ms , LDMS_V_U32, pos_ext_throttle_ms) 
+	WRAP("ext_throttle_ms", ext_throttle_ms , LDMS_V_U32, pos_ext_throttle_ms)
 
 /* Define constants in the metric list */	
 #define META_MCP_LIST(WRAP) \
@@ -225,7 +225,7 @@ static int metric_filter(char *n, uint32_t t)
 	int rc = 0;
 	int pos = -1;
 	switch (t) {
-	case LDMS_V_U32_ARRAY: 
+	case LDMS_V_U32_ARRAY:
 		if (pidarray){
 			rc = ldms_schema_metric_array_add(schema, n, t, tx2mon->n_core);}
 		else{
@@ -237,7 +237,7 @@ static int metric_filter(char *n, uint32_t t)
 			else
 				goto err;
 		break;
-	case LDMS_V_F32_ARRAY: 
+	case LDMS_V_F32_ARRAY:
 		if (pidarray){
 			rc = ldms_schema_metric_array_add(schema, n, t, tx2mon->n_core);}
 		else{
@@ -270,9 +270,9 @@ static int metric_filter(char *n, uint32_t t)
 			}
 
 
-		break; 
+		break;
 	default:
-			rc = ldms_schema_metric_add(schema, n, t); 
+			rc = ldms_schema_metric_add(schema, n, t);
 			if (rc > -1)
 				pos = rc;
 			else
@@ -283,8 +283,8 @@ static int metric_filter(char *n, uint32_t t)
 return pos;
 	
 err:
-	 rc = ENOMEM; 
-	 return rc; 
+	 rc = ENOMEM;
+	 return rc;
 	
 }
 
@@ -334,7 +334,7 @@ static int tx2mon_array_conv(void *s, int p, int idx, int i, uint32_t t);
 
 /*
  * Create the schema and metric set.
- * 
+ *
  *  - Read & parse TX2MON_SOCINFO_PATH to learn about the system config, and
  *    test that the kernel module is loaded etc. This file is plain ascii.
  *  - Open & mmap TX2MON_NODE?_PATH files. These are binary data structures
@@ -374,7 +374,7 @@ static int create_metric_set(base_data_t base)
 		snprintf(cpu_instance_index, instance_len, ".%d", i);
 		
 		strncpy(buf, base->instance_name, instance_len);
-		strncat(buf, cpu_instance_index, 12); 
+		strncat(buf, cpu_instance_index, 12);
 		
 		set[i] = ldms_set_new(buf, schema);
 		
@@ -538,7 +538,7 @@ err:
 
 static const char *usage(struct ldmsd_plugin *self)
 {
-	return 
+	return
 	"config name=" SAMP " [port-number=<num>]\n"
 	"	[producer=<name>] [instance=<name>] [component_id=<uint64_t>] [schema=<name_base>] [array=<bool>] \n"
 	"	[uid=<user-id>] [gid=<group-id>] [perm=<mode_t permission bits>]\n"
@@ -546,10 +546,10 @@ static const char *usage(struct ldmsd_plugin *self)
 	"    instance	  A unique name for the timing metric set (default $HOSTNAME/" SAMP ")\n"
 	"    component_id A unique number for the component being monitoring, Defaults to zero.\n"
 	"    schema	  The base name of the port metrics schema, Defaults to " SAMP ".\n"
-	"    array	  Includes only the minimum and maximum metric values of each array in the metric set. \n" 
+	"    array	  Includes only the minimum and maximum metric values of each array in the metric set. \n"
 	"		  If true, all array values are included. Default is FALSE.\n"
 	"    extra	  Includes additional frequency metrics of the internal block. \n"
-	"		  If false, these metrics will be ommitted. Default is FALSE.\n"  
+	"		  If false, these metrics will be ommitted. Default is FALSE.\n"
 	"    uid	  The user-id of the set's owner\n"
 	"    gid	  The group id of the set's owner\n"
 	"    perm	  The set's access permissions\n"
@@ -628,17 +628,17 @@ struct ldmsd_plugin *get_plugin(ldmsd_msg_log_f pf)
 /***************************************************************************/
 
 /*
- * tx2mon_get_throttling_events() checks the value of the "active_evt" metric. 
- * If the metric is zero, the character array will be set to 
+ * tx2mon_get_throttling_events() checks the value of the "active_evt" metric.
+ * If the metric is zero, the character array will be set to
  * "None".
- * If "active_evt" is not 0, the function will iterate through the causes 
- * and perform a left shift to determine what the cause is. 
- * If there is more than one cause, the strings will be concatinated and 
+ * If "active_evt" is not 0, the function will iterate through the causes
+ * and perform a left shift to determine what the cause is.
+ * If there is more than one cause, the strings will be concatinated and
  * returned as a single char array.
- * EXAMPLE: If active_evt = 5 (binary:101) and, starting from the far 
- * right and iterating by 1 to the left, the initial (zero) and second 
- * bits are set to 1 (active). Since "Temperature and External" are 
- * indexes 0 and 2 then the returned array will be "Temperature External" 
+ * EXAMPLE: If active_evt = 5 (binary:101) and, starting from the far
+ * right and iterating by 1 to the left, the initial (zero) and second
+ * bits are set to 1 (active). Since "Temperature and External" are
+ * indexes 0 and 2 then the returned array will be "Temperature External"
  */
 
 static int  tx2mon_get_throttling_events(uint32_t *active, int i, int p, char *throt_buf, int bufsz)
@@ -695,11 +695,11 @@ static float my_to_c_u16(uint16_t t)
 	return to_c(t);
 }
 
-/* 
+/*
  * - Define all metrics in the structure list "MCP_LIST". This definition will be used to sample the metric set.
- * - Call tx2mon_array_conv. 
- * - tx2mon_array_conv converts each metric and array to the necessary types (float, uint16 and uint32) and sets 
- *	the metrics with ldms_metric_set_<type>() and ldms_metric_array_set_<type>(). 
+ * - Call tx2mon_array_conv.
+ * - tx2mon_array_conv converts each metric and array to the necessary types (float, uint16 and uint32) and sets
+ *	the metrics with ldms_metric_set_<type>() and ldms_metric_array_set_<type>().
  * - If "array = true/1/t/T", both arrays in "MCP_LIST" (freq_cpu and tmon_cpu) will be included.
  * - Values found in the array are converted to temp, voltage and power with my_to_c_u16() and my_to_c_u32().
  * - Fail with rc = EINVAL if a metric type does not exist
@@ -731,7 +731,7 @@ static int tx2mon_array_conv(void *s, int p, int idx, int i, uint32_t t)
 	int c = 0;
 	char throt_buf[64];
 	int temp_p = 0;
-	if (t == LDMS_V_F32_ARRAY) { 
+	if (t == LDMS_V_F32_ARRAY) {
 		uint16_t *s16 = (uint16_t*)s;
 		if (!pidarray) {
 			uint16_t *min_max16 = (uint16_t*)s;
@@ -855,14 +855,14 @@ static int parse_socinfo(void){
 }
 
 
-/* - Loop through number of cpu structs defined in /sys/bus/platform/devices/tx2mon/socinfo 
+/* - Loop through number of cpu structs defined in /sys/bus/platform/devices/tx2mon/socinfo
  *	and set in parse_socinfo().
- * - Check the node file path for each cpu struct exist. 
+ * - Check the node file path for each cpu struct exist.
  * - Read cpu information in /sys/bus/platform/devices/tx2mon/node<i>_raw
  * - Close file path.
  *
- * - Define "debug" in tx2mon header file to output all structs and their metric values 
- *   in table format (similar to tx2mon program). 
+ * - Define "debug" in tx2mon header file to output all structs and their metric values
+ *   in table format (similar to tx2mon program).
  */
 
 static int parse_mc_oper_region()

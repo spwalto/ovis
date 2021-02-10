@@ -66,9 +66,9 @@ tmon_cpu[]     Temperature reading of each core. (deg. C).
 .PP
 Include the following metrics when array=false:
 .nf
-freq_cpu_min   Minimum value found in freq_cpu. 
-freq_cpu_max   Maximum value found in freq_cpu. 
-tmon_cpu_min   Minimum value found in tmon_cpu. (deg. C) 
+freq_cpu_min   Minimum value found in freq_cpu.
+freq_cpu_max   Maximum value found in freq_cpu.
+tmon_cpu_min   Minimum value found in tmon_cpu. (deg. C)
 tmon_cpu_max   Maximum value found in tmon_cpu. (deg. C)
 .fi
 .PP
@@ -119,13 +119,13 @@ freq_socn          Internal block frequency of SOC North clock. (Mhz)
 Within ldmsd_controller or a configuration file:
 .nf
 load name=tx2mon
-config name=tx2mon producer=vm1_1 component_id=1 instance=vm1_1/tx2mon 
+config name=tx2mon producer=vm1_1 component_id=1 instance=vm1_1/tx2mon
 start name=tx2mon interval=1000000
 .fi
 
 .SH NOTES
 By default, root privilege is required to read the data files produced by tx2mon_kmod.
-The kernel module tx2mon_kmod must be loaded, e.g. by 
+The kernel module tx2mon_kmod must be loaded, e.g. by
 "modprobe /lib/modules/$(uname -r)/extra/tx2mon_kmod.ko".
 
 The current generated schema names are: tx2mon, tx2mon_01, tx2mon_11_$n_core, and tx2mon_10_$n_core, where the suffix is derived as _(array)(extra)[_ncore]. "tx2mon" is used when tx2mon_00 would occur. If present, $n_core is the size of the array metrics.
