@@ -167,7 +167,7 @@ static char *pids = "self";
 	WRAP("pwr_throttle_ms", pwr_throttle_ms, LDMS_V_U32, pos_pwr_throttle_ms) \
 	WRAP("ext_throttle_ms", ext_throttle_ms , LDMS_V_U32, pos_ext_throttle_ms)
 
-/* Define constants in the metric list */	
+/* Define constants in the metric list */
 #define META_MCP_LIST(WRAP) \
 	WRAP("temp_abs_max", temp_abs_max, LDMS_V_F32, pos_temp_abs_max) \
 	WRAP("temp_soft_thresh", temp_soft_thresh, LDMS_V_F32, pos_temp_soft_thresh) \
@@ -200,16 +200,17 @@ static int meta_filter(char *n, uint32_t t)
 {
 	int rc = 0;
 	int pos = -1;
-		if (pidextra)
-			rc = ldms_schema_meta_add(schema, n, t);
-		else if (!pidextra)
-			return rc;
+	if (pidextra)
+		rc = ldms_schema_meta_add(schema, n, t);
+	else if (!pidextra)
+		return rc;
 
 	if (rc > -1)
 		pos = rc;
-	else{
-		rc = ENOMEM;	
-		return rc;}
+	else {
+		rc = ENOMEM;
+		return rc;
+	}
 	return pos;
 }
 
@@ -226,66 +227,63 @@ static int metric_filter(char *n, uint32_t t)
 	int pos = -1;
 	switch (t) {
 	case LDMS_V_U32_ARRAY:
-		if (pidarray){
-			rc = ldms_schema_metric_array_add(schema, n, t, tx2mon->n_core);}
-		else{
+		if (pidarray) {
+			rc = ldms_schema_metric_array_add(schema, n, t, tx2mon->n_core);
+		} else {
 			rc = ldms_schema_metric_add(schema, "freq_cpu_min", LDMS_V_U32);
 			rc = ldms_schema_metric_add(schema, "freq_cpu_max", LDMS_V_U32);
-			}
-			if (rc > -1)
-				pos = rc;
-			else
-				goto err;
+		}
+		if (rc > -1)
+			pos = rc;
+		else
+			goto err;
 		break;
 	case LDMS_V_F32_ARRAY:
-		if (pidarray){
-			rc = ldms_schema_metric_array_add(schema, n, t, tx2mon->n_core);}
-		else{
+		if (pidarray) {
+			rc = ldms_schema_metric_array_add(schema, n, t, tx2mon->n_core);
+		} else {
 			rc = ldms_schema_metric_add(schema, "tmon_cpu_min", LDMS_V_F32);
 			rc = ldms_schema_metric_add(schema, "tmon_cpu_max", LDMS_V_F32);
-			}
-			if (rc> -1)
-				pos = rc;
-			else
-				goto err;
+		}
+		if (rc > -1)
+			pos = rc;
+		else
+			goto err;
 		break;
 	case LDMS_V_CHAR_ARRAY:
-			rc = ldms_schema_metric_array_add(schema, n, t, 50);
-			if (rc> -1)
-				pos = rc;
-			else
-				goto err;
-			if (!strcmp(n, "active_evt")){
+		rc = ldms_schema_metric_array_add(schema, n, t, 50);
+		if (rc> -1)
+			pos = rc;
+		else
+			goto err;
+		if (!strcmp(n, "active_evt")) {
 			rc = ldms_schema_metric_add(schema, "Temperature", LDMS_V_U32);
 			rc = ldms_schema_metric_add(schema, "Power", LDMS_V_U32);
 			rc = ldms_schema_metric_add(schema, "External", LDMS_V_U32);
 			rc = ldms_schema_metric_add(schema, "Unk3", LDMS_V_U32);
 			rc = ldms_schema_metric_add(schema, "Unk4", LDMS_V_U32);
 			rc = ldms_schema_metric_add(schema, "Unk5", LDMS_V_U32);
-			if (rc > -1){
+			if (rc > -1)
 				return pos;
-				}
 			else
 				goto err;
-			}
-
-
+		}
 		break;
 	default:
-			rc = ldms_schema_metric_add(schema, n, t);
-			if (rc > -1)
-				pos = rc;
-			else
-				goto err;
+		rc = ldms_schema_metric_add(schema, n, t);
+		if (rc > -1)
+			pos = rc;
+		else
+			goto err;
 		break;
 	}
 
-return pos;
-	
+	return pos;
+
 err:
-	 rc = ENOMEM;
-	 return rc;
-	
+	rc = ENOMEM;
+	return rc;
+
 }
 
 static bool get_bool(const char *val, char *name)
@@ -308,7 +306,7 @@ static bool get_bool(const char *val, char *name)
 		return false;
 	default:
 		msglog(LDMSD_LERROR, "%s: bad bool value %s for %s\n",
-			val, name);
+		       val, name);
 		return false;
 	}
 }
@@ -354,37 +352,37 @@ static int create_metric_set(base_data_t base)
 	static struct mc_oper_region *s;
 	char buf[instance_len];
 	char cpu_instance_index[12];
-	
+
 	mcprc = parse_mc_oper_region();
 	if (mcprc != 0) {
 		msglog(LDMSD_LERROR, SAMP ": unable to read the node file for the sample (%s)\n",
-			pids, strerror(mcprc));
+		       pids, strerror(mcprc));
 		return mcprc;
 	}
-	
+
 	schema = base_schema_new(base);
 	if (!schema) {
 		rc = ENOMEM;
 		goto err;
 	}
-		MCP_LIST(METRIC);
-		META_MCP_LIST(META);
-	for (i = 0; i < 2; i++){
+	MCP_LIST(METRIC);
+	META_MCP_LIST(META);
+	for (i = 0; i < 2; i++) {
 		s = &tx2mon->cpu[i].mcp;
 		snprintf(cpu_instance_index, instance_len, ".%d", i);
-		
+
 		strncpy(buf, base->instance_name, instance_len);
 		strncat(buf, cpu_instance_index, 12);
-		
+
 		set[i] = ldms_set_new(buf, schema);
-		
+
 		if (!set[i]) {
 			rc = errno;
 			msglog(LDMSD_LERROR, SAMP ": ldms_set_new failed %d for %s\n",
-				errno, base->instance_name);
+			       errno, base->instance_name);
 			goto err;
 		}
-		
+
 #define META_MCSAMPLE(n, m, t, p)\
 		rc = tx2mon_array_conv(&s->m, p, tx2mon->n_core, i, t);\
 		if (rc){ \
@@ -393,27 +391,27 @@ static int create_metric_set(base_data_t base)
 		return rc;}\
 
 		META_MCP_LIST(META_MCSAMPLE);
-		
+
 		ldms_set_producer_name_set(set[i], base->producer_name);
 		ldms_metric_set_u64(set[i], BASE_COMPONENT_ID, base->component_id);
 		ldms_metric_set_u64(set[i], BASE_JOB_ID, 0);
 		ldms_metric_set_u64(set[i], BASE_APP_ID, 0);
 		base_auth_set(&base->auth, set[i]);
-		
+
 		rc = ldms_set_publish(set[i]);
 		if (rc) {
 			ldms_set_delete(base->set);
 			base->set = NULL;
 			errno = rc;
 			base->log(LDMSD_LERROR,"base_set_new: ldms_set_publish failed for %s\n",
-				base->instance_name);
+			          base->instance_name);
 			return EINVAL;
 		}
 		ldmsd_set_register(set[i], base->pi_name);
-		
+
 		base->set = set[i];
 		base_sample_begin(base);
-		
+
 		rc = tx2mon_set_metrics(i);
 		if (rc) {
 			msglog(LDMSD_LERROR, SAMP ": failed to create metric set.\n");
@@ -422,9 +420,9 @@ static int create_metric_set(base_data_t base)
 		}
 		base_sample_end(base);
 		base->set = NULL;
-	
-	}	
-	
+
+	}
+
 
 	return 0;
 err:
@@ -456,9 +454,9 @@ static char * compute_schema_name(int pidarray, int pidextra, struct attr_value_
 		}
 		if (buf) {
 			snprintf(buf, blen, "%s_%c%c%s", schema_name,
-				(pidarray ?  '1' : '0'),
-				(pidextra ?  '1' : '0'),
-				asize);
+			         (pidarray ?  '1' : '0'),
+			         (pidextra ?  '1' : '0'),
+			         asize);
 		}
 		return buf;
 	} else {
@@ -478,7 +476,7 @@ static int config(struct ldmsd_plugin *self, struct attr_value_list *kwl, struct
 	int i;
 
 	int ret = parse_socinfo();
-	if (ret != 0){
+	if (ret != 0) {
 		msglog(LDMSD_LERROR, SAMP ": Failed. Check that you loaded tx2mon_kmod module. \n");
 		return EINVAL;
 	}
@@ -488,7 +486,7 @@ static int config(struct ldmsd_plugin *self, struct attr_value_list *kwl, struct
 			msglog(LDMSD_LERROR, SAMP ": Set already created.\n");
 			return EINVAL;
 		}
-	}	
+	}
 
 	array = av_value(avl, "array");
 	extra = av_value(avl, "extra");
@@ -496,14 +494,14 @@ static int config(struct ldmsd_plugin *self, struct attr_value_list *kwl, struct
 	if (array && get_bool(array, "array"))
 		pidarray = 1;
 	if (extra && get_bool(extra, "extra"))
-		pidextra = 1;	
+		pidextra = 1;
 
 	sbuf = compute_schema_name(pidarray, pidextra, avl, tx2mon->n_core);
 	if (!sbuf) {
 		msglog(LDMSD_LERROR, SAMP ": out of memory computing schema name.\n");
 		goto err;
 	}
-	
+
 	base = base_config(avl, SAMP, sbuf, msglog);
 	if (!base) {
 		goto err;
@@ -515,15 +513,15 @@ static int config(struct ldmsd_plugin *self, struct attr_value_list *kwl, struct
 		base->schema_name = sbuf;
 		sbuf = NULL;
 	}
-	
+
 	rc = create_metric_set(base);
 	if (rc) {
 		msglog(LDMSD_LERROR, SAMP ": failed to create metric set.\n");
 		goto err;
 	}
-	
+
 	msglog(LDMSD_LDEBUG, SAMP ": config done. \n");
-	
+
 	free(sbuf);
 	return 0;
 
@@ -539,21 +537,23 @@ err:
 static const char *usage(struct ldmsd_plugin *self)
 {
 	return
-	"config name=" SAMP " [port-number=<num>]\n"
-	"	[producer=<name>] [instance=<name>] [component_id=<uint64_t>] [schema=<name_base>] [array=<bool>] \n"
-	"	[uid=<user-id>] [gid=<group-id>] [perm=<mode_t permission bits>]\n"
-	"    producer	  A unique name for the host providing the timing data (default $HOSTNAME)\n"
-	"    instance	  A unique name for the timing metric set (default $HOSTNAME/" SAMP ")\n"
-	"    component_id A unique number for the component being monitoring, Defaults to zero.\n"
-	"    schema	  The base name of the port metrics schema, Defaults to " SAMP ".\n"
-	"    array	  Includes only the minimum and maximum metric values of each array in the metric set. \n"
-	"		  If true, all array values are included. Default is FALSE.\n"
-	"    extra	  Includes additional frequency metrics of the internal block. \n"
-	"		  If false, these metrics will be ommitted. Default is FALSE.\n"
-	"    uid	  The user-id of the set's owner\n"
-	"    gid	  The group id of the set's owner\n"
-	"    perm	  The set's access permissions\n"
-	;
+"config name=" SAMP " [port-number=<num>]\n"
+"	[producer=<name>] [instance=<name>] [component_id=<uint64_t>] [schema=<name_base>]\n"
+"       [array=<bool>] [extra=bool] [auto-schema=bool]\n"
+"	[uid=<user-id>] [gid=<group-id>] [perm=<mode_t permission bits>]\n"
+"    producer	  A unique name for the host providing the timing data (default $HOSTNAME)\n"
+"    instance	  A unique name for the timing metric set (default $HOSTNAME/" SAMP ")\n"
+"    component_id A unique number for the component being monitoring, Defaults to zero.\n"
+"    schema	  The base name of the port metrics schema, Defaults to " SAMP ".\n"
+"    auto-schema  Use schema as base of schema name generated to be unique.\n"
+"    array	  Includes only the minimum and maximum metric values of each array in the metric set. \n"
+"		  If true, all array values are included. Default is FALSE.\n"
+"    extra	  Includes additional frequency metrics of the internal block. \n"
+"		  If false, these metrics will be ommitted. Default is FALSE.\n"
+"    uid	  The user-id of the set's owner\n"
+"    gid	  The group id of the set's owner\n"
+"    perm	  The set's access permissions\n"
+	        ;
 }
 
 static void term(struct ldmsd_plugin *self)
@@ -561,10 +561,10 @@ static void term(struct ldmsd_plugin *self)
 	int i;
 	if (base)
 		base_del(base);
-	for (i = 0; i < tx2mon->n_cpu; i++){
-	if (set[i])
-		ldms_set_delete(set[i]);
-	set[i] = NULL;
+	for (i = 0; i < tx2mon->n_cpu; i++) {
+		if (set[i])
+			ldms_set_delete(set[i]);
+		set[i] = NULL;
 	}
 }
 
@@ -580,20 +580,19 @@ static int sample(struct ldmsd_sampler *self)
 		}
 	}
 	mcprc = parse_mc_oper_region();
-		
-	for (i = 0; i < tx2mon->n_cpu; i ++)
-	{
+
+	for (i = 0; i < tx2mon->n_cpu; i ++) {
 		base_sample_begin(base);
 		if (!mcprc) {
 			rc = tx2mon_set_metrics(i);
-		if (rc) {
-			msglog(LDMSD_LERROR, SAMP ": failed to create metric set.\n");
-			rc = EINVAL;
-			return rc;
+			if (rc) {
+				msglog(LDMSD_LERROR, SAMP ": failed to create metric set.\n");
+				rc = EINVAL;
+				return rc;
 			}
 
 		}
-	
+
 		base_sample_end(base);
 	}
 	return rc;
@@ -601,7 +600,7 @@ static int sample(struct ldmsd_sampler *self)
 
 static ldms_set_t get_set(struct ldmsd_sampler *self)
 {
-		return sc;
+	return sc;
 }
 
 static struct ldmsd_sampler tx2mon_plugin = {
@@ -653,23 +652,24 @@ static int  tx2mon_get_throttling_events(uint32_t *active, int i, int p, char *t
 	char total_causes[sizeof(causes)+2];
 	strcpy(total_causes, "");
 
-	if (!*active){
-	     ldms_metric_array_set_str(set[i], p, "None");
-	     return rc;
+	if (!*active) {
+		ldms_metric_array_set_str(set[i], p, "None");
+		return rc;
 	}
-	
-	if (!tx2mon->cpu[i].throttling_available){
-		for (pos = p; p <= ncauses; pos++){
-			ldms_metric_set_u32(set[i], p, 0);}
+
+	if (!tx2mon->cpu[i].throttling_available) {
+		for (pos = p; p <= ncauses; pos++) {
+			ldms_metric_set_u32(set[i], p, 0);
+		}
 		msglog(LDMSD_LDEBUG, SAMP ": Throttling events not supported. \n");
 		return rc;
-	 }
+	}
 
 
 	for (incr = 0, events = 0; incr < ncauses && bufsz > 0; incr++) {
 		pos++;
 		if ((*active & (1 << incr)) == 0)
-				continue;
+			continue;
 		sz = snprintf(throt_buf, bufsz, "%s%s", events ? sep : "", causes[incr]);
 		bufsz -= sz;
 		throt_buf += sz;
@@ -711,14 +711,14 @@ static int tx2mon_set_metrics (int i)
 	struct mc_oper_region *s;
 	int rc = 0;
 	s = &tx2mon->cpu[i].mcp;
-	
+
 #define MCSAMPLE(n, m, t, p) \
 	rc = tx2mon_array_conv(&s->m, p, tx2mon->n_core, i, t);\
 	if (rc){ \
 		rc = EINVAL; \
 		msglog(LDMSD_LERROR, SAMP ": sample " n " not correctly defined.\n"); \
 		return rc; }\
-		
+
 
 	MCP_LIST(MCSAMPLE);
 	return rc;
@@ -742,43 +742,43 @@ static int tx2mon_array_conv(void *s, int p, int idx, int i, uint32_t t)
 					min_max16[0] = s16[c];
 				if (my_to_c_u16(s16[c]) > my_to_c_u16(min_max16[1]))
 					min_max16[1] =s16[c];
-					
+
 			}
 			for (temp_p = -1; temp_p < 1; temp_p++) {
 				ldms_metric_set_float(set[i], p+temp_p, my_to_c_u16(min_max16[temp_p+1]));
 			}
-		
+
 		} else {
 			for (c = 0; c < idx; c++)
 				ldms_metric_array_set_float(set[i], p, c, my_to_c_u16(s16[c]));
 		}
 	}
-	
+
 	if (t == LDMS_V_U32_ARRAY) {
 		uint32_t *s32 = (uint32_t*)s;
 		if (!pidarray) {
 			uint32_t *min_max32 = (uint32_t*)s;
 			min_max32[0] = s32[0];
 			min_max32[1] = s32[0];
-			for (c = 0; c < idx; c++){
+			for (c = 0; c < idx; c++) {
 				if (s32[c] < min_max32[0])
 					min_max32[0] = s32[c];
 				if (s32[c] > min_max32[1])
 					min_max32[1] =s32[c];
 			}
 			for (temp_p = -1; temp_p < 1; temp_p++) {
-				  ldms_metric_set_u32(set[i], p+temp_p, min_max32[temp_p+1]);
+				ldms_metric_set_u32(set[i], p+temp_p, min_max32[temp_p+1]);
 			}
 		} else {
 			for (c = 0; c < idx; c++)
 				ldms_metric_array_set_u32(set[i], p, c, s32[c]);
 		}
 	}
-	
+
 	if (t == LDMS_V_F32) {
 		uint32_t *f32 = (uint32_t*)s;
 		ldms_metric_set_float(set[i], p, my_to_c_u32(*f32));
-		if (!pidarray){
+		if (!pidarray) {
 			if (p >= 9 && p <= 16)
 				ldms_metric_set_float(set[i], p, (*f32/1000.0));
 		} else {
@@ -786,7 +786,7 @@ static int tx2mon_array_conv(void *s, int p, int idx, int i, uint32_t t)
 				ldms_metric_set_float(set[i], p, (*f32/1000.0));
 		}
 	}
-	
+
 	if (t == LDMS_V_U32) {
 		uint32_t *u32 = (uint32_t*)s;
 		ldms_metric_set_u32(set[i], p, *u32);
@@ -796,26 +796,27 @@ static int tx2mon_array_conv(void *s, int p, int idx, int i, uint32_t t)
 		uint32_t *str = (uint32_t*)s;
 		rc = tx2mon_get_throttling_events(str, i, p, throt_buf, sizeof(throt_buf));
 	}
-		
+
 	return rc;
 }
 
 /* populate tx2mon struct before any use of it. */
-static int parse_socinfo(void){
+static int parse_socinfo(void)
+{
 	FILE *socinfo;
 	char *path;
 
 	path = realpath(TX2MON_SOCINFO_PATH, NULL);
 	if (path == NULL) {
 		msglog(LDMSD_LERROR, SAMP ": cannot resolve path for '%s'.\n",
-				TX2MON_SOCINFO_PATH);
+		       TX2MON_SOCINFO_PATH);
 		return EBADF;
 	}
 
 	socinfo = fopen(path, "r");
 	if (!socinfo) {
 		msglog(LDMSD_LERROR, SAMP ": cannot open '%s', %s.\n",
-				path, strerror(errno));
+		       path, strerror(errno));
 		free(path);
 		return errno;
 	}
@@ -825,7 +826,7 @@ static int parse_socinfo(void){
 	space between, any problem => fail.
 	*/
 	if (fscanf(socinfo, "%d %d %d", &tx2mon->n_cpu,
-			&tx2mon->n_core, &tx2mon->n_thread) != 3) {
+	           &tx2mon->n_core, &tx2mon->n_thread) != 3) {
 		msglog(LDMSD_LERROR, SAMP ": cannot parse '%s'.\n", path);
 		fclose(socinfo);
 		free(path);
@@ -836,17 +837,17 @@ static int parse_socinfo(void){
 	free(path);
 
 	msglog(LDMSD_LINFO, SAMP ": n_cpu: %d, n_core: %d, n_thread: %d.\n",
-			tx2mon->n_cpu, tx2mon->n_core, tx2mon->n_thread);
+	       tx2mon->n_cpu, tx2mon->n_core, tx2mon->n_thread);
 
 	if (TX2MON_MAX_CPU < tx2mon->n_cpu) {
 		msglog(LDMSD_LWARNING, SAMP ": sampler built for max %d CPUs, system reporting %d CPUs, limiting reporting to %d.\n",
-				TX2MON_MAX_CPU, tx2mon->n_cpu, TX2MON_MAX_CPU);
+		       TX2MON_MAX_CPU, tx2mon->n_cpu, TX2MON_MAX_CPU);
 		tx2mon->n_cpu = TX2MON_MAX_CPU;
 	}
 
 	if (MAX_CPUS_PER_SOC < tx2mon->n_core) {
 		msglog(LDMSD_LWARNING, SAMP ": sampler built for max %d cores, system reporting %d cores, limiting reporting to %d.\n",
-				MAX_CPUS_PER_SOC, tx2mon->n_core, MAX_CPUS_PER_SOC);
+		       MAX_CPUS_PER_SOC, tx2mon->n_core, MAX_CPUS_PER_SOC);
 		tx2mon->n_core = MAX_CPUS_PER_SOC;
 	}
 
@@ -873,34 +874,34 @@ static int parse_mc_oper_region()
 	ret = ret1 = 1;
 	assert(tx2mon != NULL);
 	for(i = 0; i < tx2mon->n_cpu; i++) {
-		
+
 		//Get node path name(s)
 		snprintf(filename, sizeof(filename), TX2MON_NODE_PATH, i);
 		//set number of nodes for each cpu found
 		tx2mon->cpu[i].node = i;
 		tx2mon->cpu[i].fd = open(filename, O_RDONLY);
-		if (tx2mon->cpu[i].fd < 0){
+		if (tx2mon->cpu[i].fd < 0) {
 			msglog(LDMSD_LERROR, SAMP ": Error reading node%i entry.\n", i);
 			msglog(LDMSD_LERROR, SAMP ": Is tx2mon_kmod in the kernel?\n", i);
 			return errno;
 		}
 		ret = tx2mon_read_node(&tx2mon->cpu[i]);
 
-		if (ret < 0){
+		if (ret < 0) {
 			printf("Unexpected read error!\n");
 			return EINVAL;
 		}
-		
+
 #ifdef debug
-                if (ret > 0) {
-                        tx2mon->samples++;
-                        term_init_save();
-                        dump_cpu_info(&tx2mon->cpu[i]);
-                }
+		if (ret > 0) {
+			tx2mon->samples++;
+			term_init_save();
+			dump_cpu_info(&tx2mon->cpu[i]);
+		}
 #endif
 
 		close(tx2mon->cpu[i].fd);
-		
+
 	}
 	return 0;
 }
