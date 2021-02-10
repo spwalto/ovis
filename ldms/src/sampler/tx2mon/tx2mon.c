@@ -348,18 +348,13 @@ static int tx2mon_array_conv(void *s, int p, int idx, int i, uint32_t t);
  */
 static int create_metric_set(base_data_t base)
 {
-	int rc, ret, i;
+	int rc, i;
 	int mcprc = -1;
 	size_t instance_len = strlen(base->instance_name) + 12;
 	static struct mc_oper_region *s;
 	char buf[instance_len];
 	char cpu_instance_index[12];
 	
-	ret = parse_socinfo();
-	if (ret != 0){
-		msglog(LDMSD_LERROR, SAMP ": Check that you loaded tx2mon module. \n");
-		return EINVAL;
-	}
 	mcprc = parse_mc_oper_region();
 	if (mcprc != 0) {
 		msglog(LDMSD_LERROR, SAMP ": unable to read the node file for the sample (%s)\n",
@@ -444,19 +439,26 @@ err:
  * pidarray or pidextra: add schema suffix based on set content.
  * @return name which the caller must arrange to free eventually.
  */
-static char * compute_schema_name(int pidarray, int pidextra, struct attr_value_list *avl)
+static char * compute_schema_name(int pidarray, int pidextra, struct attr_value_list *avl, int arraysize)
 {
 	char *schema_name = av_value(avl, "schema");
 	if (!schema_name) {
 		schema_name = SAMP;
 	}
 	if (pidarray || pidextra) {
-		size_t blen = strlen(schema_name) + 6;
+		size_t blen = strlen(schema_name) + 14;
 		char *buf = malloc(blen);
+		char asize[10];
+		if (pidarray) {
+			snprintf(asize, sizeof(asize), "_%hd", (short) arraysize);
+		} else {
+			asize[0] = '\0';
+		}
 		if (buf) {
-			snprintf(buf, blen, "%s_%c%c", schema_name,
+			snprintf(buf, blen, "%s_%c%c%s", schema_name,
 				(pidarray ?  '1' : '0'),
-				(pidextra ?  '1' : '0'));
+				(pidextra ?  '1' : '0'),
+				asize);
 		}
 		return buf;
 	} else {
@@ -474,6 +476,13 @@ static int config(struct ldmsd_plugin *self, struct attr_value_list *kwl, struct
 	char *array, *extra;
 	char *sbuf = NULL;
 	int i;
+
+	int ret = parse_socinfo();
+	if (ret != 0){
+		msglog(LDMSD_LERROR, SAMP ": Failed. Check that you loaded tx2mon_kmod module. \n");
+		return EINVAL;
+	}
+
 	for (i = 0; i < tx2mon->n_cpu; i++) {
 		if (set[i]) {
 			msglog(LDMSD_LERROR, SAMP ": Set already created.\n");
@@ -489,7 +498,7 @@ static int config(struct ldmsd_plugin *self, struct attr_value_list *kwl, struct
 	if (extra && get_bool(extra, "extra"))
 		pidextra = 1;	
 
-	sbuf = compute_schema_name(pidarray, pidextra, avl);
+	sbuf = compute_schema_name(pidarray, pidextra, avl, tx2mon->n_core);
 	if (!sbuf) {
 		msglog(LDMSD_LERROR, SAMP ": out of memory computing schema name.\n");
 		goto err;
@@ -791,11 +800,7 @@ static int tx2mon_array_conv(void *s, int p, int idx, int i, uint32_t t)
 	return rc;
 }
 
-/*
- *     get_set() - Obsolete call, no longer used.
- *		       Return safe value, just in case.
- *		       */
-
+/* populate tx2mon struct before any use of it. */
 static int parse_socinfo(void){
 	FILE *socinfo;
 	char *path;

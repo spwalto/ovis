@@ -20,18 +20,26 @@ updtr_add name=allhosts interval=1000000 offset=100000
 updtr_prdcr_add name=allhosts regex=.*
 updtr_start name=allhosts
 
-# schemas are testname, tx2mon_10, tx2mon_01, tx2mon_11
+# schemas are testname, tx2mon_10_$ncore, tx2mon_01, tx2mon_11_$ncore
 strgp_add name=store_${testname} plugin=store_csv schema=${testname} container=node
 strgp_prdcr_add name=store_${testname} regex=.*
 strgp_start name=store_${testname}
 
-strgp_add name=store_${testname}_11 plugin=store_csv schema=${testname}_11 container=node
-strgp_prdcr_add name=store_${testname}_11 regex=.*
-strgp_start name=store_${testname}_11
+strgp_add name=store_${testname}_11_32 plugin=store_csv schema=${testname}_11_32 container=node
+strgp_prdcr_add name=store_${testname}_11_32 regex=.*
+strgp_start name=store_${testname}_11_32
 
-strgp_add name=store_${testname}_10 plugin=store_csv schema=${testname}_10 container=node
-strgp_prdcr_add name=store_${testname}_10 regex=.*
-strgp_start name=store_${testname}_10
+strgp_add name=store_${testname}_10_32 plugin=store_csv schema=${testname}_10_32 container=node
+strgp_prdcr_add name=store_${testname}_10_32 regex=.*
+strgp_start name=store_${testname}_10_32
+
+strgp_add name=store_${testname}_11_28 plugin=store_csv schema=${testname}_11_28 container=node
+strgp_prdcr_add name=store_${testname}_11_28 regex=.*
+strgp_start name=store_${testname}_11_28
+
+strgp_add name=store_${testname}_10_28 plugin=store_csv schema=${testname}_10_28 container=node
+strgp_prdcr_add name=store_${testname}_10_28 regex=.*
+strgp_start name=store_${testname}_10_28
 
 strgp_add name=store_${testname}_01 plugin=store_csv schema=${testname}_01 container=node
 strgp_prdcr_add name=store_${testname}_01 regex=.*

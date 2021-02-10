@@ -38,7 +38,7 @@ For per-core data, report all array value elements if true. Report only maximum 
 .TP
 extra=<bool>
 .br
-For per-cor data, report additional information of the internal block frequencies and the set system metrics. These additional values are static. If false, additional information will not be reported. The default is false.
+For per-core data, report additional information of the internal block frequencies and the set system metrics. These additional values are static. If false, additional information will not be reported. The default is false.
 .RE
 
 
@@ -124,7 +124,12 @@ start name=tx2mon interval=1000000
 .fi
 
 .SH NOTES
-Additional Notes:
+By default, root privilege is required to read the data files produced by tx2mon_kmod.
+The kernel module tx2mon_kmod must be loaded, e.g. by 
+"modprobe /lib/modules/$(uname -r)/extra/tx2mon_kmod.ko".
+
+The current generated schema names are: tx2mon, tx2mon_01, tx2mon_11_$n_core, and tx2mon_10_$n_core, where the suffix is derived as _(array)(extra)[_ncore]. "tx2mon" is used when tx2mon_00 would occur. If present, $n_core is the size of the array metrics.
+
 There is additional power consumed by cross-socket interconnect, PCIe, DDR and
 other IOs that is not currently reported by this tool.
 
@@ -133,7 +138,6 @@ Some of the on-chip components (such as the IO blocks) do not have sensors
 and therefore the voltage and power measurements of these blocks are not
 provided by tx2mon.
 
-The current generated schema names are: tx2mon, tx2mon_11, tx2mon_01, and tx2mon_10, where the suffix is derived as _(array)(extra). "tx2mon" is used when tx2mon_00 would occur.
 
 .SH SEE ALSO
 ldmsd(8), ldms_sampler_base
