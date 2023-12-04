@@ -321,6 +321,7 @@ OPTION_DEFAULT_ENABLE([procnetdev], [ENABLE_PROCNETDEV])
 OPTION_DEFAULT_ENABLE([procnfs], [ENABLE_PROCNFS])
 OPTION_DEFAULT_ENABLE([dstat], [ENABLE_DSTAT])
 OPTION_DEFAULT_ENABLE([procstat], [ENABLE_PROCSTAT])
+OPTION_DEFAULT_ENABLE([gpfs], [ENABLE_GPFS])
 OPTION_DEFAULT_ENABLE([llnl-edac], [ENABLE_LLNL_EDAC])
 AM_CONDITIONAL([ENABLE_LLNL], [test "x$ENABLE_LLNL_EDAC_FALSE" = "x#"])
 OPTION_DEFAULT_DISABLE([fptrans], [ENABLE_FPTRANS])
@@ -1020,6 +1021,7 @@ ldms/src/sampler/procnet/Makefile
 ldms/src/sampler/procnfs/Makefile
 ldms/src/sampler/procnetdev/Makefile
 ldms/src/sampler/procdiskstats/Makefile
+ldms/src/sampler/gpfs/Makefile
 ldms/src/sampler/rdc_sampler/Makefile
 ldms/src/sampler/slurm/Makefile
 ldms/src/sampler/netlink/Makefile
