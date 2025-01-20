@@ -39,12 +39,13 @@ templates_path = ['_templates']
 # -- Options for HTML output
 
 html_theme = 'sphinx_rtd_theme'
-#html_static_path = ['static']
-html_logo = 'https://ovis-hpc.readthedocs.io/en/latest/_images/ovis-logo.png'
 html_theme_options = {
-    'logo_link':'https://ovis-hpc.readthedocs.io/en/latest',
     'logo_only': True,
     'display_version': False,
+}
+
+html_context = {
+    'logo': '<a href="https://ovis-hpc.readthedocs.io/en/latest/"><img src="https://ovis-hpc.readthedocs.io/en/latest/_images/ovis-logo.png" alt="Logo"></a>',
 }
 
 # -- Options for EPUB output
