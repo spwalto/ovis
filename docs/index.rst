@@ -10,9 +10,15 @@
 
 Welcome To OVIS LDMS Documentation!
 ====================================
-.. image:: images/ovis-hpc_homepage.png
-   :width: 1000
-   :height: 150
+.. image:: https://github.com/ovis-hpc/readthedocs/blob/main/docs/source/images/ovis-logo.png?raw=true
+   :width: 225
+   :height: 250
+   :align: center
+
+LDMS is a lightweight framework for collecting, aggregating, and transporting system metrics in HPC environments. It gathers data from diverse sources like hardware counters and system logs, enabling real-time monitoring with low overhead and scalability for large systems.
+
+home page: :doc:`ovis-hpc:index`
+:doc:`Homepage <ovis-hpc:index>`
 
 LDMS GitHub: https://github.com/ovis-hpc/ovis
 

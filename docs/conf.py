@@ -43,7 +43,7 @@ html_static_path = ['static']
 html_logo = "https://github.com/ovis-hpc/readthedocs/blob/main/docs/source/images/ovis-logo.png"
 html_theme_options = {
     'logo_only': True,
-    "logo_url": "https://ovis-hpc.readthedocs.io/en/latest/",
+    "logo_url": "https://ovis-hpc.readthedocs.io/en/latest",
     'display_version': False,
 }
 
