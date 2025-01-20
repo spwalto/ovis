@@ -40,7 +40,7 @@ templates_path = ['_templates']
 
 html_theme = 'sphinx_rtd_theme'
 html_static_path = ['static']
-html_logo = "https://ovis-hpc.readthedocs.io/en/latest/images/ovis-logo.png"
+html_logo = "https://ovis-hpc.readthedocs.io/en/latest/_images/ovis-logo.png"
 #html_logo = "https://github.com/ovis-hpc/readthedocs/blob/main/docs/source/images/ovis-logo.png"
 html_theme_options = {
     'logo_only': True,
