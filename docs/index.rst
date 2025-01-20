@@ -41,20 +41,10 @@ To join the LDMS Users Group Mailing List: https://github.com/ovis-hpc/ovis-wiki
 
 .. toctree::
    :maxdepth: 2
-   :caption: LDMS Man Pages
+   :caption: Man Pages
 
    ldms_man/index
-
-.. toctree::
-   :maxdepth: 2
-   :caption: Sampler Plugin Man Pages
-
    sampler_man/index
-
-.. toctree::
-   :maxdepth: 2
-   :caption: Store Plugin Man Pages
-
    store_man/index
 
 .. toctree::
