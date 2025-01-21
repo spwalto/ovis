@@ -42,7 +42,7 @@ html_theme = 'sphinx_rtd_theme'
 html_logo = 'https://ovis-hpc.readthedocs.io/en/latest/_images/ovis-logo.png'
 html_theme_options = {
     'logo_only': True,
-    'logo_link': 'https://ovis-hpc.readthedocs.io/en/latest/',
+    'logo_url': 'https://ovis-hpc.readthedocs.io/en/latest/',
     'display_version': False,
 }
 
