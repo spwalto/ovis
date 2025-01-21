@@ -1,4 +1,4 @@
-name: Readthedocs Documentation
+name: Build and Trigger Readthedocs
 
 on:
   push:
