@@ -38,10 +38,24 @@ jobs:
     runs-on: ubuntu-22.04
 
     steps:
+      - name: Generate Webhook Signature
+        id: generate-signature
+        run: |
+          # Define the webhook secret
+          SECRET="${{ secrets.RTD_WEBHOOK_SECRET }}"
+
+          # Payload to be sent to Read the Docs (can be any relevant data)
+          PAYLOAD="{}"  # The payload to sign, you can adjust this based on what Read the Docs expects
+
+          # Generate HMAC SHA256 signature using OpenSSL
+          SIGNATURE=$(echo -n "$PAYLOAD" | openssl dgst -sha256 -hmac "$SECRET" | sed 's/^.* //')
+
+          # Save the signature as an environment variable for the next step
+          echo "SIGNATURE=$SIGNATURE" >> $GITHUB_ENV
+
       - name: Trigger Read the Docs Build
-        env:
-          RTD_SECRET: ${{ secrets.RTD_WEBHOOK_SECRET }}
         run: |
           curl -X POST \
-            -H "Authorization: Token $RTD_SECRET" \
-            https://readthedocs.org/api/v2/webhook/ovis-rtd/273836/
+               -H "Authorization: Token ${{ secrets.RTD_WEBHOOK_TOKEN }}" \
+               -H "X-Hub-Signature: sha256=$SIGNATURE" \
+               https://readthedocs.org/api/v2/webhook/ovis-rtd/273836/
