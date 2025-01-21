@@ -5,7 +5,7 @@ if ! test -f m4/options.m4; then
 	exit 1
 fi
 
-# create config dir if not exist
+# testing docs create config dir if not exist
 test -d config || mkdir config
 if test -d ldms ; then
 	autoreconf --force --install -v -I m4
