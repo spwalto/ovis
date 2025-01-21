@@ -14,7 +14,7 @@ on:
 
 jobs:
   build-docs:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
 
     steps:
       - name: Checkout Repository
@@ -35,9 +35,13 @@ jobs:
 
   trigger-rtd:
     needs: build-docs  # Ensures this job runs after the build-docs job
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
 
     steps:
       - name: Trigger Read the Docs Build
+        env:
+          RTD_SECRET: ${{ secrets.RTD_WEBHOOK_SECRET }}
         run: |
-          curl -X POST https://readthedocs.org/api/v2/webhook/ovis-rtd/273836/
+          curl -X POST \
+            -H "Authorization: Token $RTD_SECRET" \
+            https://readthedocs.org/api/v2/webhook/ovis-rtd/273836/
