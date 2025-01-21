@@ -1,3 +1,8 @@
+.. _appsysfusion:
+
+AppSysFusion
+============
+
 .. image:: ../images/appsysfusion.png
    :width: 300
    :height: 125

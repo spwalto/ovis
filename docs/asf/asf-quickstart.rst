@@ -1,4 +1,4 @@
-AppSysFusion Quick Start
+Quick Start
 ==================================================================
 
 Create A Simple Analysis
