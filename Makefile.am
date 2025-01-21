@@ -5,7 +5,7 @@ ACLOCAL_AMFLAGS = -I m4
 # Manually configuring parts individually and expecting
 # the whole to build is obviously difficult.
 # Use the top configure if you expect to use the top make.
-#
+# modiefying for rtd test
 EXTRA_DIST= \
 autogen.sh \
 m4/Ovis-top.m4 \
