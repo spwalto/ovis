@@ -37,12 +37,17 @@ jobs:
             # Strip off /ldms/src and /ldms/man and replicate the structure under docs/man/
             target_dir="docs/man$(echo $man_file | sed 's|^ldms/src/||;s|^ldms/man/||;s/\.man$/.rst/')"
 
-            # Ensure the target directory exists
-            mkdir -p "$(dirname "$target_dir")"
+            # Check if the .rst file already exists
+            if [ ! -f "$target_dir" ]; then
+              # Ensure the target directory exists
+              mkdir -p "$(dirname "$target_dir")"
 
-            # Convert the .man file to .rst using pandoc
-            pandoc "$man_file" -s -o "$target_dir"
-            echo "Converted $man_file to $target_dir"
+              # Convert the .man file to .rst using pandoc, explicitly specifying the input format as 'man'
+              pandoc -f man "$man_file" -s -o "$target_dir"
+              echo "Converted $man_file to $target_dir"
+            else
+              echo "$target_dir already exists, skipping conversion."
+            fi
           done
       
       - name: Commit and Push Generated RST Files
