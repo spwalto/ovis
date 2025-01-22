@@ -32,20 +32,17 @@ jobs:
 
       - name: Convert .man files to .rst
         run: |
-          # Find all .man files and convert them to .rst
-          for man_file in $(find . -name "*.man"); do
-            # Determine target directory by stripping off leading path and building the appropriate docs/man/ path
-            target_dir="docs/man/$(dirname $man_file | sed 's|^./||' | sed 's|/src/|/|g')"
+          # Traverse the /ldms/src and /ldms/man directories to find all .man files
+          for man_file in $(find ldms/src ldms/man -name "*.man"); do
+            # Strip off /ldms/src and /ldms/man and replicate the structure under docs/man/
+            target_dir="docs/man$(echo $man_file | sed 's|^ldms/src/||;s|^ldms/man/||;s/\.man$/.rst/')"
 
             # Ensure the target directory exists
-            mkdir -p "$target_dir"
-
-            # Generate the corresponding .rst file name in the target directory
-            rst_file="$target_dir/$(basename $man_file .man).rst"
+            mkdir -p "$(dirname "$target_dir")"
 
             # Convert the .man file to .rst using pandoc
-            pandoc $man_file -s -o $rst_file
-            echo "Converted $man_file to $rst_file"
+            pandoc "$man_file" -s -o "$target_dir"
+            echo "Converted $man_file to $target_dir"
           done
       
       - name: Commit and Push Generated RST Files
