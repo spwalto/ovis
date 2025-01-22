@@ -27,6 +27,7 @@ jobs:
 
       - name: Install Dependencies
         run: |
+          pip install -r docs/requirements.txt
           pip install sphinx rst2man  # Ensure rst2man is installed
 
       - name: Generate RST Files from MAN Pages
