@@ -13,7 +13,59 @@ on:
       - '**/*.man'
 
 jobs:
+  generate-rst:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.8
+
+      - name: Install Dependencies
+        run: |
+          pip install sphinx rst2man  # Ensure rst2man is installed
+
+      - name: Generate RST Files from MAN Pages
+        run: |
+          # Find modified .man files
+          git diff --name-only HEAD^ HEAD | grep '\.man$' > changed_man_files.txt
+          
+          # Loop over each changed .man file
+          while IFS= read -r man_file; do
+            # Determine the target RST file location in docs/
+            if [[ "$man_file" == "ldms/src/"* ]]; then
+              # If the .man file is in the src/ directory
+              target_rst="docs/man${man_file#ldms/src}"
+              target_rst="${target_rst%.man}.rst"
+            elif [[ "$man_file" == "ldms/man/"* ]]; then
+              # If the .man file is in the man/ directory
+              target_rst="docs/man${man_file#ldms/man}"
+              target_rst="${target_rst%.man}.rst"
+            fi
+
+            # Create the directory structure if it doesn't exist
+            mkdir -p "$(dirname "$target_rst")"
+
+            # Convert .man file to .rst and save it
+            echo "Generating $target_rst from $man_file"
+            rst2man "$man_file" > "$target_rst"
+          done < changed_man_files.txt
+
+      - name: Commit and Push Generated RST Files
+        if: success()
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs/man/*.rst
+          git commit -m "Auto-generated .rst files from .man pages"
+          git push origin HEAD
+          
   build-docs:
+    needs: generate-rst
     runs-on: ubuntu-22.04
 
     steps:
