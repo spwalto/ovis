@@ -30,32 +30,24 @@ jobs:
           sudo apt-get update
           sudo apt-get install pandoc
 
-      - name: Generate RST Files from MAN Pages
+      - name: Convert .man files to .rst
         run: |
-          # Find modified .man files
-          git diff --name-only HEAD^ HEAD | grep '\.man$' > changed_man_files.txt
-          
-          # Loop over each changed .man file
-          while IFS= read -r man_file; do
-            # Determine the target RST file location in docs/
-            if [[ "$man_file" == "ldms/src/"* ]]; then
-              # If the .man file is in the src/ directory
-              target_rst="docs/man${man_file#ldms/src}"
-              target_rst="${target_rst%.man}.rst"
-            elif [[ "$man_file" == "ldms/man/"* ]]; then
-              # If the .man file is in the man/ directory
-              target_rst="docs/man${man_file#ldms/man}"
-              target_rst="${target_rst%.man}.rst"
-            fi
+          # Find all .man files and convert them to .rst
+          for man_file in $(find . -name "*.man"); do
+            # Determine target directory by stripping off leading path and building the appropriate docs/man/ path
+            target_dir="docs/man/$(dirname $man_file | sed 's|^./||' | sed 's|/src/|/|g')"
 
-            # Create the directory structure if it doesn't exist
-            mkdir -p "$(dirname "$target_rst")"
+            # Ensure the target directory exists
+            mkdir -p "$target_dir"
 
-            # Convert .man file to .rst and save it
-            echo "Generating $target_rst from $man_file"
-            pandoc -s "$man_file" -o "$target_rst"
-          done < changed_man_files.txt
+            # Generate the corresponding .rst file name in the target directory
+            rst_file="$target_dir/$(basename $man_file .man).rst"
 
+            # Convert the .man file to .rst using pandoc
+            pandoc $man_file -s -o $rst_file
+            echo "Converted $man_file to $rst_file"
+          done
+      
       - name: Commit and Push Generated RST Files
         if: success()
         run: |
