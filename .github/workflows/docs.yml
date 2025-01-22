@@ -28,10 +28,7 @@ jobs:
       - name: Install Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y sphinx
-
-          # Install man2rst using pip (alternative to rst2man)
-          pip install man2rst
+          sudo apt-get install -y rst2man sphinx
 
       - name: Generate RST Files from MAN Pages
         run: |
