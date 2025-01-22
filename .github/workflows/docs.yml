@@ -27,8 +27,8 @@ jobs:
 
       - name: Install Dependencies
         run: |
-          pip install rst2man
-          pip install man2rst
+          sudo apt-get update
+          sudo apt-get install pandoc
 
       - name: Generate RST Files from MAN Pages
         run: |
@@ -53,7 +53,7 @@ jobs:
 
             # Convert .man file to .rst and save it
             echo "Generating $target_rst from $man_file"
-            rst2man "$man_file" > "$target_rst"
+            pandoc -s "$man_file" -o "$target_rst"
           done < changed_man_files.txt
 
       - name: Commit and Push Generated RST Files
