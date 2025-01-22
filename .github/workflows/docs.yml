@@ -27,9 +27,8 @@ jobs:
 
       - name: Install Dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install python-docutils
-          sudo apt-get install -y rst2man sphinx
+          pip install rst2man
+          pip install man2rst
 
       - name: Generate RST Files from MAN Pages
         run: |
