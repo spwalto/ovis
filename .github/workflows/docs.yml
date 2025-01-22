@@ -40,7 +40,7 @@ jobs:
     steps:
       - name: Trigger Read the Docs Build
         run: |
-          echo ${{ secrets.RTD_WEBHOOK_SECRET }
+          echo ${{ secrets.RTD_WEBHOOK_SECRET }}
           curl -X POST \
                -H "Content-Type: application/json" \
                -H "X-Hub-Signature-256: sha256=$(echo -n '' | openssl dgst -sha256 -hmac '${{ secrets.RTD_WEBHOOK_SECRET }}' | sed 's/^.* //')" \
