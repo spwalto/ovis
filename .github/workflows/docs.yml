@@ -30,26 +30,29 @@ jobs:
           sudo apt-get update
           sudo apt-get install pandoc
 
-      - name: Convert .man files to .rst
+      - name: Preprocess Man Page Files
         run: |
           # Traverse the /ldms/src and /ldms/man directories to find all .man files
           find ldms/src ldms/man -name "*.man" -print0 | while IFS= read -r -d '' man_file; do
-            # Strip off /ldms/src and /ldms/man and replicate the structure under docs/man/
-            target_dir="docs/man$(echo "$man_file" | sed 's|^ldms/src/||;s|^ldms/man/||;s/\.man$/.rst/;s|^[^/]*|/&|')"
-
-            # Check if the .rst file already exists
-            if [ ! -f "$target_dir" ]; then
-              # Ensure the target directory exists
-              mkdir -p "$(dirname "$target_dir")"
-
-              # Convert the .man file to .rst using pandoc, explicitly specifying the input format as 'man'
-              pandoc -f man "$man_file" -s -o "$target_dir"
-              echo "Converted $man_file to $target_dir"
-            else
-              echo "$target_dir already exists, skipping conversion."
-            fi
+            # Preprocess the man file content to remove problematic newlines or characters
+            target_file="processed_$(basename "$man_file")"
+            sed 's/\n\n/\n/g' "$man_file" > "$target_file"  # Replace double newlines with a single newline
+            echo "Processed $man_file to $target_file"
           done
-      
+
+      - name: Convert Processed .man files to .rst
+        run: |
+          # Traverse the processed man files and convert them to .rst
+          find . -name "processed_*.man" -print0 | while IFS= read -r -d '' man_file; do
+            # Replicate the structure under docs/man/
+            target_dir="docs/man$(echo "$man_file" | sed 's|^./processed_||;s/\.man$/.rst/;s|^[^/]*|/&|')"
+            # Ensure the target directory exists
+            mkdir -p "$(dirname "$target_dir")"
+            # Convert the processed .man file to .rst using pandoc
+            pandoc -f man "$man_file" -s -o "$target_dir"
+            echo "Converted $man_file to $target_dir"
+          done
+
       - name: Commit and Push Generated RST Files
         if: success()
         run: |
@@ -58,7 +61,7 @@ jobs:
           git add docs/man/*.rst
           git commit -m "Auto-generated .rst files from .man pages"
           git push origin HEAD
-          
+         
   build-docs:
     needs: generate-rst
     runs-on: ubuntu-22.04
