@@ -25,37 +25,32 @@ jobs:
         with:
           python-version: 3.8
 
-      - name: Install Dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install pandoc
-
       - name: Preprocess Man Page Files
         run: |
           # Traverse the /ldms/src and /ldms/man directories to find all .man files
           find ldms/src ldms/man -name "*.man" -print0 | while IFS= read -r -d '' man_file; do
             # Preprocess the man file using Python to clean up newlines and characters
             target_file="processed_$(basename "$man_file")"
-            python3 -c "
+            python3 - <<EOF
 import re
 
 # Open the man file
-with open('$man_file', 'r') as f:
+with open("$man_file", 'r') as f:
     content = f.read()
 
 # Replace multiple newlines with a single newline
-content = re.sub(r'\n+', '\n', content)
+content = re.sub(r'\\n+', '\\n', content)
 
 # Optionally remove unwanted characters or preprocess further
-# content = re.sub(r'[^ -~\n]', '', content)  # This will remove non-ASCII characters if needed
+# content = re.sub(r'[^ -~\\n]', '', content)  # This will remove non-ASCII characters if needed
 
 # Write the cleaned content to the target file
-with open('$target_file', 'w') as f:
+with open("$target_file", 'w') as f:
     f.write(content)
-            "
+EOF
             echo "Processed $man_file to $target_file"
           done
-
+      
       - name: Convert Processed .man files to .rst
         run: |
           # Traverse the processed man files and convert them to .rst
