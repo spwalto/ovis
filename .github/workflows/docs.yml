@@ -25,9 +25,11 @@ jobs:
         with:
           python-version: 3.8
 
-      - name: Preprocess Man Page Files
+      - name: Install Dependencies
         run: |
-     
+          sudo apt-get update
+          sudo apt-get install pandoc
+      
       - name: Convert .man files to .rst
         run: |
           # Traverse the /ldms/src and /ldms/man directories to find all .man files
