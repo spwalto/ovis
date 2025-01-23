@@ -51,25 +51,31 @@ jobs:
 
       - name: Generate index.rst for docs/man directory
         run: |
-          # Define the path to the index file
-          INDEX_FILE="docs/man/index.rst"
-          
-          # Create the index file with a title
-          echo "Man Pages Index" > "$INDEX_FILE"
-          echo "================" >> "$INDEX_FILE"
-          echo "" >> "$INDEX_FILE"
-
-          # Loop through all .rst files in docs/man and append them to the index file
-          find docs/man -type f -name "*.rst" | sort | while read -r rst_file; do
-            # Extract the relative path from docs/man/
-            relative_path="${rst_file#docs/man/}"
-            
-            # Add a link to the index file
-            echo ".. include:: $relative_path" >> "$INDEX_FILE"
+          # List all .rst files in the current directory (excluding index.rst)
+          rst_files=$(find "$dir" -maxdepth 1 -name "*.rst" ! -name "index.rst" | sort)
+      
+          # If there are .rst files in this directory, create an index.rst file
+            if [ ! -z "$rst_files" ]; then
+                # Create the index.rst file
+                  echo "Generating index.rst in $dir"
+      
+                  # Start the index file with a title
+                  echo "Index of $dir" > "$dir/index.rst"
+                  echo "===================" >> "$dir/index.rst"
+                  echo "" >> "$dir/index.rst"
+      
+                  # Add links to all .rst files in the directory
+                  for rst_file in $rst_files; do
+                      # Get the filename without path (for linking in the index)
+                      base_name=$(basename "$rst_file")
+                      echo "* :doc:`$base_name`" >> "$dir/index.rst"
+                  done
+              fi
           done
-
-          # Print the generated index for verification
-          cat "$INDEX_FILE"
+      
+          # Check if index.rst files were generated and list their names
+          echo "Generated index.rst files in the following directories:"
+          find docs/man -type f -name "index.rst"
       
       - name: Commit and Push Generated RST Files
         if: success()
