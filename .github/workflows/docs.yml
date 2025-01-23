@@ -49,6 +49,28 @@ jobs:
             fi
           done
 
+      - name: Generate index.rst for docs/man directory
+        run: |
+          # Define the path to the index file
+          INDEX_FILE="docs/man/index.rst"
+          
+          # Create the index file with a title
+          echo "Man Pages Index" > "$INDEX_FILE"
+          echo "================" >> "$INDEX_FILE"
+          echo "" >> "$INDEX_FILE"
+
+          # Loop through all .rst files in docs/man and append them to the index file
+          find docs/man -type f -name "*.rst" | sort | while read -r rst_file; do
+            # Extract the relative path from docs/man/
+            relative_path="${rst_file#docs/man/}"
+            
+            # Add a link to the index file
+            echo ".. include:: $relative_path" >> "$INDEX_FILE"
+          done
+
+          # Print the generated index for verification
+          cat "$INDEX_FILE"
+      
       - name: Commit and Push Generated RST Files
         if: success()
         run: |
