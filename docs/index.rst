@@ -35,6 +35,7 @@ To join the LDMS Users Group Mailing List: https://github.com/ovis-hpc/ovis-wiki
    :maxdepth: 3
    :caption: LDMS Streams
 
+   test
    ldms_stream
    ldms_stream_apps
 
