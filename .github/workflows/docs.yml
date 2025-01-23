@@ -36,10 +36,10 @@ jobs:
           # Check if docs/man directory is empty
           if [ -z "$(ls -A docs/man)" ]; then
             echo "docs/man is empty. Converting all .man files."
-            echo "true" >> $GITHUB_ENV
+            echo "docs_man=true" >> $GITHUB_ENV
           else
             echo "docs/man is not empty. Checking for modified .man files."
-            echo "false" >> $GITHUB_ENV
+            echo "docs_man=false" >> $GITHUB_ENV
           fi
 
       - name: Convert .man files to .rst if needed
