@@ -36,6 +36,7 @@ jobs:
           find ldms/src ldms/man -name "*.man" -print0 | while IFS= read -r -d '' man_file; do
             # Strip off /ldms/src and /ldms/man and replicate the structure under docs/man/
             target_dir="docs/man$(echo "$man_file" | sed 's|^ldms/src/||;s|^ldms/man/||;s/\.man$/.rst/;s|^[^/]*|/&|')"
+
             # Check if the .rst file already exists
             if [ ! -f "$target_dir" ]; then
               # Ensure the target directory exists
