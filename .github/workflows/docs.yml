@@ -34,9 +34,25 @@ jobs:
         run: |
           # Traverse the /ldms/src and /ldms/man directories to find all .man files
           find ldms/src ldms/man -name "*.man" -print0 | while IFS= read -r -d '' man_file; do
-            # Preprocess the man file content to remove problematic newlines or characters
+            # Preprocess the man file using Python to clean up newlines and characters
             target_file="processed_$(basename "$man_file")"
-            sed 's/\n\n/\n/g' "$man_file" > "$target_file"  # Replace double newlines with a single newline
+            python3 -c "
+import re
+
+# Open the man file
+with open('$man_file', 'r') as f:
+    content = f.read()
+
+# Replace multiple newlines with a single newline
+content = re.sub(r'\n+', '\n', content)
+
+# Optionally remove unwanted characters or preprocess further
+# content = re.sub(r'[^ -~\n]', '', content)  # This will remove non-ASCII characters if needed
+
+# Write the cleaned content to the target file
+with open('$target_file', 'w') as f:
+    f.write(content)
+            "
             echo "Processed $man_file to $target_file"
           done
 
