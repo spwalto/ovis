@@ -77,7 +77,7 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           # Add all .rst files under docs/man/ to be tracked and committed
-          git add docs/man/**/*.rst
+          git add docs/man/**/*.rst docs/man/index.rst
           git commit -m "Auto-generated .rst files from .man pages"
           git push origin HEAD
          
