@@ -37,11 +37,18 @@ jobs:
             echo "docs/man is empty or does not exist, converting all .man files"
             find ldms/src ldms/man -name "*.man" | while IFS= read -r man_file; do
               target_file="docs/man/$(echo "$man_file" | sed 's|^ldms/src/||;s|^ldms/man/||;s/\.man$/.rst/')"
-              mkdir -p "$(dirname "$target_file")"
+              target_dir=$(dirname "$target_file")
+
+              # Ensure the directory structure exists
+              mkdir -p "$target_dir"
+
               # Get the base name of the .man file to use as the title
               title=$(basename "$man_file" .man)
+
+              # Convert the .man file to .rst
               pandoc -f man "$man_file" -s -o "$target_file" 2>/dev/null || echo "Error processing $man_file"
-              # Replace the placeholder with the actual title (name of the .man file)
+
+              # Replace the first line with the title and underline it
               sed -i "1s/.*/$title/" "$target_file"  # Replace the first line with the title
               echo "$title" | sed 's/./=/g' >> "$target_file"  # Underline the title
             done
@@ -49,16 +56,23 @@ jobs:
             echo "docs/man is not empty, checking for modified .man files"
             git diff --name-only HEAD^ HEAD | grep "\.man$" | while IFS= read -r modified_man; do
               target_file="docs/man/$(echo "$modified_man" | sed 's|^ldms/src/||;s|^ldms/man/||;s/\.man$/.rst/')"
-              mkdir -p "$(dirname "$target_file")"
+              target_dir=$(dirname "$target_file")
+
+              # Ensure the directory structure exists
+              mkdir -p "$target_dir"
+
               # Get the base name of the .man file to use as the title
               title=$(basename "$modified_man" .man)
+
+              # Convert the .man file to .rst
               pandoc -f man "$modified_man" -s -o "$target_file" 2>/dev/null || echo "Error processing $modified_man"
-              # Replace the placeholder with the actual title (name of the .man file)
+
+              # Replace the first line with the title and underline it
               sed -i "1s/.*/$title/" "$target_file"  # Replace the first line with the title
               echo "$title" | sed 's/./=/g' >> "$target_file"  # Underline the title
             done
           fi
-
+          
       - name: Update index.rst files
         run: |
           # Function to generate index.rst for all subdirectories
