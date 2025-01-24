@@ -30,47 +30,39 @@ jobs:
           sudo apt-get update
           sudo apt-get install pandoc
       
-      - name: Check if docs/man is empty
-        id: check_docs_man
+      - name: Convert or Update .man files and index.rst
         run: |
-          # Check if docs/man directory is empty
-          if [ -z "$(ls -A docs/man)" ]; then
-            echo "docs/man is empty. Converting all .man files."
-            echo "docs_man=true" >> $GITHUB_ENV
+          # Check if docs/man directory exists and is empty
+          if [ ! -d docs/man ] || [ -z "$(ls -A docs/man)" ]; then
+              echo "docs/man is empty or does not exist. Converting all .man files."
+              find ldms/src ldms/man -name "*.man" | while IFS= read -r man_file; do
+                  target_dir="docs/man$(echo $man_file | sed 's|^ldms/src/||;s|^ldms/man/||;s|/[^/]*$||')"
+                  target_file="docs/man$(echo $man_file | sed 's|^ldms/src/||;s|^ldms/man/||;s|\.man$/.rst|')"
+                  
+                  mkdir -p "$target_dir"
+                  pandoc -f man "$man_file" -s -o "$target_file"
+                  echo "Converted $man_file to $target_file"
+              done
           else
-            echo "docs/man is not empty. Checking for modified .man files."
-            echo "docs_man=false" >> $GITHUB_ENV
+              echo "docs/man exists. Converting only modified .man files."
+              git diff --name-only HEAD~1 HEAD | grep '\.man$' | while IFS= read -r man_file; do
+                  target_dir="docs/man$(echo $man_file | sed 's|^ldms/src/||;s|^ldms/man/||;s|/[^/]*$||')"
+                  target_file="docs/man$(echo $man_file | sed 's|^ldms/src/||;s|^ldms/man/||;s|\.man$/.rst|')"
+                  
+                  mkdir -p "$target_dir"
+                  pandoc -f man "$man_file" -s -o "$target_file"
+                  echo "Converted $man_file to $target_file"
+              done
           fi
 
-      - name: Convert .man files to .rst if needed
-        if: env.docs_man == 'true' || github.event.head_commit.modified || github.event.head_commit.added
-        run: |
-          # Convert all .man files to .rst if docs/man is empty or specific .man files were modified
-          find ldms/src ldms/man -name "*.man" -print0 | while IFS= read -r -d '' man_file; do
-              target_dir="docs/man/$(echo "$man_file" | sed -e 's|^ldms/src/||' -e 's|^ldms/man/||' -e 's/\.man$/.rst/')"
-              
-              # Ensure the target directory exists
-              mkdir -p "$(dirname "$target_dir")"
-
-              # Convert the .man file to .rst using pandoc
-              pandoc -f man "$man_file" -s -o "$target_dir"
-              echo "Converted $man_file to $target_dir"
-          done
-
-      - name: Generate or Update index.rst files
-        run: |
+          # Generate or update index.rst files
           find docs/man -type d | while IFS= read -r dir; do
-              # List all .rst files in the current directory (excluding index.rst)
               rst_files=$(find "$dir" -maxdepth 1 -name "*.rst" ! -name "index.rst" | sort)
 
-              # If there are .rst files or subdirectories, create or update index.rst file
               if [ ! -z "$rst_files" ] || [ "$(find "$dir" -mindepth 1 -type d)" ]; then
-                  # Create or update the index.rst file
-                  echo "Generating/updating index.rst in $dir"
-
-                  # Start the index file with a title based on the directory name
+                  echo "Updating index.rst in $dir"
                   dir_name=$(basename "$dir")
-                  caption_name=$(echo "$dir_name" | tr '[:lower:]' '[:upper:]')  # Capitalize caption
+                  caption_name=$(echo "$dir_name" | tr '[:lower:]' '[:upper:]')
                   echo "$caption_name" > "$dir/index.rst"
                   echo "===================" >> "$dir/index.rst"
                   echo "" >> "$dir/index.rst"
@@ -79,13 +71,11 @@ jobs:
                   echo "   :caption: $caption_name" >> "$dir/index.rst"
                   echo "" >> "$dir/index.rst"
 
-                  # Add links to all .rst files in the directory
                   for rst_file in $rst_files; do
                       base_name=$(basename "$rst_file" .rst)
                       echo "   $base_name" >> "$dir/index.rst"
                   done
 
-                  # Recursively add subdirectories to the index
                   subdirs=$(find "$dir" -mindepth 1 -maxdepth 1 -type d | sort)
                   for subdir in $subdirs; do
                       subdir_name=$(basename "$subdir")
@@ -93,22 +83,20 @@ jobs:
                   done
               fi
           done
-      
-      - name: Commit and Push Generated RST and index.rst Files
-        if: steps.check_docs_man.outputs.docs_man == 'true' || github.event.head_commit.modified || github.event.head_commit.added
+
+      - name: Commit and Push Changes
+        if: success()
         run: |
-          # Commit and push the changes if any .rst or index.rst files were generated or modified
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add docs/man/*.rst docs/man/*/index.rst
-          
-          # Check if there are any files to commit
-          if git diff --cached --quiet; then
-            echo "No changes to commit."
+          if [ -n "$(git status --porcelain)" ]; then
+              git add docs/man
+              git commit -m "Auto-generated .rst and index.rst files from .man pages"
+              git push origin HEAD
           else
-            git commit -m "Auto-generated .rst files from .man pages and updated index.rst files"
-            git push origin HEAD
-      
+              echo "No changes to commit."
+          fi
+
   build-docs:
     needs: generate-rst
     runs-on: ubuntu-22.04
