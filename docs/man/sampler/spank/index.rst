@@ -1,8 +1,7 @@
-SPANK
-===================
+Spank
+=====
 
 .. toctree::
-   :maxdepth: 2
-   :caption: SPANK
+   :maxdepth: 4
 
    Plugin_slurm_notifier

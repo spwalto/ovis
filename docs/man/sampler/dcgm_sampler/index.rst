@@ -1,8 +1,7 @@
-DCGM_SAMPLER
-===================
+Dcgm_sampler
+============
 
 .. toctree::
-   :maxdepth: 2
-   :caption: DCGM_SAMPLER
+   :maxdepth: 4
 
    Plugin_dcgm_sampler

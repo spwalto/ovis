@@ -1,8 +1,7 @@
-GEOPM_SAMPLER
-===================
+Geopm_sampler
+=============
 
 .. toctree::
-   :maxdepth: 2
-   :caption: GEOPM_SAMPLER
+   :maxdepth: 4
 
    Plugin_geopm_sampler

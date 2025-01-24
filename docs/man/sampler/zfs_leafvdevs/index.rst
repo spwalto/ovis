@@ -1,8 +1,7 @@
-ZFS_LEAFVDEVS
-===================
+Zfs_leafvdevs
+=============
 
 .. toctree::
-   :maxdepth: 2
-   :caption: ZFS_LEAFVDEVS
+   :maxdepth: 4
 
    Plugin_zfs_leafvdevs

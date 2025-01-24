@@ -1,8 +1,7 @@
-TIMESCALE
-===================
+Timescale
+=========
 
 .. toctree::
-   :maxdepth: 2
-   :caption: TIMESCALE
+   :maxdepth: 4
 
    Plugin_store_timescale

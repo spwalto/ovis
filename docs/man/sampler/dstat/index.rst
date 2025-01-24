@@ -1,9 +1,8 @@
-DSTAT
-===================
+Dstat
+=====
 
 .. toctree::
-   :maxdepth: 2
-   :caption: DSTAT
+   :maxdepth: 4
 
    Plugin_dstat
    ldms_dstat_schema_name

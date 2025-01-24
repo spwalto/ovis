@@ -1,8 +1,7 @@
-SHM
-===================
+Shm
+===
 
 .. toctree::
-   :maxdepth: 2
-   :caption: SHM
+   :maxdepth: 4
 
    Plugin_shm_sampler

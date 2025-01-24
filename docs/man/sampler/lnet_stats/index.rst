@@ -1,8 +1,7 @@
-LNET_STATS
-===================
+Lnet_stats
+==========
 
 .. toctree::
-   :maxdepth: 2
-   :caption: LNET_STATS
+   :maxdepth: 4
 
    Plugin_lnet_stats

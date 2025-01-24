@@ -1,8 +1,7 @@
-HWEVENTPAPI
-===================
+Hweventpapi
+===========
 
 .. toctree::
-   :maxdepth: 2
-   :caption: HWEVENTPAPI
+   :maxdepth: 4
 
    Plugin_hweventpapi

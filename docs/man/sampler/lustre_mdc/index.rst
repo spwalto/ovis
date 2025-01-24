@@ -1,8 +1,7 @@
-LUSTRE_MDC
-===================
+Lustre_mdc
+==========
 
 .. toctree::
-   :maxdepth: 2
-   :caption: LUSTRE_MDC
+   :maxdepth: 4
 
    Plugin_lustre_mdc

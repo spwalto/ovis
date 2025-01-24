@@ -1,8 +1,7 @@
-CRAY_SYSTEM_SAMPLER
+Cray_system_sampler
 ===================
 
 .. toctree::
-   :maxdepth: 2
-   :caption: CRAY_SYSTEM_SAMPLER
+   :maxdepth: 4
 
    Plugin_cray_dvs_sampler

@@ -1,8 +1,7 @@
-KGNILND
-===================
+Kgnilnd
+=======
 
 .. toctree::
-   :maxdepth: 2
-   :caption: KGNILND
+   :maxdepth: 4
 
    Plugin_kgnilnd

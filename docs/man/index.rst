@@ -1,6 +1,3 @@
-MAN
-===================
-
 .. toctree::
    :maxdepth: 4
 
@@ -38,8 +35,3 @@ MAN
    ldmsd_setgroup
    ldmsd_yaml_parser
    lsdate
-   contrib/index
-   ldmsd/index
-   sampler/index
-   store/index
-   third-plugins/index

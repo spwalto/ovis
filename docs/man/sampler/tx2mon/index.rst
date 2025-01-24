@@ -1,8 +1,7 @@
-TX2MON
-===================
+Tx2mon
+======
 
 .. toctree::
-   :maxdepth: 2
-   :caption: TX2MON
+   :maxdepth: 4
 
    Plugin_tx2mon

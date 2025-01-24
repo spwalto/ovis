@@ -1,8 +1,7 @@
-STORE_FLATFILE
-===================
+Store_flatfile
+==============
 
 .. toctree::
-   :maxdepth: 2
-   :caption: STORE_FLATFILE
+   :maxdepth: 4
 
    Plugin_store_flatfile

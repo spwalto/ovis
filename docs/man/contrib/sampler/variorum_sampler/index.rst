@@ -1,8 +1,7 @@
-VARIORUM_SAMPLER
-===================
+Variorum_sampler
+================
 
 .. toctree::
-   :maxdepth: 2
-   :caption: VARIORUM_SAMPLER
+   :maxdepth: 4
 
    Plugin_variorum_sampler

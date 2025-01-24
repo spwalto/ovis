@@ -1,8 +1,7 @@
-TUTORIAL
-===================
+Tutorial
+========
 
 .. toctree::
-   :maxdepth: 2
-   :caption: TUTORIAL
+   :maxdepth: 4
 
    Plugin_tutorial_sampler

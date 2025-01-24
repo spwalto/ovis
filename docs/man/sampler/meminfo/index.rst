@@ -1,8 +1,7 @@
-MEMINFO
-===================
+Meminfo
+=======
 
 .. toctree::
-   :maxdepth: 2
-   :caption: MEMINFO
+   :maxdepth: 4
 
    Plugin_meminfo

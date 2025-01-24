@@ -1,8 +1,7 @@
-SYSPAPI
-===================
+Syspapi
+=======
 
 .. toctree::
-   :maxdepth: 2
-   :caption: SYSPAPI
+   :maxdepth: 4
 
    Plugin_syspapi_sampler

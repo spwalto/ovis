@@ -1,9 +1,8 @@
-APP_SAMPLER
-===================
+App_sampler
+===========
 
 .. toctree::
-   :maxdepth: 2
-   :caption: APP_SAMPLER
+   :maxdepth: 4
 
    Plugin_app_sampler
    Plugin_linux_proc_sampler

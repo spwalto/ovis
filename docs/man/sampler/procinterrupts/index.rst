@@ -1,8 +1,7 @@
-PROCINTERRUPTS
-===================
+Procinterrupts
+==============
 
 .. toctree::
-   :maxdepth: 2
-   :caption: PROCINTERRUPTS
+   :maxdepth: 4
 
    Plugin_procinterrupts

@@ -1,8 +1,7 @@
-CLOCK
-===================
+Clock
+=====
 
 .. toctree::
-   :maxdepth: 2
-   :caption: CLOCK
+   :maxdepth: 4
 
    Plugin_clock

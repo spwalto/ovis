@@ -1,8 +1,7 @@
-SLINGSHOT_INFO
-===================
+Slingshot_info
+==============
 
 .. toctree::
-   :maxdepth: 2
-   :caption: SLINGSHOT_INFO
+   :maxdepth: 4
 
    Plugin_slingshot_info

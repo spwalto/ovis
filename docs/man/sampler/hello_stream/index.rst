@@ -1,8 +1,7 @@
-HELLO_STREAM
-===================
+Hello_stream
+============
 
 .. toctree::
-   :maxdepth: 2
-   :caption: HELLO_STREAM
+   :maxdepth: 4
 
    Plugin_hello_sampler

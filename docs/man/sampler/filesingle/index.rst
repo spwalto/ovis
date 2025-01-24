@@ -1,9 +1,8 @@
-FILESINGLE
-===================
+Filesingle
+==========
 
 .. toctree::
-   :maxdepth: 2
-   :caption: FILESINGLE
+   :maxdepth: 4
 
    Plugin_filesingle
    ldms-sensors-config

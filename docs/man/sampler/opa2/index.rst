@@ -1,8 +1,7 @@
-OPA2
-===================
+Opa2
+====
 
 .. toctree::
-   :maxdepth: 2
-   :caption: OPA2
+   :maxdepth: 4
 
    Plugin_opa2

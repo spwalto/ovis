@@ -1,9 +1,8 @@
-IBNET
-===================
+Ibnet
+=====
 
 .. toctree::
-   :maxdepth: 2
-   :caption: IBNET
+   :maxdepth: 4
 
    Plugin_ibnet
    ldms-ibnet-sampler-gen

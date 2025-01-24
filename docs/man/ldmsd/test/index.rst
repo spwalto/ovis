@@ -1,9 +1,8 @@
-TEST
-===================
+Test
+====
 
 .. toctree::
-   :maxdepth: 2
-   :caption: TEST
+   :maxdepth: 4
 
    ldmsd_stream_publish
    ldmsd_stream_subscribe

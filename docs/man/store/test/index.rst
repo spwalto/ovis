@@ -1,8 +1,7 @@
-TEST
-===================
+Test
+====
 
 .. toctree::
-   :maxdepth: 2
-   :caption: TEST
+   :maxdepth: 4
 
    ldms_csv_time_drops

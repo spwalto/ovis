@@ -1,9 +1,8 @@
-NETLINK
-===================
+Netlink
+=======
 
 .. toctree::
-   :maxdepth: 2
-   :caption: NETLINK
+   :maxdepth: 4
 
    ldms-netlink-notifier
    ldms-notify

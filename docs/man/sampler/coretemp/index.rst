@@ -1,8 +1,7 @@
-CORETEMP
-===================
+Coretemp
+========
 
 .. toctree::
-   :maxdepth: 2
-   :caption: CORETEMP
+   :maxdepth: 4
 
    Plugin_coretemp

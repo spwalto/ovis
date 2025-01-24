@@ -1,8 +1,7 @@
-SYNTHETIC
-===================
+Synthetic
+=========
 
 .. toctree::
-   :maxdepth: 2
-   :caption: SYNTHETIC
+   :maxdepth: 4
 
    Plugin_synthetic

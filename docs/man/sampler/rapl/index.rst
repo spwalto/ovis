@@ -1,8 +1,7 @@
-RAPL
-===================
+Rapl
+====
 
 .. toctree::
-   :maxdepth: 2
-   :caption: RAPL
+   :maxdepth: 4
 
    Plugin_rapl

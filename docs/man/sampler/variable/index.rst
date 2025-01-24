@@ -1,8 +1,7 @@
-VARIABLE
-===================
+Variable
+========
 
 .. toctree::
-   :maxdepth: 2
-   :caption: VARIABLE
+   :maxdepth: 4
 
    Plugin_variable

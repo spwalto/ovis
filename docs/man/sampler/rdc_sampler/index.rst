@@ -1,9 +1,8 @@
-RDC_SAMPLER
-===================
+Rdc_sampler
+===========
 
 .. toctree::
-   :maxdepth: 2
-   :caption: RDC_SAMPLER
+   :maxdepth: 4
 
    Plugin_rdc_sampler
    ldms_rdc_schema_name

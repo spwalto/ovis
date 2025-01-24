@@ -1,8 +1,7 @@
-FPTRANS
-===================
+Fptrans
+=======
 
 .. toctree::
-   :maxdepth: 2
-   :caption: FPTRANS
+   :maxdepth: 4
 
    Plugin_fptrans

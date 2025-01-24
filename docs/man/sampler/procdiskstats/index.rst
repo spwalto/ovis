@@ -1,8 +1,7 @@
-PROCDISKSTATS
-===================
+Procdiskstats
+=============
 
 .. toctree::
-   :maxdepth: 2
-   :caption: PROCDISKSTATS
+   :maxdepth: 4
 
    Plugin_procdiskstats

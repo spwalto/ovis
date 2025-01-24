@@ -1,8 +1,7 @@
-SYSCLASSIB
-===================
+Sysclassib
+==========
 
 .. toctree::
-   :maxdepth: 2
-   :caption: SYSCLASSIB
+   :maxdepth: 4
 
    Plugin_sysclassib

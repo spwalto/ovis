@@ -1,8 +1,7 @@
-ZFS_TOPVDEVS
-===================
+Zfs_topvdevs
+============
 
 .. toctree::
-   :maxdepth: 2
-   :caption: ZFS_TOPVDEVS
+   :maxdepth: 4
 
    Plugin_zfs_topvdevs

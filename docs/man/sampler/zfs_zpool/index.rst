@@ -1,8 +1,7 @@
-ZFS_ZPOOL
-===================
+Zfs_zpool
+=========
 
 .. toctree::
-   :maxdepth: 2
-   :caption: ZFS_ZPOOL
+   :maxdepth: 4
 
    Plugin_zfs_zpool

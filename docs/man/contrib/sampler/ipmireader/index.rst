@@ -1,9 +1,8 @@
-IPMIREADER
-===================
+Ipmireader
+==========
 
 .. toctree::
-   :maxdepth: 2
-   :caption: IPMIREADER
+   :maxdepth: 4
 
    Plugin_ipmireader
    Plugin_ipmisensors

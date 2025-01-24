@@ -1,8 +1,7 @@
-PROCNET
-===================
+Procnet
+=======
 
 .. toctree::
-   :maxdepth: 2
-   :caption: PROCNET
+   :maxdepth: 4
 
    Plugin_procnet

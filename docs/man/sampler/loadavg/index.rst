@@ -1,8 +1,7 @@
-LOADAVG
-===================
+Loadavg
+=======
 
 .. toctree::
-   :maxdepth: 2
-   :caption: LOADAVG
+   :maxdepth: 4
 
    Plugin_loadavg

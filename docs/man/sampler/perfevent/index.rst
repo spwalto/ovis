@@ -1,8 +1,7 @@
-PERFEVENT
-===================
+Perfevent
+=========
 
 .. toctree::
-   :maxdepth: 2
-   :caption: PERFEVENT
+   :maxdepth: 4
 
    Plugin_perfevent

@@ -1,8 +1,7 @@
-IBMAD_SAMPLER
-===================
+Ibmad_sampler
+=============
 
 .. toctree::
-   :maxdepth: 2
-   :caption: IBMAD_SAMPLER
+   :maxdepth: 4
 
    Plugin_ibmad_sampler

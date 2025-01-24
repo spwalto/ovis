@@ -1,8 +1,7 @@
-SLURM
-===================
+Slurm
+=====
 
 .. toctree::
-   :maxdepth: 2
-   :caption: SLURM
+   :maxdepth: 4
 
    Plugin_store_slurm

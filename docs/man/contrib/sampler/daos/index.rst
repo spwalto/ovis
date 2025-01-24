@@ -1,8 +1,7 @@
-DAOS
-===================
+Daos
+====
 
 .. toctree::
-   :maxdepth: 2
-   :caption: DAOS
+   :maxdepth: 4
 
    Plugin_daos_sampler

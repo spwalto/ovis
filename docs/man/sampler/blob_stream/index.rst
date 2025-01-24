@@ -1,9 +1,8 @@
-BLOB_STREAM
-===================
+Blob_stream
+===========
 
 .. toctree::
-   :maxdepth: 2
-   :caption: BLOB_STREAM
+   :maxdepth: 4
 
    Plugin_blob_stream_writer
    ldms-csv-from-blobs

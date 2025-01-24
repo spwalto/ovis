@@ -1,8 +1,7 @@
-SAMPLER_ATASMART
-===================
+Sampler_atasmart
+================
 
 .. toctree::
-   :maxdepth: 2
-   :caption: SAMPLER_ATASMART
+   :maxdepth: 4
 
    Plugin_sampler_atasmart

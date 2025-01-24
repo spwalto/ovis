@@ -1,8 +1,7 @@
-LUSTRE_OST
-===================
+Lustre_ost
+==========
 
 .. toctree::
-   :maxdepth: 2
-   :caption: LUSTRE_OST
+   :maxdepth: 4
 
    Plugin_lustre_ost

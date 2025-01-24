@@ -1,8 +1,7 @@
-JSON
-===================
+Json
+====
 
 .. toctree::
-   :maxdepth: 2
-   :caption: JSON
+   :maxdepth: 4
 
    Plugin_json_stream_sampler

@@ -1,8 +1,7 @@
-SLINGSHOT_METRICS
-===================
+Slingshot_metrics
+=================
 
 .. toctree::
-   :maxdepth: 2
-   :caption: SLINGSHOT_METRICS
+   :maxdepth: 4
 
    Plugin_slingshot_metrics

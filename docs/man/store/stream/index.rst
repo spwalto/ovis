@@ -1,8 +1,7 @@
-STREAM
-===================
+Stream
+======
 
 .. toctree::
-   :maxdepth: 2
-   :caption: STREAM
+   :maxdepth: 4
 
    Plugin_stream_csv_store

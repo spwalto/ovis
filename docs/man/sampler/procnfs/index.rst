@@ -1,8 +1,7 @@
-PROCNFS
-===================
+Procnfs
+=======
 
 .. toctree::
-   :maxdepth: 2
-   :caption: PROCNFS
+   :maxdepth: 4
 
    Plugin_procnfs

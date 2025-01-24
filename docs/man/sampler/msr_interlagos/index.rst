@@ -1,8 +1,7 @@
-MSR_INTERLAGOS
-===================
+Msr_interlagos
+==============
 
 .. toctree::
-   :maxdepth: 2
-   :caption: MSR_INTERLAGOS
+   :maxdepth: 4
 
    Plugin_msr_interlagos

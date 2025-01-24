@@ -1,8 +1,7 @@
-LLNL
-===================
+Llnl
+====
 
 .. toctree::
-   :maxdepth: 2
-   :caption: LLNL
+   :maxdepth: 4
 
    Plugin_edac

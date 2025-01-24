@@ -1,8 +1,7 @@
-VMSTAT
-===================
+Vmstat
+======
 
 .. toctree::
-   :maxdepth: 2
-   :caption: VMSTAT
+   :maxdepth: 4
 
    Plugin_vmstat

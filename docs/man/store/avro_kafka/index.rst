@@ -1,8 +1,7 @@
-AVRO_KAFKA
-===================
+Avro_kafka
+==========
 
 .. toctree::
-   :maxdepth: 2
-   :caption: AVRO_KAFKA
+   :maxdepth: 4
 
    Plugin_store_avro_kafka

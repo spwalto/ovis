@@ -1,9 +1,8 @@
-ARIES_MMR
-===================
+Aries_mmr
+=========
 
 .. toctree::
-   :maxdepth: 2
-   :caption: ARIES_MMR
+   :maxdepth: 4
 
    Plugin_aries_linkstatus
    Plugin_aries_mmr

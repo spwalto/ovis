@@ -1,9 +1,8 @@
-PAPI
-===================
+Papi
+====
 
 .. toctree::
-   :maxdepth: 2
-   :caption: PAPI
+   :maxdepth: 4
 
    Plugin_papi
    Plugin_papi_sampler

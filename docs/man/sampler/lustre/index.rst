@@ -1,8 +1,7 @@
-LUSTRE
-===================
+Lustre
+======
 
 .. toctree::
-   :maxdepth: 2
-   :caption: LUSTRE
+   :maxdepth: 4
 
    Plugin_lustre2_client

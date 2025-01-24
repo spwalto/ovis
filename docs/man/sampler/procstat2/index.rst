@@ -1,8 +1,7 @@
-PROCSTAT2
-===================
+Procstat2
+=========
 
 .. toctree::
-   :maxdepth: 2
-   :caption: PROCSTAT2
+   :maxdepth: 4
 
    Plugin_procstat2

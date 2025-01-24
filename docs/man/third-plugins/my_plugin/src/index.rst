@@ -1,8 +1,7 @@
-SRC
-===================
+Src
+===
 
 .. toctree::
-   :maxdepth: 2
-   :caption: SRC
+   :maxdepth: 4
 
    Plugin_my_plugin

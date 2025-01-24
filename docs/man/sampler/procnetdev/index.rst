@@ -1,8 +1,7 @@
-PROCNETDEV
-===================
+Procnetdev
+==========
 
 .. toctree::
-   :maxdepth: 2
-   :caption: PROCNETDEV
+   :maxdepth: 4
 
    Plugin_procnetdev
