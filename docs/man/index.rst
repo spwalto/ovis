@@ -40,8 +40,8 @@ Man Pages
    ldmsd_yaml_parser
    lsdate
    pll-ldms-static-test
-   store
-   contrib
+   store/index
+   contrib/index
    ldmsd
    third-plugins
    sampler
