@@ -1,5 +1,5 @@
-MAN
-=====
+Man Pages
+==========
 
 .. toctree::
    :maxdepth: 4
