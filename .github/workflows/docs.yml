@@ -37,29 +37,48 @@ jobs:
             echo "docs/man is empty or does not exist, converting all .man files"
             find ldms/src ldms/man -name "*.man" | while IFS= read -r man_file; do
               target_file="docs/man/$(echo "$man_file" | sed 's|^ldms/src/||;s|^ldms/man/||;s/\.man$/.rst/')"
+              
+              # Ensure the target directory exists
               mkdir -p "$(dirname "$target_file")"
+              
               # Get the base name of the .man file to use as the title
               title=$(basename "$man_file" .man)
+
+              # Convert the .man file to .rst
               pandoc -f man "$man_file" -s -o "$target_file" 2>/dev/null || echo "Error processing $man_file"
-              sed -i "1s/^====man====\$/$title/" "$target_file"
-              # Prepend the title to the .rst file
-              echo "$title" | cat - "$target_file" > temp && mv temp "$target_file"
-              echo "$(echo "$title" | sed 's/./=/g')" >> "$target_file"  # Underline the title
+              
+              # Ensure the .rst file was created successfully before modifying it
+              if [ -f "$target_file" ]; then
+                # Prepend the title to the .rst file
+                echo "$title" | cat - "$target_file" > temp && mv temp "$target_file"
+                echo "$(echo "$title" | sed 's/./=/g')" >> "$target_file"  # Underline the title
+              else
+                echo "Error: $target_file not created."
+              fi
             done
           else
             echo "docs/man is not empty, checking for modified .man files"
             git diff --name-only HEAD^ HEAD | grep "\.man$" | while IFS= read -r modified_man; do
               target_file="docs/man/$(echo "$modified_man" | sed 's|^ldms/src/||;s|^ldms/man/||;s/\.man$/.rst/')"
+              
+              # Ensure the target directory exists
               mkdir -p "$(dirname "$target_file")"
+              
               # Get the base name of the .man file to use as the title
               title=$(basename "$modified_man" .man)
+
+              # Convert the .man file to .rst
               pandoc -f man "$modified_man" -s -o "$target_file" 2>/dev/null || echo "Error processing $modified_man"
-              sed -i "1s/^====man====\$/$title/" "$target_file"
-              # Prepend the title to the .rst file
-              echo "$title" | cat - "$target_file" > temp && mv temp "$target_file"
-              echo "$(echo "$title" | sed 's/./=/g')" >> "$target_file"  # Underline the title
+              
+              # Ensure the .rst file was created successfully before modifying it
+              if [ -f "$target_file" ]; then
+                # Prepend the title to the .rst file
+                echo "$title" | cat - "$target_file" > temp && mv temp "$target_file"
+                echo "$(echo "$title" | sed 's/./=/g')" >> "$target_file"  # Underline the title
+              else
+                echo "Error: $target_file not created."
+              fi
             done
-          fi    
       
       - name: Update index.rst files
         run: |
