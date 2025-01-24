@@ -1,3 +1,5 @@
+MAN
+=====
 
 .. toctree::
    :maxdepth: 4

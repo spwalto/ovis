@@ -75,15 +75,18 @@ jobs:
             if [ ! -z "$rst_files" ] || [ ! -z "$subdirs" ]; then
               echo "Generating index.rst in $dir"
 
-              # Create or update the index.rst with the directory name as title (if not docs/man)
-              if [ "$dir" != "docs/man" ]; then
-                caption=$(basename "$dir" | sed 's/^\(\w\)/\U\1/')   # Capitalize first letter
+              # Handle title for docs/man, all other subdirectories get their own titles
+              if [ "$dir" == "docs/man" ]; then
+                # docs/man gets "Man Pages" as title
+                echo "Man Pages" > "$dir/index.rst"
+                echo "==========" >> "$dir/index.rst"
+                echo "" >> "$dir/index.rst"
+              else
+                # Capitalize subdirectory name for other subdirectories
+                caption=$(basename "$dir" | sed 's/^\(\w\)/\U\1/')  # Capitalize first letter
                 echo "$caption" > "$dir/index.rst"    # Add title
                 echo "$(echo "$caption" | sed 's/./=/g')" >> "$dir/index.rst"  # Add underline
                 echo "" >> "$dir/index.rst"
-              else
-                # docs/man doesn't have a title
-                echo "" > "$dir/index.rst"
               fi
 
               # Add toctree directive for the current directory
