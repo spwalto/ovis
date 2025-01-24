@@ -32,7 +32,7 @@ jobs:
       
       - name: Convert .man files to .rst
         run: |
-           # Check if docs/man/ is empty
+          # Check if docs/man/ is empty
           if [ ! -d docs/man ] || [ -z "$(ls -A docs/man)" ]; then
             echo "docs/man is empty or does not exist, converting all .man files"
             find ldms/src ldms/man -name "*.man" | while IFS= read -r man_file; do
