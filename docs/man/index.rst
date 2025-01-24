@@ -2,8 +2,7 @@ MAN
 ===================
 
 .. toctree::
-   :maxdepth: 2
-   :caption: MAN
+   :maxdepth: 4
 
    Plugin_jobid
    Plugin_store_app

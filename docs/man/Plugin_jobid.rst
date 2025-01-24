@@ -1,5 +1,5 @@
 ===
-man TEStting
+man
 ===
 
 :Date:   03 Dec 2016
