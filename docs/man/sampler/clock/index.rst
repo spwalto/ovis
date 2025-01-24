@@ -1,4 +1,4 @@
-Clock
+Clock -test
 =====
 
 .. toctree::

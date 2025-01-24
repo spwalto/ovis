@@ -61,7 +61,6 @@ jobs:
             done
           fi
 
-      
       - name: Update index.rst files
         run: |
           # Function to generate index.rst for all subdirectories
@@ -70,11 +69,13 @@ jobs:
             
             # Check if the directory contains .rst files (excluding index.rst)
             rst_files=$(find "$dir" -maxdepth 1 -name "*.rst" ! -name "index.rst" | sort)
+            subdirs=$(find "$dir" -mindepth 1 -maxdepth 1 -type d)  # Find subdirectories within the directory
 
-            if [ ! -z "$rst_files" ]; then
+            # If the directory contains any .rst files or subdirectories
+            if [ ! -z "$rst_files" ] || [ ! -z "$subdirs" ]; then
               echo "Generating index.rst in $dir"
 
-              # Create or update the index.rst with the directory name as title
+              # Create or update the index.rst with the directory name as title (if not docs/man)
               if [ "$dir" != "docs/man" ]; then
                 caption=$(basename "$dir" | sed 's/^\(\w\)/\U\1/')   # Capitalize first letter
                 echo "$caption" > "$dir/index.rst"    # Add title
@@ -90,15 +91,20 @@ jobs:
               echo "   :maxdepth: 4" >> "$dir/index.rst"
               echo "" >> "$dir/index.rst"
 
-              # Loop through .rst files in the current directory and add to toctree
+              # Add .rst files in the current directory to the toctree
               for rst_file in $rst_files; do
                 base_name=$(basename "$rst_file" .rst)
                 echo "   $base_name" >> "$dir/index.rst"
               done
+
+              # Add subdirectories to the toctree (without title) if there are any
+              for subdir in $subdirs; do
+                subdir_name=$(basename "$subdir")
+                echo "   $subdir_name" >> "$dir/index.rst"
+              done
             fi
 
-            # Find all subdirectories in the current directory and process them
-            subdirs=$(find "$dir" -mindepth 1 -maxdepth 1 -type d)
+            # Recursively generate index.rst for subdirectories
             for subdir in $subdirs; do
               generate_index_rsts "$subdir"  # Recursively process subdirectories
             done
