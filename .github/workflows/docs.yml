@@ -30,11 +30,28 @@ jobs:
           sudo apt-get update
           sudo apt-get install pandoc
       
+      - name: Create docs/man directory and subdirectories if empty
+        run: |
+          # Ensure docs/man exists
+          if [ ! -d "docs/man" ]; then
+            echo "Creating docs/man directory."
+            mkdir -p docs/man
+          fi
+
+          # Find and create subdirectories within docs/man
+          find ldms/src ldms/man -type d | while IFS= read -r dir; do
+            target_dir="docs/man$(echo "$dir" | sed 's|^ldms/src/||;s|^ldms/man/||')"
+            if [ ! -d "$target_dir" ]; then
+              echo "Creating directory $target_dir"
+              mkdir -p "$target_dir"
+            fi
+          done
+
       - name: Convert .man files to .rst
         run: |
-          # Check if docs/man/ is empty
-          if [ ! -d docs/man ] || [ -z "$(ls -A docs/man)" ]; then
-            echo "docs/man is empty or does not exist, converting all .man files"
+          # Check if docs/man is empty
+          if [ -z "$(ls -A docs/man)" ]; then
+            echo "docs/man is empty, proceeding to convert .man files."
             find ldms/src ldms/man -name "*.man" | while IFS= read -r man_file; do
               target_file="docs/man$(echo "$man_file" | sed 's|^ldms/src/||;s|^ldms/man/||;s/\.man$/.rst/')"
               mkdir -p "$(dirname "$target_file")"
