@@ -1,4 +1,8 @@
-Index of docs/man/sampler/opa2
+OPA2
 ===================
 
-* :doc:
+.. toctree::
+   :maxdepth: 2
+   :caption: OPA2
+
+   Plugin_opa2

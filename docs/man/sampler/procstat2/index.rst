@@ -1,4 +1,8 @@
-Index of docs/man/sampler/procstat2
+PROCSTAT2
 ===================
 
-* :doc:
+.. toctree::
+   :maxdepth: 2
+   :caption: PROCSTAT2
+
+   Plugin_procstat2

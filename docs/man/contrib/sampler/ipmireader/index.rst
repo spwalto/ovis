@@ -1,5 +1,9 @@
-Index of docs/man/contrib/sampler/ipmireader
+IPMIREADER
 ===================
 
-* :doc:
-* :doc:
+.. toctree::
+   :maxdepth: 2
+   :caption: IPMIREADER
+
+   Plugin_ipmireader
+   Plugin_ipmisensors

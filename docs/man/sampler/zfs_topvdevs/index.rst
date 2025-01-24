@@ -1,4 +1,8 @@
-Index of docs/man/sampler/zfs_topvdevs
+ZFS_TOPVDEVS
 ===================
 
-* :doc:
+.. toctree::
+   :maxdepth: 2
+   :caption: ZFS_TOPVDEVS
+
+   Plugin_zfs_topvdevs

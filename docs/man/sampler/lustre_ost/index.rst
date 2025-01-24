@@ -1,4 +1,8 @@
-Index of docs/man/sampler/lustre_ost
+LUSTRE_OST
 ===================
 
-* :doc:
+.. toctree::
+   :maxdepth: 2
+   :caption: LUSTRE_OST
+
+   Plugin_lustre_ost

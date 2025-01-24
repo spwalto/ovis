@@ -1,4 +1,8 @@
-Index of docs/man/third-plugins/my_plugin/src
+SRC
 ===================
 
-* :doc:
+.. toctree::
+   :maxdepth: 2
+   :caption: SRC
+
+   Plugin_my_plugin

@@ -1,5 +1,9 @@
-Index of docs/man/sampler/examples/array_example
+ARRAY_EXAMPLE
 ===================
 
-* :doc:
-* :doc:
+.. toctree::
+   :maxdepth: 2
+   :caption: ARRAY_EXAMPLE
+
+   Plugin_all_example
+   Plugin_array_example

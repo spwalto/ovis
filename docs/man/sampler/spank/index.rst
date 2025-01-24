@@ -1,4 +1,8 @@
-Index of docs/man/sampler/spank
+SPANK
 ===================
 
-* :doc:
+.. toctree::
+   :maxdepth: 2
+   :caption: SPANK
+
+   Plugin_slurm_notifier

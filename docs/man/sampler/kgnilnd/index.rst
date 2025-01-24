@@ -1,4 +1,8 @@
-Index of docs/man/sampler/kgnilnd
+KGNILND
 ===================
 
-* :doc:
+.. toctree::
+   :maxdepth: 2
+   :caption: KGNILND
+
+   Plugin_kgnilnd

@@ -1,5 +1,9 @@
-Index of docs/man/sampler/rdc_sampler
+RDC_SAMPLER
 ===================
 
-* :doc:
-* :doc:
+.. toctree::
+   :maxdepth: 2
+   :caption: RDC_SAMPLER
+
+   Plugin_rdc_sampler
+   ldms_rdc_schema_name

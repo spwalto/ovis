@@ -1,4 +1,8 @@
-Index of docs/man/sampler/slurm
+SLURM
 ===================
 
-* :doc:
+.. toctree::
+   :maxdepth: 2
+   :caption: SLURM
+
+   Plugin_slurm_sampler

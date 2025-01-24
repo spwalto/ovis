@@ -1,5 +1,9 @@
-Index of docs/man/sampler/papi
+PAPI
 ===================
 
-* :doc:
-* :doc:
+.. toctree::
+   :maxdepth: 2
+   :caption: PAPI
+
+   Plugin_papi
+   Plugin_papi_sampler

@@ -1,4 +1,8 @@
-Index of docs/man/sampler/ibmad_sampler
+IBMAD_SAMPLER
 ===================
 
-* :doc:
+.. toctree::
+   :maxdepth: 2
+   :caption: IBMAD_SAMPLER
+
+   Plugin_ibmad_sampler

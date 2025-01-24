@@ -1,4 +1,8 @@
-Index of docs/man/sampler/lnet_stats
+LNET_STATS
 ===================
 
-* :doc:
+.. toctree::
+   :maxdepth: 2
+   :caption: LNET_STATS
+
+   Plugin_lnet_stats

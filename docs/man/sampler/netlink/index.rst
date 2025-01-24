@@ -1,6 +1,10 @@
-Index of docs/man/sampler/netlink
+NETLINK
 ===================
 
-* :doc:
-* :doc:
-* :doc:
+.. toctree::
+   :maxdepth: 2
+   :caption: NETLINK
+
+   ldms-netlink-notifier
+   ldms-notify
+   netlink-notifier

@@ -1,4 +1,8 @@
-Index of docs/man/sampler/procdiskstats
+PROCDISKSTATS
 ===================
 
-* :doc:
+.. toctree::
+   :maxdepth: 2
+   :caption: PROCDISKSTATS
+
+   Plugin_procdiskstats

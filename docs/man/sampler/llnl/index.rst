@@ -1,4 +1,8 @@
-Index of docs/man/sampler/llnl
+LLNL
 ===================
 
-* :doc:
+.. toctree::
+   :maxdepth: 2
+   :caption: LLNL
+
+   Plugin_edac

@@ -1,4 +1,8 @@
-Index of docs/man/sampler/sysclassib
+SYSCLASSIB
 ===================
 
-* :doc:
+.. toctree::
+   :maxdepth: 2
+   :caption: SYSCLASSIB
+
+   Plugin_sysclassib

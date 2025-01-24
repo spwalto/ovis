@@ -1,4 +1,8 @@
-Index of docs/man/sampler/procnetdev2
+PROCNETDEV2
 ===================
 
-* :doc:
+.. toctree::
+   :maxdepth: 2
+   :caption: PROCNETDEV2
+
+   Plugin_procnetdev2

@@ -1,4 +1,8 @@
-Index of docs/man/sampler/cray_system_sampler
+CRAY_SYSTEM_SAMPLER
 ===================
 
-* :doc:
+.. toctree::
+   :maxdepth: 2
+   :caption: CRAY_SYSTEM_SAMPLER
+
+   Plugin_cray_dvs_sampler

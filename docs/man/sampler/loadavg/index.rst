@@ -1,4 +1,8 @@
-Index of docs/man/sampler/loadavg
+LOADAVG
 ===================
 
-* :doc:
+.. toctree::
+   :maxdepth: 2
+   :caption: LOADAVG
+
+   Plugin_loadavg

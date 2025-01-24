@@ -1,4 +1,8 @@
-Index of docs/man/sampler/lustre_client
+LUSTRE_CLIENT
 ===================
 
-* :doc:
+.. toctree::
+   :maxdepth: 2
+   :caption: LUSTRE_CLIENT
+
+   Plugin_lustre_client

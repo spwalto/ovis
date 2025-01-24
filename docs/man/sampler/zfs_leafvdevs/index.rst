@@ -1,4 +1,8 @@
-Index of docs/man/sampler/zfs_leafvdevs
+ZFS_LEAFVDEVS
 ===================
 
-* :doc:
+.. toctree::
+   :maxdepth: 2
+   :caption: ZFS_LEAFVDEVS
+
+   Plugin_zfs_leafvdevs

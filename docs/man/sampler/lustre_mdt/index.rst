@@ -1,4 +1,8 @@
-Index of docs/man/sampler/lustre_mdt
+LUSTRE_MDT
 ===================
 
-* :doc:
+.. toctree::
+   :maxdepth: 2
+   :caption: LUSTRE_MDT
+
+   Plugin_lustre_mdt

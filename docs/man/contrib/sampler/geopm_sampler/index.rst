@@ -1,4 +1,8 @@
-Index of docs/man/contrib/sampler/geopm_sampler
+GEOPM_SAMPLER
 ===================
 
-* :doc:
+.. toctree::
+   :maxdepth: 2
+   :caption: GEOPM_SAMPLER
+
+   Plugin_geopm_sampler

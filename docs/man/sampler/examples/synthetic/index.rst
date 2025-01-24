@@ -1,4 +1,8 @@
-Index of docs/man/sampler/examples/synthetic
+SYNTHETIC
 ===================
 
-* :doc:
+.. toctree::
+   :maxdepth: 2
+   :caption: SYNTHETIC
+
+   Plugin_synthetic

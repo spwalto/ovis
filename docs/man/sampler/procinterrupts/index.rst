@@ -1,4 +1,8 @@
-Index of docs/man/sampler/procinterrupts
+PROCINTERRUPTS
 ===================
 
-* :doc:
+.. toctree::
+   :maxdepth: 2
+   :caption: PROCINTERRUPTS
+
+   Plugin_procinterrupts

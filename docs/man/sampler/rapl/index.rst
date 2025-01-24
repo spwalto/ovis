@@ -1,4 +1,8 @@
-Index of docs/man/sampler/rapl
+RAPL
 ===================
 
-* :doc:
+.. toctree::
+   :maxdepth: 2
+   :caption: RAPL
+
+   Plugin_rapl

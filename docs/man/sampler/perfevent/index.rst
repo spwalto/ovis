@@ -1,4 +1,8 @@
-Index of docs/man/sampler/perfevent
+PERFEVENT
 ===================
 
-* :doc:
+.. toctree::
+   :maxdepth: 2
+   :caption: PERFEVENT
+
+   Plugin_perfevent

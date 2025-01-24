@@ -1,4 +1,8 @@
-Index of docs/man/contrib/sampler/variorum_sampler
+VARIORUM_SAMPLER
 ===================
 
-* :doc:
+.. toctree::
+   :maxdepth: 2
+   :caption: VARIORUM_SAMPLER
+
+   Plugin_variorum_sampler

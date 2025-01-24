@@ -1,4 +1,8 @@
-Index of docs/man/sampler/hello_stream
+HELLO_STREAM
 ===================
 
-* :doc:
+.. toctree::
+   :maxdepth: 2
+   :caption: HELLO_STREAM
+
+   Plugin_hello_sampler

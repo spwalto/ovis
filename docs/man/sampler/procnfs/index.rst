@@ -1,4 +1,8 @@
-Index of docs/man/sampler/procnfs
+PROCNFS
 ===================
 
-* :doc:
+.. toctree::
+   :maxdepth: 2
+   :caption: PROCNFS
+
+   Plugin_procnfs

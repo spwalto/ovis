@@ -1,8 +1,8 @@
-DAOS
+LDMSD
 ===================
 
 .. toctree::
    :maxdepth: 2
-   :caption: DAOS
+   :caption: LDMSD
 
-   Plugin_daos_sampler
+   test/index

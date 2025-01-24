@@ -1,4 +1,8 @@
-Index of docs/man/sampler/fptrans
+FPTRANS
 ===================
 
-* :doc:
+.. toctree::
+   :maxdepth: 2
+   :caption: FPTRANS
+
+   Plugin_fptrans

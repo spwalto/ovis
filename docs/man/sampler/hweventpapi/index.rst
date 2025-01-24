@@ -1,4 +1,8 @@
-Index of docs/man/sampler/hweventpapi
+HWEVENTPAPI
 ===================
 
-* :doc:
+.. toctree::
+   :maxdepth: 2
+   :caption: HWEVENTPAPI
+
+   Plugin_hweventpapi

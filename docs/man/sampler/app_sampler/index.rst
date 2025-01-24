@@ -1,5 +1,9 @@
-Index of docs/man/sampler/app_sampler
+APP_SAMPLER
 ===================
 
-* :doc:
-* :doc:
+.. toctree::
+   :maxdepth: 2
+   :caption: APP_SAMPLER
+
+   Plugin_app_sampler
+   Plugin_linux_proc_sampler

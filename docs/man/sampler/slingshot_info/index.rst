@@ -1,4 +1,8 @@
-Index of docs/man/sampler/slingshot_info
+SLINGSHOT_INFO
 ===================
 
-* :doc:
+.. toctree::
+   :maxdepth: 2
+   :caption: SLINGSHOT_INFO
+
+   Plugin_slingshot_info

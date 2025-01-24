@@ -1,4 +1,8 @@
-Index of docs/man/store/darshan
+DARSHAN
 ===================
 
-* :doc:
+.. toctree::
+   :maxdepth: 2
+   :caption: DARSHAN
+
+   Plugin_darshan_stream_store

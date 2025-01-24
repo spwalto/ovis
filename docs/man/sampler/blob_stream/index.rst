@@ -1,5 +1,9 @@
-Index of docs/man/sampler/blob_stream
+BLOB_STREAM
 ===================
 
-* :doc:
-* :doc:
+.. toctree::
+   :maxdepth: 2
+   :caption: BLOB_STREAM
+
+   Plugin_blob_stream_writer
+   ldms-csv-from-blobs

@@ -1,4 +1,8 @@
-Index of docs/man/sampler/clock
+CLOCK
 ===================
 
-* :doc:
+.. toctree::
+   :maxdepth: 2
+   :caption: CLOCK
+
+   Plugin_clock

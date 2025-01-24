@@ -1,5 +1,9 @@
-Index of docs/man/sampler/filesingle
+FILESINGLE
 ===================
 
-* :doc:
-* :doc:
+.. toctree::
+   :maxdepth: 2
+   :caption: FILESINGLE
+
+   Plugin_filesingle
+   ldms-sensors-config

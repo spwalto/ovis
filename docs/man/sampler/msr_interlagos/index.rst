@@ -1,4 +1,8 @@
-Index of docs/man/sampler/msr_interlagos
+MSR_INTERLAGOS
 ===================
 
-* :doc:
+.. toctree::
+   :maxdepth: 2
+   :caption: MSR_INTERLAGOS
+
+   Plugin_msr_interlagos

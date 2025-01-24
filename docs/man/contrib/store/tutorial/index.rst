@@ -1,4 +1,8 @@
-Index of docs/man/contrib/store/tutorial
+TUTORIAL
 ===================
 
-* :doc:
+.. toctree::
+   :maxdepth: 2
+   :caption: TUTORIAL
+
+   Plugin_store_tutorial

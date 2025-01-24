@@ -1,4 +1,8 @@
-Index of docs/man/contrib/store/timescale
+TIMESCALE
 ===================
 
-* :doc:
+.. toctree::
+   :maxdepth: 2
+   :caption: TIMESCALE
+
+   Plugin_store_timescale

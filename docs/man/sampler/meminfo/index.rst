@@ -1,4 +1,8 @@
-Index of docs/man/sampler/meminfo
+MEMINFO
 ===================
 
-* :doc:
+.. toctree::
+   :maxdepth: 2
+   :caption: MEMINFO
+
+   Plugin_meminfo

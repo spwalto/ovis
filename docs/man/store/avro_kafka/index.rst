@@ -1,4 +1,8 @@
-Index of docs/man/store/avro_kafka
+AVRO_KAFKA
 ===================
 
-* :doc:
+.. toctree::
+   :maxdepth: 2
+   :caption: AVRO_KAFKA
+
+   Plugin_store_avro_kafka

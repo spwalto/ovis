@@ -1,6 +1,10 @@
-Index of docs/man/sampler/ibnet
+IBNET
 ===================
 
-* :doc:
-* :doc:
-* :doc:
+.. toctree::
+   :maxdepth: 2
+   :caption: IBNET
+
+   Plugin_ibnet
+   ldms-ibnet-sampler-gen
+   ldms_ibnet_schema_name

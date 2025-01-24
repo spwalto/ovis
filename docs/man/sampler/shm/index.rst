@@ -1,4 +1,8 @@
-Index of docs/man/sampler/shm
+SHM
 ===================
 
-* :doc:
+.. toctree::
+   :maxdepth: 2
+   :caption: SHM
+
+   Plugin_shm_sampler

@@ -1,6 +1,10 @@
-Index of docs/man/sampler/aries_mmr
+ARIES_MMR
 ===================
 
-* :doc:
-* :doc:
-* :doc:
+.. toctree::
+   :maxdepth: 2
+   :caption: ARIES_MMR
+
+   Plugin_aries_linkstatus
+   Plugin_aries_mmr
+   Plugin_aries_mmr_configurable
