@@ -30,34 +30,32 @@ jobs:
           sudo apt-get update
           sudo apt-get install pandoc
       
-      - name: Create docs/man subdirectories if empty
+      - name: Convert .man files to .rst
         run: |
-          # Check if docs/man exists and is empty, then create it and necessary subdirectories if needed
-          if [ ! -d "docs/man" ]; then
-            echo "Creating docs/man directory."
-            mkdir -p docs/man
-          fi
-
-          # Recursively create subdirectories inside docs/man based on the .man file paths
-          if [ -z "$(ls -A docs/man)" ]; then
-            echo "docs/man is empty, proceeding to convert .man files."
+          # Check if docs/man/ is empty
+          if [ ! -d docs/man ] || [ -z "$(ls -A docs/man)" ]; then
+            echo "docs/man is empty or does not exist, converting all .man files"
             find ldms/src ldms/man -name "*.man" | while IFS= read -r man_file; do
-              # Fix the target_file path construction to ensure proper subdirectory structure
-              target_file="docs/man/$(echo "$man_file" | sed 's|^ldms/src/||;s|^ldms/man/||;s/\.man$/.rst/')"
-              target_dir=$(dirname "$target_file")
-              mkdir -p "$target_dir"  # Create the necessary subdirectories
+              target_file="docs/man$(echo "$man_file" | sed 's|^ldms/src/||;s|^ldms/man/||;s/\.man$/.rst/')"
+              mkdir -p "$(dirname "$target_file")"
+              # Get the base name of the .man file to use as the title
+              title=$(basename "$man_file" .man)
               pandoc -f man "$man_file" -s -o "$target_file" 2>/dev/null || echo "Error processing $man_file"
-              echo "# $(basename "$target_file" .rst)" | cat - "$target_file" > temp && mv temp "$target_file"
+              # Prepend the title to the .rst file
+              echo "$title" | cat - "$target_file" > temp && mv temp "$target_file"
+              echo "$(echo "$title" | sed 's/./=/g')" >> "$target_file"  # Underline the title
             done
           else
             echo "docs/man is not empty, checking for modified .man files"
             git diff --name-only HEAD^ HEAD | grep "\.man$" | while IFS= read -r modified_man; do
-              # Fix the target_file path construction to ensure proper subdirectory structure
-              target_file="docs/man/$(echo "$modified_man" | sed 's|^ldms/src/||;s|^ldms/man/||;s/\.man$/.rst/')"
-              target_dir=$(dirname "$target_file")
-              mkdir -p "$target_dir"  # Create the necessary subdirectories
+              target_file="docs/man$(echo "$modified_man" | sed 's|^ldms/src/||;s|^ldms/man/||;s/\.man$/.rst/')"
+              mkdir -p "$(dirname "$target_file")"
+              # Get the base name of the .man file to use as the title
+              title=$(basename "$modified_man" .man)
               pandoc -f man "$modified_man" -s -o "$target_file" 2>/dev/null || echo "Error processing $modified_man"
-              echo "# $(basename "$target_file" .rst)" | cat - "$target_file" > temp && mv temp "$target_file"
+              # Prepend the title to the .rst file
+              echo "$title" | cat - "$target_file" > temp && mv temp "$target_file"
+              echo "$(echo "$title" | sed 's/./=/g')" >> "$target_file"  # Underline the title
             done
           fi
 
