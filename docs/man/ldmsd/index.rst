@@ -1,7 +1,7 @@
-Clock
+Ldmsd
 =====
 
 .. toctree::
    :maxdepth: 4
 
-   Plugin_clock
+   test

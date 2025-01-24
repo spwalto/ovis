@@ -1,7 +1,7 @@
-Clock
-=====
+My_plugin
+=========
 
 .. toctree::
    :maxdepth: 4
 
-   Plugin_clock
+   src

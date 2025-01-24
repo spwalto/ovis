@@ -36,3 +36,8 @@
    ldmsd_setgroup
    ldmsd_yaml_parser
    lsdate
+   store
+   contrib
+   ldmsd
+   third-plugins
+   sampler
