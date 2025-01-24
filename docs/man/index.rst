@@ -8,7 +8,6 @@
    Plugin_store_kafka
    Plugin_store_papi
    Plugin_store_rabbitkw
-   Plugin_storetesetsetj_rabbitv3
    Plugin_store_sos
    ldms-csv-anonymize
    ldms-csv-export-sos
