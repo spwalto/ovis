@@ -67,27 +67,31 @@ jobs:
           generate_index_rsts() {
             local dir="$1"
             local depth="$2"
+
+            # Find .rst files in the current directory (excluding index.rst)
             rst_files=$(find "$dir" -maxdepth 1 -name "*.rst" ! -name "index.rst" | sort)
 
+            # If there are .rst files, generate index.rst
             if [ ! -z "$rst_files" ]; then
               echo "Generating index.rst in $dir"
 
-              # Creating or updating the index.rst
+              # Create an index.rst file with the title as the directory name
               if [ "$dir" != "docs/man" ]; then
                 caption=$(basename "$dir" | sed 's/^\(\w\)/\U\1/')
-                echo "$caption" > "$dir/index.rst"
-                echo "$(echo "$caption" | sed 's/./=/g')" >> "$dir/index.rst"
+                echo "$caption" > "$dir/index.rst"    # Add title
+                echo "$(echo "$caption" | sed 's/./=/g')" >> "$dir/index.rst"  # Add underline
                 echo "" >> "$dir/index.rst"
               else
-                # No title for docs/man/index.rst
+                # For docs/man, we do not add a title
                 echo "" > "$dir/index.rst"
               fi
 
+              # Add toctree directive to index.rst
               echo ".. toctree::" >> "$dir/index.rst"
               echo "   :maxdepth: $depth" >> "$dir/index.rst"
               echo "" >> "$dir/index.rst"
 
-              # Loop through all the rst files and add them to the toctree
+              # Add .rst files in the current directory to the toctree
               for rst_file in $rst_files; do
                 base_name=$(basename "$rst_file" .rst)
                 echo "   $base_name" >> "$dir/index.rst"
@@ -96,7 +100,7 @@ jobs:
               # Recursively call for subdirectories
               subdirs=$(find "$dir" -mindepth 1 -maxdepth 1 -type d)
               for subdir in $subdirs; do
-                generate_index_rsts "$subdir" $((depth + 1))
+                generate_index_rsts "$subdir" $((depth + 1))  # Recursively process subdirectories
               done
             fi
           }
