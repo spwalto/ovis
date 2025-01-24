@@ -36,7 +36,7 @@ jobs:
           if [ ! -d docs/man ] || [ -z "$(ls -A docs/man)" ]; then
             echo "docs/man is empty or does not exist, converting all .man files"
             find ldms/src ldms/man -name "*.man" | while IFS= read -r man_file; do
-              target_file="docs/man$(echo "$man_file" | sed 's|^ldms/src/||;s|^ldms/man/||;s/\.man$/.rst/')"
+              target_file="docs/man/$(echo "$man_file" | sed 's|^ldms/src/||;s|^ldms/man/||;s/\.man$/.rst/')"
               mkdir -p "$(dirname "$target_file")"
               # Get the base name of the .man file to use as the title
               title=$(basename "$man_file" .man)
@@ -48,7 +48,7 @@ jobs:
           else
             echo "docs/man is not empty, checking for modified .man files"
             git diff --name-only HEAD^ HEAD | grep "\.man$" | while IFS= read -r modified_man; do
-              target_file="docs/man$(echo "$modified_man" | sed 's|^ldms/src/||;s|^ldms/man/||;s/\.man$/.rst/')"
+              target_file="docs/man/$(echo "$modified_man" | sed 's|^ldms/src/||;s|^ldms/man/||;s/\.man$/.rst/')"
               mkdir -p "$(dirname "$target_file")"
               # Get the base name of the .man file to use as the title
               title=$(basename "$modified_man" .man)
