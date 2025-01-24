@@ -1,0 +1,62 @@
+Sampler
+=======
+
+.. toctree::
+   :maxdepth: 4
+
+   rdc_sampler
+   app_sampler
+   hello_stream
+   shm
+   procnfs
+   zfs_leafvdevs
+   papi
+   rapl
+   tx2mon
+   procnet
+   slurm
+   lustre_ost
+   zfs_zpool
+   procnetdev2
+   dcgm_sampler
+   netlink
+   lustre
+   loadavg
+   lustre_client
+   fptrans
+   zfs_topvdevs
+   llnl
+   examples
+   lustre_mdt
+   perfevent
+   syspapi
+   dstat
+   spank
+   opa2
+   aries_mmr
+   json
+   procdiskstats
+   hweventpapi
+   procstat
+   lustre_mdc
+   ibmad_sampler
+   msr_interlagos
+   slingshot_info
+   ibnet
+   lnet_stats
+   cray_system_sampler
+   filesingle
+   procinterrupts
+   meminfo
+   clock
+   vmstat
+   ibmad_records_sampler
+   sysclassib
+   coretemp
+   variable
+   blob_stream
+   procnetdev
+   procstat2
+   sampler_atasmart
+   slingshot_metrics
+   kgnilnd
