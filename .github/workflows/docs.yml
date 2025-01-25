@@ -52,7 +52,7 @@ jobs:
                 # Replace the lines '=== man ===' and surrounding lines with the base filename
                 
                 sed -i "/^===/{
-                        s/^===/$(echo $underline)/;
+                        s/^===/$underline/;
                         s/^man/$base_name/;
                         s/^===/$(echo $underline)/;
                 }" "$target_file"  
@@ -78,7 +78,7 @@ jobs:
               
               if [ -f "$target_file" ]; then
                 sed -i "/^===/{
-                        s/^===/$(echo $underline)/;
+                        s/^===/$underline/;
                         s/^man/$base_name/;
                         s/^===/$(echo $underline)/;
                 }" "$target_file"
