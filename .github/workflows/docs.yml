@@ -51,7 +51,7 @@ jobs:
               if [ -f "$target_file" ]; then
                 # Replace the lines '=== man ===' and surrounding lines with the base filename
                 
-                sed -i "0,/^===/{
+                sed -i "/^===/{
                         s/^===/$(echo $underline)/;
                         s/^man/$base_name/;
                         s/^===/$(echo $underline)/;
@@ -77,7 +77,7 @@ jobs:
               underline=$(echo "$base_name" | sed 's/./=/g')
               
               if [ -f "$target_file" ]; then
-                sed -i "0,/^===/{
+                sed -i "/^===/{
                         s/^===/$(echo $underline)/;
                         s/^man/$base_name/;
                         s/^===/$(echo $underline)/;
