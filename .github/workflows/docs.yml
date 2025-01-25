@@ -48,7 +48,14 @@ jobs:
               pandoc -f man "$man_file" -s -o "$target_file" 2>/dev/null || echo "Error processing $man_file"
 
               underline=$(echo "$base_name" | sed 's/./=/g')
-              { echo "$base_name"; echo "$underline"; cat "$target_file"; } > temp && mv temp "$target_file"
+              
+              # Replace the lines '=== man ===' and surrounding lines with the base filename
+              sed -i "0,/^=== man ===/{
+                s/^=== man ===/=== $base_name ===/;
+                s/^=== man ===/$(echo $underline)/;
+                N;
+                s/^\n//;
+              }" "$target_file"
             done
           else
             echo "docs/man is not empty, checking for modified .man files"
@@ -65,7 +72,15 @@ jobs:
               pandoc -f man "$modified_man" -s -o "$target_file" 2>/dev/null || echo "Error processing $modified_man"
 
               underline=$(echo "$base_name" | sed 's/./=/g')
-              { echo "$base_name"; echo "$underline"; cat "$target_file"; } > temp && mv temp "$target_file"
+              
+              # Replace the lines '=== man ===' and surrounding lines with the base filename
+              sed -i "0,/^=== man ===/{
+                s/^=== man ===/=== $base_name ===/;
+                s/^=== man ===/$(echo $underline)/;
+                N;
+                s/^\n//;
+              }" "$target_file"
+
             done
           fi
       
