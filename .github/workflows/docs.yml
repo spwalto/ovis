@@ -65,7 +65,7 @@ jobs:
               mkdir -p "$(dirname "$target_file")"
 
               # Get the base name of the .man file to use as the title
-              title=$(basename "$modified_man" .man)
+              base_name=$(basename "$modified_man" .man)
 
               # Convert the .man file to .rst
               pandoc -f man "$modified_man" -s -o "$target_file" 2>/dev/null || echo "Error processing $modified_man"
