@@ -74,10 +74,11 @@ jobs:
               if [ -f "$target_file" ]; then
                 # Create the title and underline based on the base name
                 title="$base_name"
-                underline=$(echo "$title" | sed 's/./=/g')
+                underline=$(printf '%*s' "${#title}" '' | tr ' ' '=')
 
                 # Prepend the title and underline to the .rst file
-                { echo "$title"; echo "$underline"; cat "$target_file"; } > temp && mv temp "$target_file"
+                temp_file=$(mktemp)
+                { echo "$title"; echo "$underline"; cat "$target_file"; } > "$temp_file" && mv "$temp_file" "$target_file"
               else
                 echo "Error: $target_file not created."
               fi
