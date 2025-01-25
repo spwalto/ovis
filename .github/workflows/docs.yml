@@ -45,8 +45,10 @@ jobs:
               base_name=$(basename "$man_file" .man)
 
               # Convert the .man file to .rst
-              pandoc -f man "$man_file" -s -o "$target_file" -V title="$base_name" 2>/dev/null || echo "Error processing $man_file"
+              pandoc -f man "$man_file" -s -o "$target_file" 2>/dev/null || echo "Error processing $man_file"
 
+              underline=$(echo "$base_name" | sed 's/./=/g')
+              { echo "$base_name"; echo "$underline"; cat "$target_file"; } > temp && mv temp "$target_file"
             done
           else
             echo "docs/man is not empty, checking for modified .man files"
@@ -60,8 +62,10 @@ jobs:
               base_name=$(basename "$modified_man" .man)
 
               # Convert the .man file to .rst
-              pandoc -f man "$modified_man" -s -o "$target_file" -V title="$base_name" 2>/dev/null || echo "Error processing $modified_man"
+              pandoc -f man "$modified_man" -s -o "$target_file" 2>/dev/null || echo "Error processing $modified_man"
 
+              underline=$(echo "$base_name" | sed 's/./=/g')
+              { echo "$base_name"; echo "$underline"; cat "$target_file"; } > temp && mv temp "$target_file"
             done
           fi
       
