@@ -52,8 +52,10 @@ jobs:
                 # Replace the lines '=== man ===' and surrounding lines with the base filename
                 sed -i "0,/^===/{
                         s/^===/$(echo $underline)/;
+                        s/^man/$base_name/;
                         N;
                         s/^===/$(echo $underline)/;
+                        s/^[^=]*$/$base_name/;
                 }" "$target_file"  
               else
                 echo "Error: $target_file was not created."
@@ -80,6 +82,7 @@ jobs:
                         s/^===/$(echo $underline)/;
                         N;
                         s/^===/$(echo $underline)/;
+                        s/^[^=]*$/$base_name/;
                 }" "$target_file"
               else
                 echo "Error: $target_file was not created."
