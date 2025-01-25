@@ -1,2 +1,0 @@
-ldms-netlink-notifier
-=====================

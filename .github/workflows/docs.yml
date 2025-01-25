@@ -72,9 +72,12 @@ jobs:
 
               # Ensure the .rst file was created successfully before modifying it
               if [ -f "$target_file" ]; then
-                # Prepend the title to the .rst file
-                echo "$title" | cat - "$target_file" > temp && mv temp "$target_file"
-                echo "$(echo "$title" | sed 's/./=/g')" >> "$target_file"  # Underline the title
+                # Create the title and underline based on the base name
+                title="$base_name"
+                underline=$(echo "$title" | sed 's/./=/g')
+
+                # Prepend the title and underline to the .rst file
+                { echo "$title"; echo "$underline"; cat "$target_file"; } > temp && mv temp "$target_file"
               else
                 echo "Error: $target_file not created."
               fi
