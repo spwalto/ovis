@@ -50,11 +50,11 @@ jobs:
               underline=$(echo "$base_name" | sed 's/./=/g')
               if [ -f "$target_file" ]; then
                 # Replace the lines '=== man ===' and surrounding lines with the base filename
-                
                 sed -i "/^===/{
                         s/^===/$underline/;
                         s/^man/$base_name/;
                         s/^===/$(echo $underline)/;
+                        s/^man/$base_name/;
                 }" "$target_file"  
               else
                 echo "Error: $target_file was not created."
@@ -81,6 +81,7 @@ jobs:
                         s/^===/$underline/;
                         s/^man/$base_name/;
                         s/^===/$(echo $underline)/;
+                        s/^man/$base_name/;
                 }" "$target_file"
               else
                 echo "Error: $target_file was not created."
