@@ -68,20 +68,8 @@ jobs:
               base_name=$(basename "$modified_man" .man)
 
               # Convert the .man file to .rst
-              pandoc -f man "$modified_man" -s -o "$target_file" 2>/dev/null || echo "Error processing $modified_man"
+              pandoc -f man "$modified_man" -s -o "$target_file" -V title="$base_name" 2>/dev/null || echo "Error processing $modified_man"
 
-              # Ensure the .rst file was created successfully before modifying it
-              if [ -f "$target_file" ]; then
-                # Create the title and underline based on the base name
-                title="$base_name"
-                underline=$(printf '%*s' "${#title}" '' | tr ' ' '=')
-
-                # Prepend the title and underline to the .rst file
-                temp_file=$(mktemp)
-                { echo "$title"; echo "$underline"; cat "$target_file"; } > "$temp_file" && mv "$temp_file" "$target_file"
-              else
-                echo "Error: $target_file not created."
-              fi
             done
           fi
       
