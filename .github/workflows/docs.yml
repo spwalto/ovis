@@ -32,6 +32,38 @@ jobs:
       
       - name: Convert .man files to .rst
         run: |
+          # Base directory for the repository
+          base_dir=$(git rev-parse --show-toplevel)
+          # Check for modified or staged .man files
+          modified_files=$(git diff --name-only --diff-filter=M "$base_dir" | grep "\.man$")
+          # Check for newly added .man files
+          new_files=$(git ls-files --others --exclude-standard "$base_dir" | grep "\.man$")
+          # Combine both lists of changed files
+          changed_files=$(echo -e "$modified_files\n$new_files" | sort -u)
+
+          # If there are changes in .man files
+          if [ ! -z "$changed_files" ]; then
+            echo "Detected changes in .man files. Processing..."
+
+            # Loop through each changed .man file
+            echo "$changed_files" | while IFS= read -r man_file; do
+              # Generate the target .rst file path based on the .man file location
+              target_file="docs/man/$(echo "$man_file" | sed 's|^ovis/src/||;s|^ovis/man/||;s/\.man$/.rst/')"
+
+              # Ensure the target directory exists
+              mkdir -p "$(dirname "$target_file")"
+
+              # Get the base name of the .man file to use as the title
+              base_name=$(basename "$man_file" .man)
+
+              # Convert the .man file to .rst using pandoc
+              pandoc -f man -t rst "$man_file" -s -o "$target_file" --metadata title="$base_name" 2>/dev/null || echo "Error processing $man_file"
+
+              echo "Converted $man_file to $target_file"
+            done
+          else
+            echo "No new or modified .man files found in the repository."
+          fi
           # Check if docs/man/ is empty
           if [ ! -d docs/man ] || [ -z "$(ls -A docs/man)" ]; then
             echo "docs/man is empty or does not exist, converting all .man files"
@@ -47,44 +79,10 @@ jobs:
               # Convert the .man file to .rst
               pandoc -f man -t rst "$man_file" -s -o "$target_file" --metadata title="$base_name" 2>/dev/null || echo "Error processing $man_file"
             done
-          else
-            echo "docs/man is not empty, checking for modified .man files"
-            # Check if the current commit has a parent (HEAD^) and avoid errors in shallow repositories
-            if git rev-parse --verify HEAD^ >/dev/null 2>&1; then
-              # If there is a parent commit, compare with HEAD^
-              modified_man_files=$(git diff --name-only HEAD^ HEAD | grep "\.man$")
-            else
-              # Otherwise, compare with the previous commit (first commit scenario)
-              modified_man_files=$(git diff --name-only HEAD~1 HEAD | grep "\.man$")
-            fi
-
-            # Process each modified .man file
-            echo "$modified_man_files" | while IFS= read -r modified_man; do
-              target_file="docs/man/$(echo "$modified_man" | sed 's|^ldms/src/||;s|^ldms/man/||;s/\.man$/.rst/')"
-
-              # Ensure the target directory exists
-              mkdir -p "$(dirname "$target_file")"
-
-              # Get the base name of the .man file to use as the title
-              base_name=$(basename "$modified_man" .man)
-
-              # Convert the .man file to .rst
-              pandoc -f man -t rst "$modified_man" -s -o "$target_file" --metadata title="$base_name" 2>/dev/null || echo "Error processing $modified_man"
-
-            done
           fi
 
       - name: Update index.rst files only if changes to .man files
         run: |
-          # Check for changes in .man files using git status
-          modified_files=$(git status --porcelain "$docs_man_dir" | grep -E '^\s*(M|A)\s+.*\.man$' | awk '{print $2}')
-
-          # If no .man files have been modified, exit the script
-          if [ -z "$modified_man_files" ]; then
-            echo "No changes detected in .man files. Skipping index.rst updates."
-            exit 0
-          fi
-
           # Function to generate index.rst for all subdirectories
           generate_index_rsts() {
            local dir="$1"
