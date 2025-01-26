@@ -56,6 +56,12 @@ To join the LDMS Users Group Mailing List: https://github.com/ovis-hpc/ovis-wiki
    :caption: Man Pages
 
    man/index
+   man/ldmsd/index
+   man/sampler/index
+   man/store/index
+   man/contrib/index
+   man/third-plugins/index
+   
    ldms_man/index
    sampler_man/index
    store_man/index
