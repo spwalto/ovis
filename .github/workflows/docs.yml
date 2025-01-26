@@ -43,22 +43,23 @@ jobs:
 
               # Get the base name of the .man file to use as the title
               base_name=$(basename "$man_file" .man)
-
-              # Convert the .man file to .rst
-              pandoc -f man "$man_file" -s -o "$target_file" 2>/dev/null || echo "Error processing $man_file"
-
+              #underline=$(printf '=%.0s' $(seq ${#base_name}))
               underline=$(echo "$base_name" | sed 's/./=/g')
-              if [ -f "$target_file" ]; then
+              custom_title="${underline}\n${base_name}\n${underline}\n"
+              # Convert the .man file to .rst
+              pandoc -f man -t rst "$man_file" -s -o "$target_file" -V title=$custom_title 2>/dev/null || echo "Error processing $man_file"
+
+              #if [ -f "$target_file" ]; then
                 # Replace the lines '=== man ===' and surrounding lines with the base filename
-                sed -i "/^===/{
-                        s/^===/$underline/;
-                        s/^man/$base_name/;
-                        s/^===/$(echo $underline)/;
-                        s/^man/$base_name/;
-                }" "$target_file"  
-              else
-                echo "Error: $target_file was not created."
-              fi  
+                #  sed -i "/^===/{
+                #        s/^===/$underline/;
+                #        s/^man/$base_name/;
+                #        s/^===/$(echo $underline)/;
+                #        s/^man/$base_name/;
+                # }" "$target_file"  
+                #else
+                #echo "Error: $target_file was not created."
+                #fi  
             done
           else
             echo "docs/man is not empty, checking for modified .man files"
