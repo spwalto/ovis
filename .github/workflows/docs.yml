@@ -84,6 +84,17 @@ jobs:
                 echo "Man Pages" > "$dir/index.rst"
                 echo "==========" >> "$dir/index.rst"
                 echo "" >> "$dir/index.rst"
+
+                # Add toctree for subdirectories under docs/man
+                for subdir in $subdirs; do
+                  subdir_name=$(basename "$subdir")
+                  # Add TOC for each subdirectory (e.g., "Sampler" for "sampler")
+                  echo ".. toctree::" >> "$dir/index.rst"
+                  echo "   :maxdepth: 4" >> "$dir/index.rst"
+                  echo "   :caption: $subdir_name" >> "$dir/index.rst"
+                  echo "   $subdir_name/index" >> "$dir/index.rst"  # Add subdir index to TOC
+                  echo "" >> "$dir/index.rst"  # Add an empty line after the toctree
+                done
               else
                 # Capitalize subdirectory name for other subdirectories
                 caption=$(basename "$dir" | sed 's/^\(\w\)/\U\1/')  # Capitalize first letter
