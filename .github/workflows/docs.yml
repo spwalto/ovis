@@ -43,19 +43,9 @@ jobs:
 
               # Get the base name of the .man file to use as the title
               base_name=$(basename "$man_file" .man)
+              
               # Convert the .man file to .rst
               pandoc -f man -t rst "$man_file" -s -o "$target_file" --metadata title=$base_name 2>/dev/null || echo "Error processing $man_file"
-              #if [ -f "$target_file" ]; then
-                # Replace the lines '=== man ===' and surrounding lines with the base filename
-                #  sed -i "/^===/{
-                #        s/^===/$underline/;
-                #        s/^man/$base_name/;
-                #        s/^===/$(echo $underline)/;
-                #        s/^man/$base_name/;
-                # }" "$target_file"  
-                #else
-                #echo "Error: $target_file was not created."
-                #fi  
             done
           else
             echo "docs/man is not empty, checking for modified .man files"
@@ -69,77 +59,69 @@ jobs:
               base_name=$(basename "$modified_man" .man)
 
               # Convert the .man file to .rst
-              pandoc -f man "$modified_man" -s -o "$target_file" 2>/dev/null || echo "Error processing $modified_man"
+              pandoc -f man -t rst "$modified_man" -s -o "$target_file" --metadata title=$base_name 2>/dev/null || echo "Error processing $modified_man"
 
-              underline=$(echo "$base_name" | sed 's/./=/g')
-              
-              if [ -f "$target_file" ]; then
-                sed -i "/^===/{
-                        s/^===/$underline/;
-                        s/^man/$base_name/;
-                        s/^===/$(echo $underline)/;
-                        s/^man/$base_name/;
-                }" "$target_file"
-              else
-                echo "Error: $target_file was not created."
-              fi
             done
           fi
-      
-      - name: Update index.rst files
-        run: |
-          # Function to generate index.rst for all subdirectories
-          generate_index_rsts() {
-            local dir="$1"
-            
-            # Check if the directory contains .rst files (excluding index.rst)
-            rst_files=$(find "$dir" -maxdepth 1 -name "*.rst" ! -name "index.rst" | sort)
-            subdirs=$(find "$dir" -mindepth 1 -maxdepth 1 -type d)  # Find subdirectories within the directory
+              
+        - name: Update index.rst files
+          run: |
+            # Function to generate index.rst for all subdirectories
+            generate_index_rsts() {
+              local dir="$1"
+              local base_path="$2"  # Relative path to this directory from docs/man
 
-            # If the directory contains any .rst files or subdirectories
-            if [ ! -z "$rst_files" ] || [ ! -z "$subdirs" ]; then
-              echo "Generating index.rst in $dir"
+              # Check if the directory contains .rst files (excluding index.rst)
+              rst_files=$(find "$dir" -maxdepth 1 -name "*.rst" ! -name "index.rst" | sort)
+              subdirs=$(find "$dir" -mindepth 1 -maxdepth 1 -type d)  # Find subdirectories within the directory
 
-              # Handle title for docs/man, all other subdirectories get their own titles
-              if [ "$dir" == "docs/man" ]; then
-                # docs/man gets "Man Pages" as title
-                echo "Man Pages" > "$dir/index.rst"
-                echo "==========" >> "$dir/index.rst"
+              # If the directory contains any .rst files or subdirectories
+              if [ ! -z "$rst_files" ] || [ ! -z "$subdirs" ]; then
+                echo "Generating index.rst in $dir"
+
+                # Handle title for docs/man, all other subdirectories get their own titles
+                if [ "$dir" == "docs/man" ]; then
+                  # docs/man gets "Man Pages" as title
+                  echo "Man Pages" > "$dir/index.rst"
+                  echo "==========" >> "$dir/index.rst"
+                  echo "" >> "$dir/index.rst"
+                else
+                  # Capitalize subdirectory name for other subdirectories
+                  caption=$(basename "$dir" | sed 's/^\(\w\)/\U\1/')  # Capitalize first letter
+                  echo "$caption" > "$dir/index.rst"    # Add title
+                  echo "$(echo "$caption" | sed 's/./=/g')" >> "$dir/index.rst"  # Add underline
+                  echo "" >> "$dir/index.rst"
+                fi
+
+                # Add toctree directive for the current directory
+                echo ".. toctree::" >> "$dir/index.rst"
+                echo "   :maxdepth: 4" >> "$dir/index.rst"
                 echo "" >> "$dir/index.rst"
-              else
-                # Capitalize subdirectory name for other subdirectories
-                caption=$(basename "$dir" | sed 's/^\(\w\)/\U\1/')  # Capitalize first letter
-                echo "$caption" > "$dir/index.rst"    # Add title
-                echo "$(echo "$caption" | sed 's/./=/g')" >> "$dir/index.rst"  # Add underline
-                echo "" >> "$dir/index.rst"
+
+                # Add .rst files in the current directory to the toctree
+                for rst_file in $rst_files; do
+                  base_name=$(basename "$rst_file" .rst)
+                  echo "   $base_name" >> "$dir/index.rst"
+                done
+
+                # Add subdirectories to the toctree with their relative paths
+                for subdir in $subdirs; do
+                  subdir_name=$(basename "$subdir")
+                  subdir_path="$base_path/$subdir_name"
+                  echo "   $subdir_path/index" >> "$dir/index.rst"
+                done
               fi
 
-              # Add toctree directive for the current directory
-              echo ".. toctree::" >> "$dir/index.rst"
-              echo "   :maxdepth: 4" >> "$dir/index.rst"
-              echo "" >> "$dir/index.rst"
-
-              # Add .rst files in the current directory to the toctree
-              for rst_file in $rst_files; do
-                base_name=$(basename "$rst_file" .rst)
-                echo "   $base_name" >> "$dir/index.rst"
-              done
-
-              # Add subdirectories to the toctree (without title) if there are any
+              # Recursively generate index.rst for subdirectories
               for subdir in $subdirs; do
                 subdir_name=$(basename "$subdir")
-                echo "   $subdir_name" >> "$dir/index.rst"
+                subdir_path="$base_path/$subdir_name"
+                generate_index_rsts "$subdir" "$subdir_path"  # Recursively process subdirectories
               done
-            fi
+            }
 
-            # Recursively generate index.rst for subdirectories
-            for subdir in $subdirs; do
-              generate_index_rsts "$subdir"  # Recursively process subdirectories
-            done
-          }
-
-          # Start by generating index.rst for docs/man and all its subdirectories
-          generate_index_rsts "docs/man"
+            # Start by generating index.rst for docs/man and all its subdirectories
+            generate_index_rsts "docs/man" "man"
 
       - name: Commit and Push Changes
         run: |
