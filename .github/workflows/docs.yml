@@ -77,6 +77,10 @@ jobs:
 
       - name: Update index.rst files 
         run: |
+          if [ -d docs/man ] || [ ! -z "$(ls -A docs/man)" ]; then
+            echo "dos/man is not empty, no changes were made to the index.rst files."
+            exit 0
+          fi
           # Function to generate index.rst for all subdirectories
           generate_index_rsts() {
            local dir="$1"
@@ -99,7 +103,6 @@ jobs:
                 # Add TOC for all .rst files in docs/man
                 echo ".. toctree::" >> "$dir/index.rst"
                 echo "   :maxdepth: 4" >> "$dir/index.rst"
-                echo "   :glob:" >> "$dir/index.rst"
                 echo "" >> "$dir/index.rst"
                 for rst_file in $rst_files; do
                   base_name=$(basename "$rst_file" .rst)
@@ -115,6 +118,7 @@ jobs:
                 # Add TOC for subdirectory
                 echo ".. toctree::" >> "$dir/index.rst"
                 echo "   :maxdepth: 4" >> "$dir/index.rst"
+                echo "   :glob:" >> "$dir/index.rst"
                 echo "" >> "$dir/index.rst"
                 echo "   *" >> "$dir/index.rst"
               fi
