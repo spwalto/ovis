@@ -1,8 +1,9 @@
-Man Pages
-==========
+General
+=======
 
 .. toctree::
    :maxdepth: 4
+   :glob:
 
    Plugin_jobid
    Plugin_store_app
