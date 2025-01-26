@@ -47,8 +47,7 @@ jobs:
               underline=$(echo "$base_name" | sed 's/./=/g')
               custom_title="${underline}\n${base_name}\n${underline}\n"
               # Convert the .man file to .rst
-              pandoc -f man -t rst "$man_file" -s -o "$target_file" -V title=$custom_title 2>/dev/null || echo "Error processing $man_file"
-              head $target_file
+              pandoc -f man -t rst "$man_file" -s -o "$target_file" --metadata title=$custom_title 2>/dev/null || echo "Error processing $man_file"
               #if [ -f "$target_file" ]; then
                 # Replace the lines '=== man ===' and surrounding lines with the base filename
                 #  sed -i "/^===/{
