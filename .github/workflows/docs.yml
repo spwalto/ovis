@@ -119,6 +119,18 @@ jobs:
           # Start by generating index.rst for docs/man and all its subdirectories
           generate_index_rsts "docs/man"
 
+      - name: Commit and Push Changes
+        run: |
+          if [ -n "$(git status --porcelain)" ]; then
+            git config --global user.name "github-actions[bot]"
+            git config --global user.email "github-actions[bot]@users.noreply.github.com"
+            git add docs/man
+            git commit -m "Update .rst and index.rst files"
+            git push origin HEAD
+          else
+            echo "No changes to commit."
+          fi
+
   build-docs:
     needs: generate-rst
     runs-on: ubuntu-22.04
