@@ -32,32 +32,21 @@ jobs:
       
       - name: Convert .man files to .rst
         run: |
-          # Combine both lists of changed files
-          changed_files=$(git diff --name-only HEAD~1 HEAD -- "*.man")
+          # Check for modified .man files
+          git diff --name-only ${{ github.event.before }} ${{ github.event.after }} | grep "\.man$" | while IFS= read -r man_file; do
+            target_file="docs/man/$(echo "$man_file" | sed 's|^ldms/src/||;s|^ldms/man/||;s/\.man$/.rst/')"
+            
+            # Ensure the target directory exists
+            mkdir -p "$(dirname "$target_file")"
+            
+            # Get the base name of the .man file to use as the title
+            base_name=$(basename "$man_file" .man)
+
+            # Convert the .man file to .rst
+            pandoc -f man -t rst "$man_file" -s -o "$target_file" --metadata title="$base_name" 2>/dev/null || echo "Error processing $man_file"
+
+          done
           
-          # If there are changes in .man files
-          if [ ! -z "$changed_files" ]; then
-            echo "Detected changes in .man files. Processing..."
-            echo "$changed_files"
-            # Loop through each changed .man file
-            echo "$changed_files" | while IFS= read -r man_file; do
-              # Generate the target .rst file path based on the .man file location
-              target_file="docs/man/$(echo "$man_file" | sed 's|^ovis/src/||;s|^ovis/man/||;s/\.man$/.rst/')"
-
-              # Ensure the target directory exists
-              mkdir -p "$(dirname "$target_file")"
-
-              # Get the base name of the .man file to use as the title
-              base_name=$(basename "$man_file" .man)
-
-              # Convert the .man file to .rst using pandoc
-              pandoc -f man -t rst "$man_file" -s -o "$target_file" --metadata title="$base_name" 2>/dev/null || echo "Error processing $man_file"
-
-              echo "Converted $man_file to $target_file"
-            done
-          else
-            echo "No new or modified .man files found in the repository."
-          fi
           # Check if docs/man/ is empty
           if [ ! -d docs/man ] || [ -z "$(ls -A docs/man)" ]; then
             echo "docs/man is empty or does not exist, converting all .man files"
