@@ -1,30 +1,5 @@
-Man Pages
-==========
-
-.. toctree::
-   :maxdepth: 4
-   :caption: store
-   store/index
-
-.. toctree::
-   :maxdepth: 4
-   :caption: contrib
-   contrib/index
-
-.. toctree::
-   :maxdepth: 4
-   :caption: ldmsd
-   ldmsd/index
-
-.. toctree::
-   :maxdepth: 4
-   :caption: third-plugins
-   third-plugins/index
-
-.. toctree::
-   :maxdepth: 4
-   :caption: sampler
-   sampler/index
+General
+=========
 
 .. toctree::
    :maxdepth: 4
