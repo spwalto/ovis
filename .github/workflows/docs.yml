@@ -33,7 +33,7 @@ jobs:
       - name: Convert .man files to .rst
         run: |
           # Combine both lists of changed files
-          changed_files=$(git log --name-only --pretty="" -- "*.man" | sort -u)
+          changed_files=$(git diff --name-only HEAD~1 HEAD -- "*.man")
           
           # If there are changes in .man files
           if [ ! -z "$changed_files" ]; then
@@ -77,10 +77,15 @@ jobs:
 
       - name: Update index.rst files 
         run: |
-          if [ -d docs/man ] || [ ! -z "$(ls -A docs/man)" ]; then
-            echo "dos/man is not empty, no changes were made to the index.rst files."
-            exit 0
-          fi
+          # Iterate through all subdirectories in the given directory
+          find "$dir" -type d | while IFS= read -r subdir; do
+            # Check if index.rst exists in the current subdirectory
+            if [ -f "$subdir/index.rst" ]; then
+              echo "No missing index.rst in $subdir. Exiting..."
+              generate_index_rsts "$subdir"
+              exit 0
+            fi
+          done
           # Function to generate index.rst for all subdirectories
           generate_index_rsts() {
            local dir="$1"
