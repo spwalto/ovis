@@ -43,11 +43,8 @@ jobs:
 
               # Get the base name of the .man file to use as the title
               base_name=$(basename "$man_file" .man)
-              #underline=$(printf '=%.0s' $(seq ${#base_name}))
-              underline=$(echo "$base_name" | sed 's/./=/g')
-              custom_title="${underline}\n${base_name}\n${underline}\n"
               # Convert the .man file to .rst
-              pandoc -f man -t rst "$man_file" -s -o "$target_file" --metadata title=$custom_title 2>/dev/null || echo "Error processing $man_file"
+              pandoc -f man -t rst "$man_file" -s -o "$target_file" --metadata title=$base_name 2>/dev/null || echo "Error processing $man_file"
               #if [ -f "$target_file" ]; then
                 # Replace the lines '=== man ===' and surrounding lines with the base filename
                 #  sed -i "/^===/{
