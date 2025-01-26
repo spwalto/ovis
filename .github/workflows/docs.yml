@@ -89,8 +89,11 @@ jobs:
               echo "   :maxdepth: 4" >> "$dir/index.rst"
               echo "" >> "$dir/index.rst"
 
-              # Use wildcard for .rst files in docs/man directory, excluding subdirectories
-              echo "   *" >> "$dir/index.rst"
+              # List all .rst files directly in docs/man
+              for rst_file in $rst_files; do
+                base_name=$(basename "$rst_file" .rst)
+                echo "   $base_name" >> "$dir/index.rst"
+              done
             else
               # Capitalize subdirectory name for other subdirectories
               caption=$(basename "$dir" | sed 's/^\(\w\)/\U\1/')  # Capitalize first letter
@@ -103,8 +106,17 @@ jobs:
               echo "   :maxdepth: 4" >> "$dir/index.rst"
               echo "" >> "$dir/index.rst"
 
-              # Add wildcard for .rst files in this directory
-              echo "   *" >> "$dir/index.rst"
+              # List all .rst files in this subdirectory
+              for rst_file in $rst_files; do
+                base_name=$(basename "$rst_file" .rst)
+                echo "   $base_name" >> "$dir/index.rst"
+              done
+
+              # Include index.rst files of subdirectories
+              for subdir in $subdirs; do
+                subdir_name=$(basename "$subdir")
+                echo "   $subdir_name/index" >> "$dir/index.rst"
+              done
             fi
           fi
 

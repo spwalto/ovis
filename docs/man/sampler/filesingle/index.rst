@@ -1,4 +1,4 @@
-Filesingle
+Test Filesingle
 ==========
 
 .. toctree::
