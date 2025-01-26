@@ -4,5 +4,5 @@ Store
 .. toctree::
    :maxdepth: 4
 
-   timescale
-   tutorial
+   man/contrib/store/timescale/index
+   man/contrib/store/tutorial/index

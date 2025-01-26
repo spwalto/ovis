@@ -4,4 +4,4 @@ Third-plugins
 .. toctree::
    :maxdepth: 4
 
-   my_plugin
+   man/third-plugins/my_plugin/index

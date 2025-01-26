@@ -4,5 +4,5 @@ Contrib
 .. toctree::
    :maxdepth: 4
 
-   store
-   sampler
+   man/contrib/store/index
+   man/contrib/sampler/index

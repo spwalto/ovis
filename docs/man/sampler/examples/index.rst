@@ -4,5 +4,5 @@ Examples
 .. toctree::
    :maxdepth: 4
 
-   synthetic
-   array_example
+   man/sampler/examples/synthetic/index
+   man/sampler/examples/array_example/index

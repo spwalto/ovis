@@ -38,8 +38,8 @@ Man Pages
    ldmsd_setgroup
    ldmsd_yaml_parser
    lsdate
-   store
-   contrib
-   ldmsd
-   third-plugins
-   sampler
+   man/store/index
+   man/contrib/index
+   man/ldmsd/index
+   man/third-plugins/index
+   man/sampler/index
