@@ -32,14 +32,8 @@ jobs:
       
       - name: Convert .man files to .rst
         run: |
-          # Check for modified or staged .man files
-          modified_files=$(git diff --name-only HEAD | grep "\.man$" || true)
-
-          # Check for newly added .man files
-          new_files=$(git ls-files --others --exclude-standard | grep "\.man$" || true)
-
           # Combine both lists of changed files
-          changed_files=$(echo -e "$modified_files\n$new_files" | sort -u | grep -v '^$')
+          changed_files=$(git log --name-only --pretty="" -- "*.man" | sort -u)
           
           # If there are changes in .man files
           if [ ! -z "$changed_files" ]; then
