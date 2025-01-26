@@ -63,7 +63,7 @@ jobs:
 
             done
           fi
-              
+
       - name: Update index.rst files
         run: |
           # Function to generate index.rst for all subdirectories
@@ -112,7 +112,7 @@ jobs:
           for subdir in $subdirs; do
             generate_index_rsts "$subdir"  # Recursively process subdirectories
           done
-        }
+          }
 
           # Start by generating index.rst for docs/man and all its subdirectories
           generate_index_rsts "docs/man"
