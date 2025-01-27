@@ -49,8 +49,8 @@ jobs:
             echo "Checking for modified or newly added .man files in the most recent commit"
 
             # Fetch the list of changed .man files from the latest commit
-            git log -1 --name-only --diff-filter=AM | grep "\.man$"
-            git log -1 --name-only --diff-filter=AM | grep "\.man$" | while IFS= read -r modified_man; do
+            git diff origin/master HEAD --name-only --diff-filter=AM | grep "\.man$"
+            git diff origin/master HEAD --name-only --diff-filter=AM | grep "\.man$" | while IFS= read -r modified_man; do
               # Construct the target .rst file path
               target_file="docs/man/$(echo "$modified_man" | sed 's|^ldms/src/||;s|^ldms/man/||;s/\.man$/.rst/')"
 
