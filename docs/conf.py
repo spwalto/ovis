@@ -2,7 +2,7 @@
 
 # -- Project information
 
-project = 'OVIS-HPC'
+project = 'LDMS'
 copyright = '2025, Sandia National Laboratories and Open Grid Computing, Inc.'
 author = 'SNL/OGC'
 
