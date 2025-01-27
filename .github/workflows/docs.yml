@@ -33,26 +33,26 @@ jobs:
       - name: Convert .man files to .rst
         run: |
           # Check if docs/man/ is empty
-          #if [ ! -d docs/man ] || [ -z "$(ls -A docs/man)" ]; then
-          #  echo "docs/man is empty or does not exist, converting all .man files"
-          #  find ldms/src ldms/man -name "*.man" | while IFS= read -r man_file; do
-          #    target_file="docs/man/$(echo "$man_file" | sed 's|^ldms/src/||;s|^ldms/man/||;s/\.man$/.rst/')"
-          #    # Ensure the target directory exists
-          #    mkdir -p "$(dirname "$target_file")"
-          #    # Get the base name of the .man file to use as the title
-          #    base_name=$(basename "$man_file" .man)
-          #    
-          #    # Convert the .man file to .rst
-          #    pandoc -f man -t rst "$man_file" -s -o "$target_file" --metadata title=$base_name 2>/dev/null || echo "Error processing $man_file"
-          #  done
-          #else
+          if [ ! -d docs/man ] || [ -z "$(ls -A docs/man)" ]; then
+            echo "docs/man is empty or does not exist, converting all .man files"
+            find ldms/src ldms/man -name "*.man" | while IFS= read -r man_file; do
+              target_file="docs/man/$(echo "$man_file" | sed 's|^ldms/src/||;s|^ldms/man/||;s/\.man$/.rst/')"
+              # Ensure the target directory exists
+              mkdir -p "$(dirname "$target_file")"
+              # Get the base name of the .man file to use as the title
+              base_name=$(basename "$man_file" .man)
+              
+              # Convert the .man file to .rst
+              pandoc -f man -t rst "$man_file" -s -o "$target_file" --metadata title=$base_name 2>/dev/null || echo "Error processing $man_file"
+            done
+          fi
            echo "Checking for modified or newly added .man files in the most recent commit"
            # Fetch the full history to ensure accurate diffs
            git fetch --unshallow || true
            # Find added/modified .man files in the latest push
            #changed_man_files=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} -- "*.man")
-           changed_man_files=$(git diff "${{ github.event.before }}" "${{ github.sha }}" --name-only --diff-filter=AM | grep "\.man$")
-           deleted_man_files=$(git diff "${{ github.event.before }}" "${{ github.sha }}" --name-only --diff-filter=D | grep "\.man$") 
+           changed_man_files=$(git diff "${{ github.event.before }}" "${{ github.sha }}" --name-only --diff-filter=AM -- "*.man")
+           deleted_man_files=$(git diff "${{ github.event.before }}" "${{ github.sha }}" --name-only --diff-filter=D -- "*.man") 
 
            if [ -z "$changed_man_files" ]; then
              echo "No new or modified .man files detected."
