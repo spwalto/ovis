@@ -59,13 +59,6 @@ jobs:
           fi
       - name: Update index.rst files only if changes to .man files
         run: |
-          # Check for changes in .man files using git status
-          #modified_man_files=$(git status --porcelain | awk '/\.man$/ {print $2}')
-          # If no .man files have been modified, exit the script
-          #if [ -z "$modified_man_files" ]; then
-          #  echo "No changes detected in .man files. Skipping index.rst updates."
-          #  exit 0
-          #fi
           # Function to generate index.rst for all subdirectories
           generate_index_rsts() {
            local dir="$1"
@@ -98,9 +91,19 @@ jobs:
                 # Add TOC for subdirectory
                 echo ".. toctree::" >> "$dir/index.rst"
                 echo "   :maxdepth: 4" >> "$dir/index.rst"
-                echo "   :glob:" >> "$dir/index.rst"
                 echo "" >> "$dir/index.rst"
                 echo "   *" >> "$dir/index.rst"
+
+                # List all .rst files in the subdirectory
+                #for rst_file in $rst_files; do
+                #  base_name=$(basename "$rst_file" .rst)
+                #  echo "   $base_name" >> "$dir/aindex.rst"
+                #done
+                # Add subdirectory index paths
+                for subdir in $subdirs; do
+                  subdir_name=$(basename "$subdir")
+                  echo "   $subdir_name/index" >> "$dir/index.rst"
+                done
               fi
             fi
             # Recursively generate index.rst for subdirectories
