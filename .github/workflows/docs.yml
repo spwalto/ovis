@@ -47,10 +47,21 @@ jobs:
             done
           else
             echo "Checking for modified or newly added .man files in the most recent commit"
+            # Fetch the full history to ensure accurate diffs
+            git fetch --unshallow || true
+            # Find added/modified .man files in the latest push
+            changed_man_files=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} -- "*.man")
+            
+            if [ -z "$changed_man_files" ]; then
+              echo "No new or modified .man files detected."
+              exit 0
+            fi
 
-            # Fetch the list of changed .man files from the latest commit
-            git diff origin/master HEAD --name-only --diff-filter=AM | grep "\.man$"
-            git diff origin/master HEAD --name-only --diff-filter=AM | grep "\.man$" | while IFS= read -r modified_man; do
+            echo "Detected changes in the following .man files:"
+            echo "$changed_man_files"
+
+            # Process each changed .man file
+            echo "$changed_man_files" | while IFS= read -r modified_man; do
               # Construct the target .rst file path
               target_file="docs/man/$(echo "$modified_man" | sed 's|^ldms/src/||;s|^ldms/man/||;s/\.man$/.rst/')"
 
@@ -60,8 +71,6 @@ jobs:
               # Get the base name of the .man file to use as the title
               base_name=$(basename "$modified_man" .man)
 
-              # Convert the .man file to .rst
-              echo "Processing $modified_man -> $target_file"
               if pandoc -f man -t rst "$modified_man" -s -o "$target_file" --metadata title="$base_name" 2>/dev/null; then
                 echo "Successfully processed $modified_man"
               else
