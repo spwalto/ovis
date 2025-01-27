@@ -61,10 +61,6 @@ To join the LDMS Users Group Mailing List: https://github.com/ovis-hpc/ovis-wiki
    man/contrib/index
    man/third-plugins/index
    
-   ldms_man/index
-   sampler_man/index
-   store_man/index
-
 .. toctree::
    :maxdepth: 2
    :caption: Contributing to LDMS
