@@ -12,7 +12,6 @@ General
    Plugin_store_rabbitkw
    Plugin_store_rabbitv3
    Plugin_store_sos
-   Plugin_testing
    ldms-csv-anonymize
    ldms-csv-export-sos
    ldms-plugins
