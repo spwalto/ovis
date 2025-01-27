@@ -46,16 +46,27 @@ jobs:
               pandoc -f man -t rst "$man_file" -s -o "$target_file" --metadata title=$base_name 2>/dev/null || echo "Error processing $man_file"
             done
           else
-            echo "docs/man is not empty, checking for modified .man files"
-            git diff --name-only HEAD^ HEAD | grep "\.man$" | while IFS= read -r modified_man; do
+            echo "Checking for modified or newly added .man files in the most recent commit"
+
+            # Fetch the list of changed .man files from the latest commit
+            git diff --name-only HEAD~1 HEAD | grep "\.man$" | while IFS= read -r modified_man; do
+              # Construct the target .rst file path
               target_file="docs/man/$(echo "$modified_man" | sed 's|^ldms/src/||;s|^ldms/man/||;s/\.man$/.rst/')"
+
               # Ensure the target directory exists
               mkdir -p "$(dirname "$target_file")"
+
               # Get the base name of the .man file to use as the title
               base_name=$(basename "$modified_man" .man)
+
               # Convert the .man file to .rst
-              pandoc -f man -t rst "$modified_man" -s -o "$target_file" --metadata title=$base_name 2>/dev/null || echo "Error processing $modified_man"
-            done
+              echo "Processing $modified_man -> $target_file"
+              if pandoc -f man -t rst "$modified_man" -s -o "$target_file" --metadata title="$base_name" 2>/dev/null; then
+                echo "Successfully processed $modified_man"
+              else
+                echo "Error processing $modified_man"
+              fi
+            done 
           fi
       - name: Update index.rst files only if changes to .man files
         run: |
@@ -92,13 +103,12 @@ jobs:
                 echo ".. toctree::" >> "$dir/index.rst"
                 echo "   :maxdepth: 4" >> "$dir/index.rst"
                 echo "" >> "$dir/index.rst"
-                echo "   *" >> "$dir/index.rst"
 
                 # List all .rst files in the subdirectory
-                #for rst_file in $rst_files; do
-                #  base_name=$(basename "$rst_file" .rst)
-                #  echo "   $base_name" >> "$dir/aindex.rst"
-                #done
+                for rst_file in $rst_files; do
+                  base_name=$(basename "$rst_file" .rst)
+                  echo "   $base_name" >> "$dir/aindex.rst"
+                done
                 # Add subdirectory index paths
                 for subdir in $subdirs; do
                   subdir_name=$(basename "$subdir")
