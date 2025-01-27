@@ -1,2 +1,0 @@
-   ldmsd_stream_publish
-   ldmsd_stream_subscribe

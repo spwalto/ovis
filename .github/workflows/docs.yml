@@ -68,7 +68,7 @@ jobs:
               fi
             done 
           fi
-      - name: Update index.rst files only if changes to .man files
+      - name: Update index.rst files 
         run: |
           # Function to generate index.rst for all subdirectories
           generate_index_rsts() {
@@ -99,7 +99,6 @@ jobs:
                 echo "$caption" > "$dir/index.rst"    # Add title
                 echo "$(echo "$caption" | sed 's/./=/g')" >> "$dir/index.rst"  # Add underline
                 echo "" >> "$dir/index.rst"
-                # Add TOC for subdirectory
                 echo ".. toctree::" >> "$dir/index.rst"
                 echo "   :maxdepth: 4" >> "$dir/index.rst"
                 echo "" >> "$dir/index.rst"
@@ -107,7 +106,7 @@ jobs:
                 # List all .rst files in the subdirectory
                 for rst_file in $rst_files; do
                   base_name=$(basename "$rst_file" .rst)
-                  echo "   $base_name" >> "$dir/aindex.rst"
+                  echo "   $base_name" >> "$dir/index.rst"
                 done
                 # Add subdirectory index paths
                 for subdir in $subdirs; do
