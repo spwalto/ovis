@@ -33,51 +33,72 @@ jobs:
       - name: Convert .man files to .rst
         run: |
           # Check if docs/man/ is empty
-          if [ ! -d docs/man ] || [ -z "$(ls -A docs/man)" ]; then
-            echo "docs/man is empty or does not exist, converting all .man files"
-            find ldms/src ldms/man -name "*.man" | while IFS= read -r man_file; do
-              target_file="docs/man/$(echo "$man_file" | sed 's|^ldms/src/||;s|^ldms/man/||;s/\.man$/.rst/')"
-              # Ensure the target directory exists
-              mkdir -p "$(dirname "$target_file")"
-              # Get the base name of the .man file to use as the title
-              base_name=$(basename "$man_file" .man)
-              
-              # Convert the .man file to .rst
-              pandoc -f man -t rst "$man_file" -s -o "$target_file" --metadata title=$base_name 2>/dev/null || echo "Error processing $man_file"
-            done
-          else
-            echo "Checking for modified or newly added .man files in the most recent commit"
-            # Fetch the full history to ensure accurate diffs
-            git fetch --unshallow || true
-            # Find added/modified .man files in the latest push
-            changed_man_files=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} -- "*.man")
-            
-            if [ -z "$changed_man_files" ]; then
-              echo "No new or modified .man files detected."
-              exit 0
-            fi
+          #if [ ! -d docs/man ] || [ -z "$(ls -A docs/man)" ]; then
+          #  echo "docs/man is empty or does not exist, converting all .man files"
+          #  find ldms/src ldms/man -name "*.man" | while IFS= read -r man_file; do
+          #    target_file="docs/man/$(echo "$man_file" | sed 's|^ldms/src/||;s|^ldms/man/||;s/\.man$/.rst/')"
+          #    # Ensure the target directory exists
+          #    mkdir -p "$(dirname "$target_file")"
+          #    # Get the base name of the .man file to use as the title
+          #    base_name=$(basename "$man_file" .man)
+          #    
+          #    # Convert the .man file to .rst
+          #    pandoc -f man -t rst "$man_file" -s -o "$target_file" --metadata title=$base_name 2>/dev/null || echo "Error processing $man_file"
+          #  done
+          #else
+           echo "Checking for modified or newly added .man files in the most recent commit"
+           # Fetch the full history to ensure accurate diffs
+           git fetch --unshallow || true
+           # Find added/modified .man files in the latest push
+           #changed_man_files=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} -- "*.man")
+           changed_man_files=$(git diff "${{ github.event.before }}" "${{ github.sha }}" --name-only --diff-filter=AM | grep "\.man$")
+           deleted_man_files=$(git diff "${{ github.event.before }}" "${{ github.sha }}" --name-only --diff-filter=D | grep "\.man$") 
 
-            echo "Detected changes in the following .man files:"
-            echo "$changed_man_files"
+           if [ -z "$changed_man_files" ]; then
+             echo "No new or modified .man files detected."
+             exit 0
+           fi
 
-            # Process each changed .man file
-            echo "$changed_man_files" | while IFS= read -r modified_man; do
-              # Construct the target .rst file path
-              target_file="docs/man/$(echo "$modified_man" | sed 's|^ldms/src/||;s|^ldms/man/||;s/\.man$/.rst/')"
+           echo "Detected changes in the following .man files:"
+           echo "$changed_man_files"
+           # Process each changed .man file
+           echo "$changed_man_files" | while IFS= read -r modified_man; do
+             # Construct the target .rst file path
+             target_file="docs/man/$(echo "$modified_man" | sed 's|^ldms/src/||;s|^ldms/man/||;s/\.man$/.rst/')"
 
-              # Ensure the target directory exists
-              mkdir -p "$(dirname "$target_file")"
+             # Ensure the target directory exists
+             mkdir -p "$(dirname "$target_file")"
 
-              # Get the base name of the .man file to use as the title
-              base_name=$(basename "$modified_man" .man)
+             # Get the base name of the .man file to use as the title
+             base_name=$(basename "$modified_man" .man)
 
-              if pandoc -f man -t rst "$modified_man" -s -o "$target_file" --metadata title="$base_name" 2>/dev/null; then
-                echo "Successfully processed $modified_man"
-              else
-                echo "Error processing $modified_man"
-              fi
-            done 
-          fi
+             if pandoc -f man -t rst "$modified_man" -s -o "$target_file" --metadata title="$base_name" 2>/dev/null; then
+               echo "Successfully processed $modified_man"
+             else
+               echo "Error processing $modified_man"
+             fi
+           done
+
+           # Handle deleted .man files
+           if [ -n "$deleted_man_files" ]; then
+             echo "Processing deleted .man files:"
+             echo "$deleted_man_files"
+             echo "$deleted_man_files" | while IFS= read -r deleted_man; do
+               # Construct the corresponding .rst file path
+               target_file="docs/man/$(echo "$deleted_man" | sed 's|^ldms/src/||;s|^ldms/man/||;s/\.man$/.rst/')"
+
+               # Remove the corresponding .rst file if it exists
+               if [ -f "$target_file" ]; then
+                 echo "Removing $target_file as $deleted_man was deleted"
+                 rm -f "$target_file"
+               else
+                 echo "No corresponding .rst file found for $deleted_man"
+               fi
+             done
+           else
+             echo "No deleted .man files detected."
+           fi
+         
       - name: Update index.rst files 
         run: |
           # Function to generate index.rst for all subdirectories
