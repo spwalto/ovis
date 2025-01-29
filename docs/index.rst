@@ -60,14 +60,14 @@ To join the LDMS Users Group Mailing List: https://github.com/ovis-hpc/ovis-wiki
    man/store/index
    man/contrib/index
    man/third-plugins/index
-   
+
 .. toctree::
    :maxdepth: 2
    :caption: Contributing to LDMS
 
    contributing/index
 
-OVIS Subproject Github Repositories 
+OVIS Subproject Github Repositories
 ====================================
 
 `ldms <https://github.com/ovis-hpc/ovis>`_

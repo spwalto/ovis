@@ -29,7 +29,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install pandoc
-      
+
       - name: Convert .man files to .rst
         run: |
           # Check if docs/man/ is empty
@@ -39,7 +39,6 @@ jobs:
               target_file="docs/man/$(echo "$man_file" | sed 's|^ldms/src/||;s|^ldms/man/||;s/\.man$/.rst/')"
               mkdir -p "$(dirname "$target_file")"
               base_name=$(basename "$man_file" .man)
-
               # Convert the .man file to .rst
               if pandoc -f man -t rst "$man_file" -s -o "$target_file" --metadata title="$base_name" 2>/tmp/pandoc_error.log; then
                 echo "Successfully converted $man_file -> $target_file"
@@ -54,54 +53,20 @@ jobs:
             exit 0
           fi
 
-          echo "Checking for modified, newly added, or deleted .man files in the most recent commit"
-          # Fetch the full history to ensure accurate diffs
+      - name: Update index.rst files
+        run: |
+          echo "Checking for added or deleted .man files in the most recent commit"
           git fetch --unshallow || true
+          man_files=$(git diff "${{ github.event.before }}" "${{ github.sha }}" --name-only --diff-filter=AD -- "*.man")
 
-          # Get the list of added, modified, and deleted .man files
-          changed_man_files=$(git diff "${{ github.event.before }}" "${{ github.sha }}" --name-only --diff-filter=AM -- "*.man")
-          deleted_man_files=$(git diff "${{ github.event.before }}" "${{ github.sha }}" --name-only --diff-filter=D -- "*.man")
-
-          # If no .man files were added, modified, or deleted, exit
-          if [ -z "$changed_man_files" ] && [ -z "$deleted_man_files" ]; then
-            echo "No new, modified, or deleted .man files detected."
+          if [ -n "$man_files" ]; then
+            echo "Detected added or deleted .man files:"
+            continue
+          else
+            echo "No added or deleted .man files detected. Skipping update index.rst files"
             exit 0
           fi
 
-          # Combine all .man files to process
-          all_man_files="$changed_man_files"
-          if [ -n "$deleted_man_files" ]; then
-            all_man_files="$all_man_files"$'\n'"$deleted_man_files"
-          fi
-
-          # Process each .man file (new, modified, and deleted)
-          echo "Processing .man files (added, modified, and deleted):"
-
-          echo "$all_man_files" | while IFS= read -r man_file; do
-            # Construct the corresponding .rst file path
-            target_file="docs/man/$(echo "$man_file" | sed 's|^ldms/src/||;s|^ldms/man/||;s/\.man$/.rst/')"
-            mkdir -p "$(dirname "$target_file")"
-            base_name=$(basename "$man_file" .man)
-
-            if [ -n "$changed_man_files" ] && echo "$changed_man_files" | grep -q "$man_file"; then
-              # If the file is new or modified, convert it to .rst
-              if pandoc -f man -t rst "$man_file" -s -o "$target_file" --metadata title="$base_name" 2>/tmp/pandoc_error.log; then
-                echo "Successfully processed $man_file -> $target_file"
-              else
-                echo "Error processing $man_file. See error log for details:"
-                cat /tmp/pandoc_error.log | while IFS= read -r error_line; do
-                echo "$error_line"  
-              fi
-            elif [ -n "$deleted_man_files" ] && echo "$deleted_man_files" | grep -q "$man_file"; then
-              if [ -f "$target_file" ]; then
-                echo "Removing $target_file as $man_file was deleted"
-                rm -f "$target_file"
-              fi
-            fi
-          done
-         
-      - name: Update index.rst files 
-        run: |
           # Function to generate index.rst for all subdirectories
           generate_index_rsts() {
            local dir="$1"
