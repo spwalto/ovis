@@ -19,11 +19,11 @@ SYNOPSIS
 
 -  host=\ *HOST* [port=\ *PORT*]
 
--  
+-
 
--  
+-
 
--  
+-
 
 DESCRIPTION
 ===========
@@ -196,19 +196,19 @@ QGROUP COMMANDS
    **[port**\ *PORT*\ **]**
       The port of the member (default: 411).
 
--  
+-
 
 ..
 
    Start the qgroup service.
 
--  
+-
 
 ..
 
    Stop the qgroup service.
 
--  
+-
 
 ..
 
@@ -225,7 +225,7 @@ EXAMPLE
 
 -  host=node-3 port=411 xprt=sock auth=munge
 
--  
+-
 
 SEE ALSO
 ========

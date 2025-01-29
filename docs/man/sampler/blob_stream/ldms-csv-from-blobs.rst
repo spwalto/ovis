@@ -36,18 +36,18 @@ OPTIONS
 =======
 
 --struct-map STRUCT_MAP_FILE
-   | 
+   |
    | STRUCT_MAP_FILE is the name of a JSON file that defines non-default
      mapping of fields within any json blob type. See STRUCT MAPPING
      below.
 
 --crc-map CRC_MAP_FILE
-   | 
+   |
    | CRC_MAP_FILE is the name of a JSON file that defines mapping from a
      CRC32
 
 --flatten true
-   | 
+   |
    | Automatically strip prefixes from dot-qualified names. This may
      generate multiple columns with the same name if inner and outer
      JSON dictionaries use the same keyword.

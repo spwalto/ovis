@@ -38,11 +38,11 @@ attributes of the base class.
    | configuration line
 
    name=<plugin_name>
-      | 
+      |
       | This MUST be all_example.
 
    schema=<schema>
-      | 
+      |
       | Optional schema name. It is intended that the same sampler on
         different nodes with different metrics have a different schema.
         If not specified, will default to \`all_example`.

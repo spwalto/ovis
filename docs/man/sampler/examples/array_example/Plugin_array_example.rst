@@ -37,27 +37,27 @@ attributes of the base class.
    | configuration line
 
    name=<plugin_name>
-      | 
+      |
       | This MUST be array_example.
 
    schema=<schema>
-      | 
+      |
       | Optional schema name. It is intended that the same sampler on
         different nodes with different metrics have a different schema.
         If not specified, will default to \`array_example`.
 
    num_metrics=<num_metrics>
-      | 
+      |
       | The number of metrics in the schema. Defaults to a set, one each
         for on a variety of types.
 
    num_ele=<num_ele>
-      | 
+      |
       | The number of elements in each array. All arrays have the same
         number of elements. Defaults to 10.
 
    type=<type>
-      | 
+      |
       | The type of metric arrays, e.g., U64_ARRAY, U8_ARRAY, etc.
         Defaults to a set with examples for a variety of types.
 

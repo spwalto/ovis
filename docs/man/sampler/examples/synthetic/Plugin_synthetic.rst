@@ -35,25 +35,25 @@ attributes of the base class.
    | configuration line
 
    name=<plugin_name>
-      | 
+      |
       | This MUST be synthetic
 
    schema=<schema>
-      | 
+      |
       | Optional schema name. It is intended that the same sampler on
         different nodes with different metrics have a different schema.
         If not specified, it will default to \`synthetic`.
 
    origin=<origin>
-      | 
+      |
       | The zero time for periodic functions.
 
    height=<height>
-      | 
+      |
       | The amplitude of functions.
 
    period=<period>
-      | 
+      |
       | The function period.
 
 NOTES

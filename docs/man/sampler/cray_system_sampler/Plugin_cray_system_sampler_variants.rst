@@ -66,27 +66,27 @@ CONFIGURATION ATTRIBUTE SYNTAX
    | This MUST be cray_gemini_r sampler OR cray_aries_r_sampler.
 
    schema=<sname>
-      | 
+      |
       | Optional schema name. It is intended that the same sampler on
         different nodes with different metrics have a different schema.
         This will default to cray_aries_r or cray_gemini_r as
         appropriate, if unspecified.
 
    hsn_metrics_type=<mtype>
-      | 
+      |
       | HSN metrics type identifier - Values are 0,1,2. 0 = counter data
         only, 1 = derived data (for certain HSN values), 2 = both.
         Default is counter data only. (NOTE: Formerly called
         gemini_metrics_type)
 
    llite=<llite>
-      | 
+      |
       | CSV separated ost list. Non-existent values will be populated
         with 0's. Only relevant if you have built with --enable-lustre.
         This must be specified if built and not turned off.
 
    rtrfile=<rtrfile>
-      | 
+      |
       | parsed rtr file with media type and link information. For
         cray_gemini_r/d_samplers only.
 
@@ -101,7 +101,7 @@ CONFIGURATION ATTRIBUTE SYNTAX
    metrics. Only relevant if you have built with --enable_cray_nvidia.
 
    off_<namespace>=1
-      | 
+      |
       | Optionally turn off collection for any set of metrics. Valid
         options for <namespace> are:
 
@@ -124,7 +124,7 @@ CONFIGURATION ATTRIBUTE SYNTAX
 
       energy (cray_aries_r_sampler only)
 
-   | 
+   |
    | Multiple different options should be specified as different
      attributes (e.g., off_vmstat=1 off_lustre=1). Note that not
      specifying any gpu_devices or llites will also result in no gpu or

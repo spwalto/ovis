@@ -38,17 +38,17 @@ attributes of the base class.
    | configuration line
 
    name=<plugin_name>
-      | 
+      |
       | This MUST be hweventpapi.
 
    schema=<schema>
-      | 
+      |
       | Optional schema name. It is intended that the same sampler on
         different nodes with different metrics have a different schema.
         If not specified, will default to \`hweventpapi`.
 
    metafile=<PATH>
-      | 
+      |
       | The metafile defines what to collect with undocumented
         "attribute=value" syntax. The metafile is watched for changes
         and automatically reloaded.

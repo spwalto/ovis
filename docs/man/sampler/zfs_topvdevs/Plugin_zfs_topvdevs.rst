@@ -37,7 +37,7 @@ attributes of the base class.
    | configuration line
 
    name=<plugin_name>
-      | 
+      |
       | This MUST be zfs_topvdevs.
 
 EXAMPLES

@@ -4,12 +4,12 @@ Plugin_store_avro_kafka
 
 :Date:   30 Mar 2023
 
-NAME 
+NAME
 ====
 
 store_avro_kafka - LDMSD store_avro_kafka plugin
 
-SYNOPSIS 
+SYNOPSIS
 ========
 
 **config** **name=store_avro_kafka** **producer=PRODUCER**
@@ -17,7 +17,7 @@ SYNOPSIS
 [ **encoding=\ AVRO** ] [ **kafka_conf=\ PATH** ] [
 **serdes_conf=\ PATH** ]
 
-DESCRIPTION 
+DESCRIPTION
 ===========
 
 **``store_avro_kafka``** implements a decomposition capable LDMS metric
@@ -33,7 +33,7 @@ When in *AVRO* mode, the plugin manages schema in cooperation with an
 Avro Schema Registry. The location of this registry is specified in a
 configuration file or optionally on the **``config``** command line.
 
-CONFIG OPTIONS 
+CONFIG OPTIONS
 ==============
 
 -  A string indicating the encoding mode: "JSON" will encode messages in
@@ -268,10 +268,10 @@ schema-id to query the Schema registry for a schema. Once found, the
 client will construct a serdes from the schema definition and use this
 serdes to decode the message into Avro values.
 
-EXAMPLES 
+EXAMPLES
 ========
 
-kafka_conf Example File 
+kafka_conf Example File
 -----------------------
 
    ::
@@ -282,7 +282,7 @@ kafka_conf Example File
       # Specify the location of the Kafka broker
       bootstrap.server=localhost:9092
 
-serdes_conf Example File 
+serdes_conf Example File
 ------------------------
 
    ::
@@ -292,7 +292,7 @@ serdes_conf Example File
       # set to anything other than an empty string
       serdes.schema.url=https://localhost:8081
 
-Example strg_add command 
+Example strg_add command
 ------------------------
 
    ::
@@ -300,7 +300,7 @@ Example strg_add command
       strgp_add name=aks plugin=store_avro_kafka container=kafka-broker.int:9092 decomposition=aks-decomp.conf
       strgp_start name=aks
 
-Example strg_add command w/o container 
+Example strg_add command w/o container
 --------------------------------------
 
 In this example, the strgp_add parameter, container, is set to be

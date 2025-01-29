@@ -36,7 +36,7 @@ PLUGIN CONFIGURATION
 Configuration Options:
 
    **name=**\ *store_kafka*
-      | 
+      |
       | The name of the plugin. This must be **store_kafka**.
 
    **path=**\ *KAFKA_CONFIG_JSON_FILE*
@@ -59,20 +59,20 @@ STRGP CONFIGURATION
 strgp options:
 
    **name=**\ *NAME*
-      | 
+      |
       | The name of the strgp.
 
    **plugin=**\ store_kafka
-      | 
+      |
       | The plugin must be store_kafka.
 
    **container=**\ *KAFKA_SERVER_LIST*
-      | 
+      |
       | A comma-separated list of Kafka servers (host[:port]). For
         example: container=localhost,br1.kf:9898.
 
    **decomposition=**\ *DECOMP_CONFIG_JSON_FILE*
-      | 
+      |
       | Set-to-row decomposition configuration file (JSON format). See
         more about decomposition in **ldmsd_decomposition**\ (7).
 

@@ -4,12 +4,12 @@ Plugin_app_sampler
 
 :Date:   30 Sep 2019
 
-NAME 
+NAME
 ====
 
 ldmsd_app_sampler - LDMSD app_sampler plugin
 
-SYNOPSIS 
+SYNOPSIS
 ========
 
 **config** **name=app_sampler** **producer=**\ *PRODUCER*
@@ -17,7 +17,7 @@ SYNOPSIS
 **component_id=\ COMPONENT_ID** ] [ **stream=\ STREAM_NAME** ] [
 **metrics=\ METRICS** ] [ **cfg_file=\ PATH** ]
 
-DESCRIPTION 
+DESCRIPTION
 ===========
 
 **``app_sampler``** collects metrics from **``/proc/<PID>``** according
@@ -34,7 +34,7 @@ metrics to monitor by specifying **``metrics``** option (comma-separated
 string) or writing a JSON configuration file and specifying
 **``cfg_file``** option (see **``EXAMPLES``** section).
 
-CONFIG OPTIONS 
+CONFIG OPTIONS
 ==============
 
 -  Must be app_sampler.
@@ -73,7 +73,7 @@ specified. Attributes other than 'stream' and 'metrics' are ignored.
 If the **``cfg_file``** is given, **``stream``** and **``metrics``**
 options are ignored.
 
-LIST OF METRICS 
+LIST OF METRICS
 ===============
 
    ::
@@ -233,15 +233,15 @@ LIST OF METRICS
       /* /proc/[pid]/wchan */
       wchan,
 
-BUGS 
+BUGS
 ====
 
 No known bugs.
 
-EXAMPLES 
+EXAMPLES
 ========
 
-Example 1 
+Example 1
 ---------
 
 Get everyting:
@@ -250,7 +250,7 @@ Get everyting:
 
       config name=app_sampler
 
-Example 2 
+Example 2
 ---------
 
 Down-select and with non-default stream name:
@@ -259,7 +259,7 @@ Down-select and with non-default stream name:
 
       config name=app_sampler metrics=stat_pid,stat_utime stream=mystream
 
-Example 3 
+Example 3
 ---------
 
 Down-select using config file, using default stream:

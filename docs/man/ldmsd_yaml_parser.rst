@@ -109,19 +109,19 @@ endpoints
 List of dictionaries of endpoint configurations for these daemons.
 
    **names**
-      | 
+      |
       | Unique names by which to identify the transport endpoints.
         Hostlist format. e.g. "sampler-[1-4]"
 
    **[hosts]**
-      | 
+      |
       | Hosts for an endpoint may be optionally specified if a certain
         interface is desired other than the stated hostname in the top
         level daemons section. Hostlist format. e.g. "node-[1-4]" for 4
         LDMSDs
 
    **[bind_all]**
-      | 
+      |
       | The bind_all boolean may be specified to configure the LDMS
         daemon to listen on all available interfaces when using this
         endpoint. The prdcr_add command will use either the top level
@@ -129,32 +129,32 @@ List of dictionaries of endpoint configurations for these daemons.
         endpoints. bind_all accepts <True/False>
 
    **ports**
-      | 
+      |
       | Daemon endpoint ports on which to communicate. Hostlist or
         integer format. e.g. "[10001-10004]"
       | If there are two endpoints, and two ports, one will be assigned
         to each endpoint.
 
    **xprt**
-      | 
+      |
       | The communication transport for the endpoint. <sock/rdma/ugni>
         are supported.
 
    **auth**
-      | 
+      |
       | Dictionary of a authentication domains plugin configuration.
 
       **name**
-         | 
+         |
          | Unique authentication domain name for this authentication
            configuration.
 
       **plugin**
-         | 
+         |
          | Name of the authentication domain plugin <ovis/munge>
 
       **conf**
-         | 
+         |
          | Dictionary of plugin specific configuration options for this
            authentication domain.
 
@@ -201,11 +201,11 @@ are the environment variable name.
 List of dictionaries of streams to subscribe producers to.
 
 **stream**
-   | 
+   |
    | The name of the stream.
 
 **regex**
-   | 
+   |
    | Regular expression matching producers to subscribe to the stream.
 
 peers
@@ -219,57 +219,57 @@ If there are 2 aggregators, and 4 producers, each aggregator will be
 assigned 2 producers in the configuration.
 
 **daemons**
-   | 
+   |
    | String of daemon names in hostlist format that references daemon
      names defined in the top level daemons section.
 
 **endpoints**
-   | 
+   |
    | String of endpoints in hostlist format that references endpoints
      defined in the top level daemons section.
 
 **reconnect**
-   | 
+   |
    | Interval by which the aggregator will attempt to reconnect to a
      disconnected producer. Unit string format.
 
 **type**
-   | 
+   |
    | Producer type. Either active or passive. passive is being
      deprecated.
 
 **[rail]**
-   | 
+   |
    | The number of rail endpoints for the producer (default is 1).
 
 **[quota]**
-   | 
+   |
    | The receive quota the ldmsd being configured advertises to the
      producer (default value from ldmsd --quota). This limits how much
      outstanding data the ldmsd holds for a producer.
 
 **[rx_rate]**
-   | 
+   |
    | The receieve rate limit in bytes/second for this connection. The
      default is -1 (unlimited).
 
 **[perm]**
-   | 
+   |
    | The permissions to modify the producer in the future. String of
      octal number or unix-like permissions format. e.g. "rw-r--r--"
 
 **[cache_ip]**
-   | 
+   |
    | True/False boolean. True will cache the IP address after the first
      successful resolution (default). False will resolve the hostname at
      prdcr_add and at every connection attempt.
 
 **updaters**
-   | 
+   |
    | List of dictionaries of updater policy configurations.
 
    **mode**
-      | 
+      |
       | Updater mode. Accepted strings are <pull|push|onchange|auto>
         "onchange" means the Updater will get an update whenever the set
         source ends a transaction or pushes the update. "push" means the
@@ -280,41 +280,41 @@ assigned 2 producers in the configuration.
    will schedule the set updates according to the given interval
 
    **interval**
-      | 
+      |
       | The update/collect interval at which to update the producer.
         Unit string format.
 
    **[offset]**
-      | 
+      |
       | Offset for synchronized aggregation. Optional. Unit string
         format.
 
    **[perm]**
-      | 
+      |
       | The permissions that allow modification of an updater in the
         future. String of octal number or unix-like permissions format.
         e.g. "rw-r--r--"
 
    **[producers]**
-      | 
+      |
       | Optional regular expression matching zero or more producers to
         add to this updater. If omitted, all producers in the parent
         dictionary will be added to this updater.
 
    **[sets]**
-      | 
+      |
       | Optional list of dictionaries containing regular expressions
         that match either a schema instance name or a metric set
         instance name. If omitted, all sets belonging to producers added
         to this updater will be added to this updater.
 
       **regex**
-         | 
+         |
          | Regular expression to either match instance names or schemas
            to apply this updater policy too.
 
       **field**
-         | 
+         |
          | Field to use when matching the regular expression.
            <schema|inst>. schema matches a schema instance name, and
            inst matches a metric set instance name.
@@ -330,30 +330,30 @@ configuration, the aggregators configuration information is provided in
 the samplers section under the key "advertisers".
 
    **name**
-      | 
+      |
       | String name for the producer listener - does not need to be
         unique across aggregators.
 
    **[regex]**
-      | 
+      |
       | A regular expression matching hostnames in advertisements to add
         as a producer.
 
    **[ip]**
-      | 
+      |
       | An IP masks to filter advertisements using the source IP.
 
    **[disable_start]**
-      | 
+      |
       | Informs the ldmsd not to start producers.
 
    **updaters**
-      | 
+      |
       | List of dictionaries containing updater policies for the
         producers that ultimately connect to the producer listener.
 
       **mode**
-         | 
+         |
          | Updater mode. Accepted strings are <pull|push|onchange|auto>
            "onchange" means the Updater will get an update whenever the
            set source ends a transaction or pushes the update. "push"
@@ -365,40 +365,40 @@ the samplers section under the key "advertisers".
       interval and offset values.
 
       **interval**
-         | 
+         |
          | The update/collect interval at which to update the producer.
            Unit string format.
 
       **[offset]**
-         | 
+         |
          | Offset for synchronized aggregation. Optional. Unit string
            format.
 
       **[perm]**
-         | 
+         |
          | The permissions to modify the producer in the future. String
            of octal number or unix-like permissions format. e.g.
            "rw-r--r--"
 
       **[producers]**
-         | 
+         |
          | Optional regular expression matching zero or more producers
            to add to this updater. If omitted, all producers in the
            parent dictionary will be added to this updater.
 
       **[sets]**
-         | 
+         |
          | List of dictionaries containing regular expressions that
            match either a schema instance name or a metric set instance
            name.
 
          **regex**
-            | 
+            |
             | Regular expression to either match instance names or
               schemas to apply this updater policy too.
 
          **field**
-            | 
+            |
             | Field to use when matching the regular expression.
               <schema|inst>. schema matches a schema instance name, and
               inst matches a metric set instance name.
@@ -412,81 +412,81 @@ top level "daemons" dictionary. Plugins reference instance names of
 plugins defined in the "plugins" top level dictionary.
 
 **daemons**
-   | 
+   |
    | String of daemon names in hostlist format that references daemon
      names defined in the top level daemons section.
 
 **plugins**
-   | 
+   |
    | List of strings of plugin instance names to load that reference
      plugin instance names defined in the top level plugins section.
      String format.
 
 **[advertise]**
-   | 
+   |
    | Alternative configuration to the aggregators "peers" where the
      sampler initiates a connection to the aggregator. The producer
      listener for an advertiser is defined in the top level aggregators
      section.
 
    **names**
-      | 
+      |
       | String of daemon names in hostlist format to advertise the
         samplers as.
 
    **hosts**
-      | 
+      |
       | String of daemon hosts in hostlist format, that references
         daemon names defined in the top level "daemons" section, for the
         samplers to advertise to
 
    **port**
-      | 
+      |
       | String of port(s) in hostlist format of the aggregator daemons
         that the sampler daemons will attempt to connect to.
 
    **reconnect**
-      | 
+      |
       | The interval at which the sampler will attempt to reconnect to a
         disconnected advertiser. Float followed by a unit string.
 
    **[rail]**
-      | 
+      |
       | The number of rail endpoints for the producer (default is 1).
 
    **[quota]**
-      | 
+      |
       | The send quota this ldmsd advertises to the producer. This
         limits how much outstanding data this ldmsd holds for the
         aggregator. This ldmsd will drop messages when it does not have
         enough send quota.
 
    **[rx_rate]**
-      | 
+      |
       | The receieve rate limit in bytes/second for this connection. The
         default is -1 (unlimited).
 
    **[perm]**
-      | 
+      |
       | The permissions in order to modify the advertiser in the future.
         String of octal number or unix-like permissions format. e.g.
         "rw-r--r--"
 
    **[auth]**
-      | 
+      |
       | Dictionary of a authentication domains plugin configuration.
 
       **name**
-         | 
+         |
          | Unique authentication domain name for this authentication
            configuration.
 
       **plugin**
-         | 
+         |
          | Name of the authentication domain plugin <ovis/munge>
 
       **[conf]**
-         | 
+         |
          | Optional dictionary of plugin specific configuration options
            for this authentication domain.
 
@@ -499,38 +499,38 @@ Dictionary of storage policies and their configuration information with
 each key being a storage policy name.
 
 **container**
-   | 
+   |
    | File path of the database container.
 
 **[schema]**
-   | 
+   |
    | Name of the metric set schema. This is a required argument unless
      decomposition is specified. May not be used in conjunction with
      "regex".
 
 **plugin**
-   | 
+   |
    | Name of a storage plugin that matches a key of a plugin defined in
      the top level plugins section.
 
 **[perm]**
-   | 
+   |
    | The permissions of who can modify the storage plugin in the future.
      String of octal number or unix-like permissions format. e.g.
      "rw-r--r--"
 
 **[decomposition]**
-   | 
+   |
    | Path to a decomposition configuration file.
 
 **[regex]**
-   | 
+   |
    | A regular expression matching the schema set names to apply the
      decomposition file to. May not be used in conjunction with
      "schema".
 
 **[flush]**
-   | 
+   |
    | Optional interval of time that directs flushing of the store to the
      database.
 
@@ -541,22 +541,22 @@ Dictionary of plugins and their configuration information with each key
 being a plugin instance name.
 
    **name**
-      | 
+      |
       | The name of a plugin to load. e.g. meminfo
 
    **interval**
-      | 
+      |
       | The interval at which to sample data.
 
    **[offset]**
-      | 
+      |
       | Offset (shift) from the sample mark in the same format as
         intervals. Offset can be positive or negative with magnitude up
         to 1/2 the sample interval. The default offset is 0. Collection
         is always synchronous.
 
    **config**
-      | 
+      |
       | A list of dictionaries containing plugin configuration options.
         Each dictionary in the list is a "config" command call, and in
         this fashion, the YAML configuration mimics running multiple
@@ -579,23 +579,23 @@ being a plugin instance name.
       included in the configuration.
 
          **schema**
-            | 
+            |
             | Name of the metric set to use.
 
          **[perm]**
-            | 
+            |
             | Access permissions for the metric set within the
               container. String of octal number or unix-like permissions
               format. e.g. "rw-r--r--"
 
          **[component_id]**
-            | 
+            |
             | Unique ID of the component being monitored. If configuring
               an entire cluster, it's advised to set this to reference
               an environment variable on the system.
 
          **[producer]**
-            | 
+            |
             | Producer name must be unique in an aggregator. It is
               independent of any attributes specified for the metric
               sets or hosts. A producer name will be generated by the

@@ -16,15 +16,15 @@ SYNOPSIS
 -  host=\ *HOST* port=\ *PORT* xprt=\ *XPRT* [peer_name=\ *NAME*]
    [interval=\ *USEC*] [timeout_factor=\ *FLOAT*] [auto_switch=\ *0|1*]
 
--  
+-
 
--  
+-
 
--  
+-
 
--  
+-
 
--  
+-
 
 DESCRIPTION
 ===========

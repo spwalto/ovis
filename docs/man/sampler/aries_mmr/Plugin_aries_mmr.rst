@@ -64,22 +64,22 @@ attributes of the base class.
    | configuration line
 
    name=<plugin_name>
-      | 
+      |
       | This MUST be aries_mmr, aries_nic_mmr, or aries_rtr_mmr.
 
    schema=<sname>
-      | 
+      |
       | Optional schema name. It is intended that the same sampler on
         different nodes with different metrics have a different schema.
         This will default to cray_aries_r or cray_gemini_r as
         appropriate, if unspecified.
 
    aries_rtr_id=<rtrid>
-      | 
+      |
       | Optional aries router identifier. Defaults to 0 length string.
 
    file=<file>
-      | 
+      |
       | Configuration file of aries performance counter names that will
         be added in exactly as they are specified. At least one file
         must be specified.
@@ -116,7 +116,7 @@ EXAMPLES
 | #RAW METRICS
 | AR_NIC_NETMON_ORB_EVENT_CNTR_REQ_FLITS
 
-| 
+|
 | AR_NIC_RSPMON_NPT_EVENT_CNTR_NL_FLITS
 | # this is a test
 | AR_RTR_1_2_INQ_PRF_INCOMING_FLIT_VC0

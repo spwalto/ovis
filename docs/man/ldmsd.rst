@@ -138,7 +138,7 @@ General/Configuration Options:
    information regarding the YAML configuration file.
 
 **-m, --set_memory**\ *MEMORY_SIZE*
-   | 
+   |
    | MEMORY_SIZE is the maximum size of pre-allocated memory for metric
      sets. The given size must be less than 1 petabytes. For example,
      20M or 20mb are 20 megabytes. The default is adequate for most
@@ -150,7 +150,7 @@ General/Configuration Options:
      value at ldmsd exit.
 
 **-n, --daemon_name**\ *NAME*
-   | 
+   |
    | The name of the LDMS daemon. By default it is "HOSTNAME:PORT". When
      configuring a LDMSD with a YAML configuration file, the
      "daemon_name" identifies a daemon defined in the configuration
@@ -171,7 +171,7 @@ Communication Options:
 ----------------------
 
 **-x**\ *XPRT:PORT:HOST*
-   | 
+   |
    | Specifies the transport type to listen on. May be specified more
      than once for multiple transports. The XPRT string is one of
      'rdma', 'sock', or 'ugni' (CRAY XE/XK/XC). A transport specific
@@ -203,7 +203,7 @@ Log Verbosity Options:
 ----------------------
 
 **-l, --log_file**\ *LOGFILE*
-   | 
+   |
    | LOGFILE is the path to the log file for status messages. Default is
      stdout unless given. The syslog facility is used if LOGFILE is
      exactly "syslog". Silence can be obtained by specifying /dev/null
@@ -211,14 +211,14 @@ Log Verbosity Options:
      below.
 
 **-v, --log_level**\ *LOG_LEVEL*
-   | 
+   |
    | LOG_LEVEL can be one of DEBUG, INFO, ERROR, CRITICAL or QUIET. The
      default level is ERROR. QUIET produces only user-requested output.
      (Note: this has changed from the previous release where q
      designated no (QUIET) logging).
 
 **-L,**\ *--log_config*\ **<CINT:PATH> \| <CINT> \| <PATH>**
-   | 
+   |
    | Append configuration replay messages or configuration debugging
      messages to the log indicated by -l (when PATH is omitted) or to
      the file named PATH. Bit values of CINT correspond to:

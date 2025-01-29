@@ -34,11 +34,11 @@ STORE_SOS INIT CONFIGURATION ATTRIBUTE SYNTAX
    | ldmsd_controller configuration line
 
    name=<plugin_name>
-      | 
+      |
       | This MUST be store_sos.
 
    path=<path>
-      | 
+      |
       | The store will be put into a directory whose root is specified
         by the path argument. This directory must exist; the store will
         be created. The full path to the store will be
@@ -57,27 +57,27 @@ container and schema for a store.
    | ldmsd_controller strgp_add line
 
    plugin=<plugin_name>
-      | 
+      |
       | This MUST be store_sos.
 
    name=<policy_name>
-      | 
+      |
       | The policy name for this strgp.
 
    container=<container>
-      | 
+      |
       | The container and schema define the store as described above
         (see path).
 
    schema=<schema>
-      | 
+      |
       | The container and schema define the store as described above
         (see path). You can have multiples of the same path and
         container, but with different schema (which means they will have
         different metrics) and they will be stored in the same store.
 
    decomposition=<DECOMP_CONFIG_FILE_JSON>
-      | 
+      |
       | Optionally use set-to-row decomposition with the specified
         configuration file in JSON format. See more about decomposition
         in ldmsd_decomposition(7).
@@ -97,11 +97,11 @@ into XXX. Any commands given with no argument, will return usage info.
    | Create a partition.
 
    **-C**\ *<path>*
-      | 
+      |
       | Path to the container
 
    **-s**\ *state*
-      | 
+      |
       | State of the new partition (case insensitive). Default is
         OFFLINE. Optional parameter. Valid options are:
 
@@ -113,7 +113,7 @@ into XXX. Any commands given with no argument, will return usage info.
       or deleted.
 
    **part_name**
-      | 
+      |
       | Name of the partition
 
 **sos_part_delete**
@@ -122,11 +122,11 @@ into XXX. Any commands given with no argument, will return usage info.
      OFFLINE state to be deleted.
 
    **-C**\ *<path>*
-      | 
+      |
       | Path to the container
 
    **name**
-      | 
+      |
       | Name of the parition
 
 **sos_part_modify**
@@ -134,11 +134,11 @@ into XXX. Any commands given with no argument, will return usage info.
    | Modify the state of a partition.
 
    **-C**\ *<path>*
-      | 
+      |
       | Path to the container
 
    **-s**\ *state*
-      | 
+      |
       | State of the new partition (case insensitive). Default is
         OFFLINE. Optional parameter. Valid options are:
 
@@ -150,24 +150,24 @@ into XXX. Any commands given with no argument, will return usage info.
       or deleted.
 
    **part_name**
-      | 
+      |
       | Name of the partition
 
 **sos_part_move**
-   | 
+   |
    | Move a partition to another storage location. -C <path> -p
      <new_path> part_name
 
    **-C**\ *<path>*
-      | 
+      |
       | Path to the container
 
    **-p**\ *<new_path>*
-      | 
+      |
       | The new path.
 
    **part_name**
-      | 
+      |
       | Name of the partition
 
 USING SOS COMMANDS TO LOOK AT DATA IN A PARTITION
@@ -181,7 +181,7 @@ command options are below. Example usage is in the example section.
    | Print a directory of the schemas.
 
    **-C**\ *<path>*
-      | 
+      |
       | Path to the container
 
 **sos_cmd**
@@ -189,7 +189,7 @@ command options are below. Example usage is in the example section.
    | Show debug information for the container
 
    **-C**\ *<path>*
-      | 
+      |
       | Path to the container
 
 **sos_cmd**
@@ -197,22 +197,22 @@ command options are below. Example usage is in the example section.
    | Print data from a container
 
    **-C**\ *<path>*
-      | 
+      |
       | Path to the container
 
    **-q**
       Used to query
 
    **-S**\ *<schema>*
-      | 
+      |
       | Schema querying against
 
    **-X**\ *<index>*
-      | 
+      |
       | Variable that is indexed to use in the query.
 
    **-V**\ *<var>*
-      | 
+      |
       | One or more vars to output.
 
 NOTES

@@ -35,23 +35,23 @@ CONFIGURATION ATTRIBUTE SYNTAX
    | configuration line
 
    name=<plugin_name>
-      | 
+      |
       | This MUST be dcgm_sampler.
 
    use_base=<*>
-      | 
+      |
       | Any value given enables the sampler_base configuration option
         processing (see ldms_sampler_base(7)). If not given, the options
         not listed below are ignored.
 
    interval=<interval(us)>
-      | 
+      |
       | The DCGM library sampling interval (dcgmWatchFields()
         updateFreq). This MUST be set to the same value that is set on
         the dcgm_sampler start line, otherwise behavior is undetermined.
 
    fields=<fields>
-      | 
+      |
       | <fields> is a comma-separated list of integers representing DCGM
         field identifiers that the plugin should watch. By default the
         plugin will watch fields 150,155. The field identifier meanings
@@ -61,12 +61,12 @@ CONFIGURATION ATTRIBUTE SYNTAX
         see the output of 'ldms-plugins.sh dcgm_sampler'.
 
    schema=<schema_name>
-      | 
+      |
       | The schema name defaults to "dcgm", but it can be renamed at the
         user's choice.
 
    job_set=<metric set name>
-      | 
+      |
       | The name of the metric set that contains the job id information
         (default=job_id)
 

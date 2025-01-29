@@ -36,11 +36,11 @@ attributes of the base class.
    | configuration line
 
    name=<plugin_name>
-      | 
+      |
       | This MUST be my_plugin.
 
    schema=<schema>
-      | 
+      |
       | Optional schema name.
 
 BUGS
