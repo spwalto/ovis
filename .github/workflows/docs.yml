@@ -40,9 +40,7 @@ jobs:
               mkdir -p "$(dirname "$target_file")"
               base_name=$(basename "$man_file" .man)
               # Convert the .man file to .rst
-              if pandoc -f man -t rst "$man_file" -s -o "$target_file" --metadata title="$base_name" 2>/tmp/pandoc_error.log; then
-                echo "Successfully converted $man_file -> $target_file"
-              else
+              if [ ! pandoc -f man -t rst "$man_file" -s -o "$target_file" --metadata title="$base_name" 2>/tmp/pandoc_error.log ]; then
                 echo "Error processing $man_file. See error log for details:"
                 cat /tmp/pandoc_error.log | while IFS= read -r error_line; do
                 echo "$error_line"
@@ -57,13 +55,13 @@ jobs:
         run: |
           echo "Checking for added or deleted .man files in the most recent commit"
           git fetch --unshallow || true
-          man_files=$(git diff "${{ github.event.before }}" "${{ github.sha }}" --name-only --diff-filter=AD -- "*.man")
+          man_files=$(git diff "${{ github.event.before }}" "${{ github.sha }}" --name-only --diff-filter=AD -- "*.rst")
 
           if [ -n "$man_files" ]; then
-            echo "Detected added or deleted .man files:"
+            echo "Detected added or deleted .rst files under docs/man/:"
             continue
           else
-            echo "No added or deleted .man files detected. Skipping update index.rst files"
+            echo "No added or deleted .rst under docs/man/ files detected. Skipping update index.rst files"
             exit 0
           fi
 
