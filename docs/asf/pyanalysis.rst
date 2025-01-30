@@ -296,4 +296,3 @@ time_series_formatter:
               return [ { "target" : "", "datapoints" : [] } ]
           else:
               return self.data
-

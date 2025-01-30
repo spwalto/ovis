@@ -50,11 +50,13 @@ jobs:
               fi
             done
             echo "All man files have been converted."
+            echo "Cleaning up white spaces and empty lines."
+            find docs/ -type f -exec sed -i -e 's/[[:space:]]*$//' -e 's/^[ \t]*\t/\t/' -e ':a; /^\s*$/{$d; N; ba}' {} +
           fi
 
       - name: Update index.rst files
         run: |
-          echo "Checking for added or deleted .man files in the most recent commit"
+          echo "Checking for added or deleted .rst files in docs/man/ the most recent commit"
           git fetch --unshallow || true
           man_files=$(git diff "${{ github.event.before }}" "${{ github.sha }}" --name-only --diff-filter=AD -- "*.rst")
 

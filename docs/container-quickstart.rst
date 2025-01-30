@@ -634,7 +634,7 @@ Example usage:
    #   `/on-host/storage/` on the host.
    $ docker run -d --name=agg --network=host --privileged \
             -v /run/munge:/run/munge:ro \
-   	 -v /on-host/storage:/storage:rw \
+	 -v /on-host/storage:/storage:rw \
             ovishpc/ldms-agg -x sock:411 -a munge
 
    # Start dsosd service for remote SOS container access (e.g. by UI), by first
@@ -703,7 +703,7 @@ Example usage:
    # Start maestro container, using host network namespace, and using host's munge
    $ docker run -d --network=host --privileged \
             -v /run/munge:/run/munge:ro \
-   	 -v /my/ldms_cfg.yaml:/etc/ldms_cfg.yaml:rw \
+	 -v /my/ldms_cfg.yaml:/etc/ldms_cfg.yaml:rw \
             ovishpc/ldms-maestro
 
 Please see `ldms_cfg.yaml <test/test-maestro/files/ldms_cfg.yaml>`__ for
@@ -749,8 +749,8 @@ Usage example:
 
    # Start ldms-ui container, using host network namespace
    $ docker run -d --name=ui --network=host --privileged \
-   	   -v /HOST/dsosd.conf:/opt/ovis/etc/dsosd.conf \
-   	   -v /HOST/settings.py:/opt/ovis/ui/sosgui/settings.py \
+	   -v /HOST/dsosd.conf:/opt/ovis/etc/dsosd.conf \
+	   -v /HOST/settings.py:/opt/ovis/ui/sosgui/settings.py \
             ovishpc/ldms-ui
 
 LDMS-Grafana Container

@@ -125,6 +125,3 @@ To create a new dashboard, click on the + sign on the left side of the home page
 * Now you should be able to see a the "Active" and "Inactive" values for each job_id.
 
 .. image::
-
-
-
