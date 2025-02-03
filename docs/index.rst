@@ -76,13 +76,3 @@ OVIS Subproject Github Repositories
 `maestro <https://github.com/ovis-hpc/maestro>`_
 `sos <https://github.com/ovis-hpc/sos>`_
 `baler <https://github.com/ovis-hpc/baler>`_
-
-
-
-
-
-
-
-
-
-
