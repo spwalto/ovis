@@ -38,7 +38,7 @@ jobs:
         run: |
           # Check if docs/man/ is empty
           if [ "$CONVERT_MAN_PAGES" == "true" ]; then
-            echo "docs/man is empty or does not exist, converting all .man files"
+            echo "CONVERT_MAN_PAGES is set, converting all .man files"
             find ldms/src ldms/man -name "*.man" | while IFS= read -r man_file; do
               target_file="docs/man/$(echo "$man_file" | sed 's|^ldms/src/||;s|^ldms/man/||;s/\.man$/.rst/')"
               mkdir -p "$(dirname "$target_file")"
