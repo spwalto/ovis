@@ -12,6 +12,10 @@ on:
       - '**/*.rst'
       - '**/*.man'
 
+# convert all existing .man under ldms/ to .rst
+env:
+ CONVERT_MAN_PAGES: true
+
 jobs:
   generate-rst:
     runs-on: ubuntu-22.04
@@ -33,7 +37,7 @@ jobs:
       - name: Convert .man files to .rst
         run: |
           # Check if docs/man/ is empty
-          if [ ! -d docs/man ] || [ -z "$(ls -A docs/man)" ]; then
+          if [ "$CONVERT_MAN_PAGES" == "true" ]; then
             echo "docs/man is empty or does not exist, converting all .man files"
             find ldms/src ldms/man -name "*.man" | while IFS= read -r man_file; do
               target_file="docs/man/$(echo "$man_file" | sed 's|^ldms/src/||;s|^ldms/man/||;s/\.man$/.rst/')"
@@ -51,7 +55,7 @@ jobs:
             done
             echo "All man files have been converted."
             echo "Cleaning up white spaces and empty lines."
-            find docs/ -type f -exec sed -i -e 's/[[:space:]]*$//' -e 's/^[ \t]*\t/\t/' -e ':a; /^\s*$/{$d; N; ba}' {} +
+            find docs/ -type f -exec sed -i -e 's/[[:space:]]\+$//' -e 's/^[ \t]*\t/\t/' -e ':a; /^\s*$/{$d; N; ba}' {} +
           fi
 
       - name: Update index.rst files
