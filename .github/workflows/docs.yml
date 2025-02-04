@@ -62,7 +62,7 @@ jobs:
         run: |
           echo "Checking for added or deleted .rst files in docs/man/ the most recent commit"
           git fetch --unshallow || true
-          man_files=$(git diff "${{ github.event.before }}" "${{ github.sha }}" --name-only --diff-filter=AD -- "*.rst")
+          man_files=$(git diff "${{ github.event.before }}" "${{ github.sha }}" --name-only --diff-filter=ADMR -- "*.rst")
 
           if [ ! -n "$man_files" ]; then
             echo "No added or deleted .rst under docs/man/ files detected. Skipping update index.rst files"
