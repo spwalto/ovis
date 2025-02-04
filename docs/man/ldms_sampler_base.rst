@@ -37,7 +37,7 @@ CONFIGURATION ATTRIBUTE SYNTAX
    [component_id=<int>] [schema=<name>] [job_set=<name> job_id=<name>
    app_id=<name> job_start=<name> job_end=<name>]
 
-| 
+|
 | configuration line
 
    name=<plugin_name>

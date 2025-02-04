@@ -4,12 +4,12 @@ Plugin_store_app
 
 :Date:   30 Sep 2019
 
-NAME 
+NAME
 ====
 
 ldmsd_store_app - LDMSD store_app storage plugin
 
-SYNOPSIS TESTING34 
+SYNOPSIS TESTING34
 ==================
 
 **load** **name**\ =\ **store_app**
@@ -23,7 +23,7 @@ SYNOPSIS TESTING34
 **strgp_prdcr_add** **name**\ =\ *STRGP_NAME*
 **regex**\ =\ *PRDCR_REGEX*
 
-DESCRIPTION 
+DESCRIPTION
 ===========
 
 **``store_app``** is an LDMSD storage plugin for storing data from the
@@ -62,7 +62,7 @@ attributes:
 -  **``job_time_rank``**: (indexed) the join of **``job_id``**,
    **``timestamp``**, and **``rank``**.
 
-CONFIG OPTIONS 
+CONFIG OPTIONS
 ==============
 
 -  The name of the plugin instance to configure.
@@ -73,7 +73,7 @@ CONFIG OPTIONS
 -  The octal mode (e.g. 0777) that is used in SOS container creation.
    The default is **0660**.
 
-EXAMPLES 
+EXAMPLES
 ========
 
    ::

@@ -874,7 +874,7 @@ SET COMMAND SYNTAX
 Set the user data value for a metric in a metric set.
 -----------------------------------------------------
 
-| 
+|
 | **udata** attr=<value>
 
    **set**\ *set*
@@ -956,7 +956,7 @@ STATISTICS COMMAND SYNTAX
 Display the IO thread statistics
 --------------------------------
 
-| 
+|
 | **thread_stats** attr=<value>
 
    **[reset**\ *true|false*\ **]**
@@ -967,7 +967,7 @@ Display the IO thread statistics
 Display the transport operation statistics
 ------------------------------------------
 
-| 
+|
 | **xprt_stats** attr=<value>
 
    **[reset**\ *true|false*\ **]**
@@ -978,7 +978,7 @@ Display the transport operation statistics
 Display the statistics of updaters' update time per set
 -------------------------------------------------------
 
-| 
+|
 | **update_time_stats** attr=<value>
 
    **[reset**\ *true|false*\ **]**
@@ -994,7 +994,7 @@ Display the statistics of updaters' update time per set
 Display the statistics of storage policy's store time per set
 -------------------------------------------------------------
 
-| 
+|
 | **store_time_stats** attr=<value>
 
    **[reset**\ *true|false*\ **]**
@@ -1013,7 +1013,7 @@ QGROUP COMMAND SYNTAX
 Get qgroup information
 ----------------------
 
-| 
+|
 | **qgroup_info**
 
    - This command has no attributes. -
@@ -1021,7 +1021,7 @@ Get qgroup information
 Set qgroup parameters
 ---------------------
 
-| 
+|
 | **qgroup_config** attr=<value>
 
    **[quota**\ *BYTES*\ **]**
@@ -1060,7 +1060,7 @@ Set qgroup parameters
 Add a member into our qgroup
 ----------------------------
 
-| 
+|
 | **qgroup_member_add** attr=<value>
 
    **xprt**\ *XPRT*
@@ -1081,7 +1081,7 @@ Add a member into our qgroup
 Remove a member from the qgroup
 -------------------------------
 
-| 
+|
 | **qgroup_member_del** attr=<value>
 
    **host**\ *HOST*
@@ -1093,7 +1093,7 @@ Remove a member from the qgroup
 Start the qgroup service
 ------------------------
 
-| 
+|
 | **qgroup_start**
 
    - This command has no attributes. -
@@ -1101,7 +1101,7 @@ Start the qgroup service
 Stop the qgroup service
 -----------------------
 
-| 
+|
 | **qgroup_stop**
 
    - This command has no attributes. -
@@ -1112,7 +1112,7 @@ MISC COMMAND SYNTAX
 Display the list of available commands
 --------------------------------------
 
-| 
+|
 | **help** <command>
 
    | [*command]*

@@ -37,7 +37,7 @@ SYNOPSIS
 
 -  name=\ *NAME*
 
--  
+-
 
 DESCRIPTION
 ===========

@@ -752,7 +752,7 @@ SET COMMAND SYNTAX
 Set the user data value for a metric in a metric set.
 -----------------------------------------------------
 
-| 
+|
 | **udata** attr=<value>
 
    **set**\ *set*
@@ -834,7 +834,7 @@ MISC COMMAND SYNTAX
 Display the list of available commands
 --------------------------------------
 
-| 
+|
 | **help** <command>
 
    | [*command]*

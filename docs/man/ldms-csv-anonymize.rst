@@ -48,7 +48,7 @@ OPTIONS
    |
    | Split columns at this character. The default is comma.
 
---save-maps=<prefix> 
+--save-maps=<prefix>
    |
    | The path prefix for the generated map files. If the resulting map
      filenames coincide with an existing file, the existing file is

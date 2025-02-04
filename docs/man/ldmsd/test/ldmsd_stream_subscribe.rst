@@ -26,7 +26,7 @@ COMMAND LINE SYNTAX
 
 ldmsd_stream_subscribe -x <xprt> -h <host> -p <port> -s <stream-name> -a <auth> -A <auth-opt> -f <file> -D -i -R -q -E
 
-| 
+|
 
    -x,--xprt <xprt>
       |

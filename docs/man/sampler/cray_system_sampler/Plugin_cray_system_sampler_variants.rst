@@ -124,7 +124,7 @@ CONFIGURATION ATTRIBUTE SYNTAX
 
       energy (cray_aries_r_sampler only)
 
-   | 
+   |
    | Multiple different options should be specified as different
      attributes (e.g., off_vmstat=1 off_lustre=1). Note that not
      specifying any gpu_devices or llites will also result in no gpu or

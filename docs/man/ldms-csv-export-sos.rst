@@ -73,16 +73,16 @@ OPTIONS
      When not specified, a schema file is always generated. Schema files
      may not be gzipped.
 
---map-file=<MAP_FILE> 
+--map-file=<MAP_FILE>
    |
    | Override the output map file name derived from the data file name.
 
---alias-file=<ALIASES> 
+--alias-file=<ALIASES>
    |
    | Provide the list of metrics to rename when creating or matching a
      schema discovered from a header line.
 
---strip-udata 
+--strip-udata
    |
    | Suppress output of .userdata fields and remove .value suffix from
      schema element names.
