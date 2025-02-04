@@ -36,7 +36,6 @@ jobs:
 
       - name: Convert .man files to .rst
         run: |
-          # Check if docs/man/ is empty
           if [ "$CONVERT_MAN_PAGES" == "true" ]; then
             echo "CONVERT_MAN_PAGES is set, converting all .man files"
             find ldms/src ldms/man -name "*.man" | while IFS= read -r man_file; do
