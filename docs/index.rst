@@ -22,14 +22,14 @@ LDMS is a lightweight framework for collecting, aggregating, and transporting sy
    :maxdepth: 3
    :caption: Introduction To LDMS
 
-   ldms-quickstart
+   intro/ldms-quickstart
+   intro/docker-quickstart
 
 .. toctree::
    :maxdepth: 3
    :caption: LDMS Streams
 
-   ldms_stream
-   ldms_stream_apps
+   streams/ldms_stream_apps
 
 .. toctree::
    :maxdepth: 3
@@ -65,9 +65,10 @@ To join the LDMS Users Group Mailing List: https://github.com/ovis-hpc/ovis-wiki
 OVIS Subproject Github Repositories
 ====================================
 
-`ldms <https://github.com/ovis-hpc/ovis>`_
-`ovis-publications <https://github.com/ovis-hpc/ovis-publications>`_
-`maestro <https://github.com/ovis-hpc/maestro>`_
-`sos <https://github.com/ovis-hpc/sos>`_
-`baler <https://github.com/ovis-hpc/baler>`_
-`containers <https://github.com/ovis-hpc/ldms-containers`_
+* `ldms <https://github.com/ovis-hpc/ovis>`_
+* `ovis-publications <https://github.com/ovis-hpc/ovis-publications>`_
+* `maestro <https://github.com/ovis-hpc/maestro>`_
+* `sos <https://github.com/ovis-hpc/sos>`_
+* `baler <https://github.com/ovis-hpc/baler>`_
+* `containers <https://github.com/ovis-hpc/ldms-containers`_
+* `ovis-publications <https://github.com/ovis-hpc/ovis-publications>`_

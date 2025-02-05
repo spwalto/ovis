@@ -1,6 +1,6 @@
-====
-LDMS
-====
+=============================
+LDMS Docker Quickstart
+=============================
 
 --------------------------------------
 Lightweight Distributed Metric Service
