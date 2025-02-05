@@ -70,5 +70,5 @@ OVIS Subproject Github Repositories
 * `maestro <https://github.com/ovis-hpc/maestro>`_
 * `sos <https://github.com/ovis-hpc/sos>`_
 * `baler <https://github.com/ovis-hpc/baler>`_
-* `containers <https://github.com/ovis-hpc/ldms-containers`_
+* `containers <https://github.com/ovis-hpc/ldms-containers>`_
 * `ovis-publications <https://github.com/ovis-hpc/ovis-publications>`_
