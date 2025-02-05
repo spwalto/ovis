@@ -29,6 +29,7 @@ intersphinx_mapping = {
     "maestro": ("https://ovis-hpc.readthedocs.io/projects/maestro/en/latest/", None),
     "baler": ("https://ovis-hpc.readthedocs.io/projects/baler/en/latest/", None),
     "ldms": ("https://ovis-hpc.readthedocs.io/projects/ldms/en/latest/", None),
+    "containers": ("https://ovis-hpc.readthedocs.io/projects/containers/en/latest/", None),
 
 }
 intersphinx_disabled_domains = ['std']
