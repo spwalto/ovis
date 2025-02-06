@@ -20,7 +20,8 @@ extensions = [
 ]
 
 man_pages = [
-    ('ldms', 'ldms.1', 'Man Pages', [], 1),
+    ('ldms', 'ldms.1', 'LDMS', [], 1),
+    ('ldmsd', 'ldmsd.1', 'LDMSD', [], 1),
 ]
 
 intersphinx_mapping = {
