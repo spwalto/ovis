@@ -19,6 +19,10 @@ extensions = [
     'sphinx.ext.intersphinx',
 ]
 
+man_pages = [
+    ('ldms', 'ldms.1', 'Man Pages', [], 1),
+]
+
 intersphinx_mapping = {
     'python': ('https://docs.python.org/3/', None),
     'sphinx': ('https://www.sphinx-doc.org/en/master/', None),

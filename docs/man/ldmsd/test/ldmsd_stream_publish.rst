@@ -26,7 +26,7 @@ connection for all the messages
 COMMAND LINE SYNTAX
 ===================
 
-ldmsd_sstream_publish -x <xprt> -h <host> -p <port> -s <stream-name> -a <auth> -A <auth-opt> -t <data-format> -f <file> [-l]
+ldmsd_stream_publish -x <xprt> -h <host> -p <port> -s <stream-name> -a <auth> -A <auth-opt> -t <data-format> -f <file> [-l]
    |
 
    -x <xprt>
@@ -124,4 +124,4 @@ SEE ALSO
 ========
 
 ldmsd(8), ldms_quickstart(7), ldmsd_controller(8), ldms_sampler_base(7),
-Plugin_hello_sampler(7), Plugin_stream_csv_store(7)
+hello_sampler(7), stream_csv_store(7)

@@ -47,10 +47,9 @@ LDMS is a lightweight framework for collecting, aggregating, and transporting sy
    :maxdepth: 3
    :caption: Man Pages
 
-   man/index
+   man/ldms/index
    man/ldmsd/index
-   man/sampler/index
-   man/store/index
+   man/plugins/index
    man/contrib/index
    man/third-plugins/index
 
