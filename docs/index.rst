@@ -42,17 +42,12 @@ LDMS is a lightweight framework for collecting, aggregating, and transporting sy
    :caption: Deployment
 
    deployment/index
-   man/index
 
 .. toctree::
    :maxdepth: 3
    :caption: Man Pages
 
-   man/ldms
-   man/ldmsd
-   man/ldms-plugins
-   man/ldms-contrib
-   man/ldms-third-plugins
+   man/index
 
 .. toctree::
    :maxdepth: 2

@@ -1,133 +1,25 @@
-.. _man_index:
-
-Man Pages
-=========
-
 .. toctree::
-   :maxdepth: 1
+   :maxdepth: 2
+   :glob:
 
-   ldms/ldms-csv-anonymize
-   ldms/ldms-csv-export-sos
-   ldms/ldms-plugins
-   ldms/ldms-reverse-conf
-   ldms/ldms_build_install
-   ldms/ldms_ls
-   ldms/ldms_quickstart
-   ldms/ldms_sampler_base
-   ldms/ldmsctl
-   ldms/lsdate
-   ldms/test/ldms-run-static-tests
-   ldms/test/ldms-static-test
-   ldms/test/ldms_csv_time_drops
-   ldms/test/ldms_stream
-   ldms/test/pll-ldms-static-test
-   ldms/auth/ldms_auth_munge
-   ldms/auth/ldms_auth_naive
-   ldms/auth/ldms_auth_none
-   ldms/auth/ldms_auth_ovis
-   ldms/auth/ldms_authentication
-   ldmsd/ldmsd
-   ldmsd/ldmsd_controller
-   ldmsd/ldmsd_decomposition
-   ldmsd/ldmsd_failover
-   ldmsd/ldmsd_peer_daemon_advertisement
-   ldmsd/ldmsd_qgroup
-   ldmsd/ldmsd_sampler_advertisement
-   ldmsd/ldmsd_setgroup
-   ldmsd/ldmsd_yaml_parser
-   ldmsd/test/ldmsd_stream_publish
-   ldmsd/test/ldmsd_stream_subscribe
-   plugins/sampler/app_sampler/app_sampler
-   plugins/sampler/app_sampler/linux_proc_sampler
-   plugins/sampler/aries_mmr/aries_linkstatus
-   plugins/sampler/aries_mmr/aries_mmr
-   plugins/sampler/aries_mmr/aries_mmr_configurable
-   plugins/sampler/blob_stream/blob_stream_writer
-   plugins/sampler/blob_stream/ldms-csv-from-blobs
-   plugins/sampler/clock/clock
-   plugins/sampler/coretemp/coretemp
-   plugins/sampler/cray_system_sampler/cray_dvs_sampler
-   plugins/sampler/cray_system_sampler/cray_system_sampler_variants
-   plugins/sampler/dcgm_sampler/dcgm_sampler
-   plugins/sampler/dstat/dstat
-   plugins/sampler/dstat/ldms_dstat_schema_name
-   plugins/sampler/examples/array_example/all_example
-   plugins/sampler/examples/array_example/array_example
-   plugins/sampler/examples/synthetic/synthetic
-   plugins/sampler/filesingle/filesingle
-   plugins/sampler/filesingle/ldms-sensors-config
-   plugins/sampler/fptrans/fptrans
-   plugins/sampler/hello_stream/hello_sampler
-   plugins/sampler/hweventpapi/hweventpapi
-   plugins/sampler/ibmad_records_sampler/ibmad_records_sampler
-   plugins/sampler/ibmad_sampler/ibmad_sampler
-   plugins/sampler/ibnet/ibnet
-   plugins/sampler/ibnet/ldms-ibnet-sampler-gen
-   plugins/sampler/ibnet/ldms_ibnet_schema_name
-   plugins/sampler/json/json_stream_sampler
-   plugins/sampler/kgnilnd/kgnilnd
-   plugins/sampler/llnl/edac
-   plugins/sampler/lnet_stats/lnet_stats
-   plugins/sampler/loadavg/loadavg
-   plugins/sampler/lustre/lustre2_client
-   plugins/sampler/lustre_client/lustre_client
-   plugins/sampler/lustre_mdc/lustre_mdc
-   plugins/sampler/lustre_mdt/lustre_mdt
-   plugins/sampler/lustre_ost/lustre_ost
-   plugins/sampler/meminfo/meminfo
-   plugins/sampler/msr_interlagos/msr_interlagos
-   plugins/sampler/netlink/ldms-netlink-notifier
-   plugins/sampler/netlink/ldms-notify
-   plugins/sampler/netlink/netlink-notifier
-   plugins/sampler/opa2/opa2
-   plugins/sampler/papi/papi
-   plugins/sampler/papi/papi_sampler
-   plugins/sampler/perfevent/perfevent
-   plugins/sampler/procdiskstats/procdiskstats
-   plugins/sampler/procinterrupts/procinterrupts
-   plugins/sampler/procnet/procnet
-   plugins/sampler/procnetdev/procnetdev
-   plugins/sampler/procnetdev2/procnetdev2
-   plugins/sampler/procnfs/procnfs
-   plugins/sampler/procstat/procstat
-   plugins/sampler/procstat2/procstat2
-   plugins/sampler/rapl/rapl
-   plugins/sampler/rdc_sampler/ldms_rdc_schema_name
-   plugins/sampler/rdc_sampler/rdc_sampler
-   plugins/sampler/sampler_atasmart/sampler_atasmart
-   plugins/sampler/shm/shm_sampler
-   plugins/sampler/slingshot_info/slingshot_info
-   plugins/sampler/slingshot_metrics/slingshot_metrics
-   plugins/sampler/slurm/slurm_sampler
-   plugins/sampler/spank/slurm_notifier
-   plugins/sampler/sysclassib/sysclassib
-   plugins/sampler/syspapi/syspapi_sampler
-   plugins/sampler/tx2mon/tx2mon
-   plugins/sampler/variable/variable
-   plugins/sampler/vmstat/vmstat
-   plugins/sampler/zfs_leafvdevs/zfs_leafvdevs
-   plugins/sampler/zfs_topvdevs/zfs_topvdevs
-   plugins/sampler/zfs_zpool/zfs_zpool
-   plugins/sampler/jobid/jobid
-   plugins/store/flatfile/store_flatfile
-   plugins/store/darshan/darshan_stream_store
-   plugins/store/slurm/store_slurm
-   plugins/store/papi/store_papi
-   plugins/store/stream/stream_csv_store
-   plugins/store/kafka/store_avro_kafka
-   plugins/store/kafka/store_kafka
-   plugins/store/rabbit/store_rabbitkw
-   plugins/store/rabbit/store_rabbitv3
-   plugins/store/csv/store_csv
-   plugins/store/csv/store_function_csv
-   plugins/store/sos/ldmsd_store_app
-   plugins/store/sos/store_sos
-   contrib/sampler/daos/daos_sampler
-   contrib/sampler/geopm_sampler/geopm_sampler
-   contrib/sampler/ipmireader/ipmireader
-   contrib/sampler/ipmireader/ipmisensors
-   contrib/sampler/tutorial/tutorial_sampler
-   contrib/sampler/variorum_sampler/variorum_sampler
-   contrib/store/timescale/store_timescale
-   contrib/store/tutorial/store_tutorial
-   third-plugins/my_plugin/src/my_plugin
+contrib
+-------
+   contrib/**
+
+ldms
+----
+   ldms/**
+
+ldmsd
+-----
+   ldmsd/**
+
+plugins
+-------
+   plugins/**
+   plugins/store/**
+   plugins/sampler/**
+
+third-plugins
+-------------
+   third-plugins/**
