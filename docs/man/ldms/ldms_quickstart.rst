@@ -1,3 +1,5 @@
+.. _ldms_quickstart:
+
 ===============
 ldms_quickstart
 ===============
@@ -828,5 +830,5 @@ No known bugs.
 SEE ALSO
 ========
 
-ldms_build_install(7), ldmsd(8), ldmsd_controller(8),
-ldms_authentication(7), ldms_build_install(7), ldms_ls(8)
+:ref:`ldms_build_install(7) <ldms_build_install>`, :ref:`ldmsd(8) <ldmsd>`, :ref:`ldmsd_controller(8) <ldmsd_controller>`,
+:ref:`ldms_authentication(7) <ldms_authentication>`, :ref:`ldms_build_install(7) <ldms_build_install>`, :ref:`ldms_ls(8) <ldms_ls>`

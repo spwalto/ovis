@@ -1,3 +1,5 @@
+.. _ldms_build_install:
+
 ==================
 ldms_build_install
 ==================
@@ -306,6 +308,6 @@ samplers only:
 SEE ALSO
 ========
 
-ldms_authentication(8), ldms_quickstart(7), ldmsd(8),
-cray_sampler_variants(7), aries_mmr(7),
-store_csv(7), store_function_csv(7)
+:ref:`ldms_authentication(8) <ldms_authentication>`, :ref:`ldms_quickstart(7) <ldms_quickstart>`, :ref:`ldmsd(8) <ldmsd>`,
+:ref:`cray_sampler_variants(7) <cray_sampler_variants>`, :ref:`aries_mmr(7) <aries_mmr>`,
+:ref:`store_csv(7) <store_csv>`, :ref:`store_function_csv(7) <store_function_csv>`

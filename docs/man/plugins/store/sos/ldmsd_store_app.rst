@@ -1,3 +1,5 @@
+.. _ldmsd_store_app:
+
 ================
 ldmsd_store_app
 ================
@@ -108,5 +110,5 @@ The following is an example on how to retrieve the data using Python:
 SEE ALSO
 ========
 
-**app_sampler**\ (7), **ldmsd**\ (8), **ldms_quickstart**\ (7),
-**ldmsd_controller**\ (8),
+:ref:`app_sampler(7) <app_sampler>`, :ref:`ldmsd(8) <ldmsd>`, :ref:`ldms_quickstart(7) <ldms_quickstart>`,
+:ref:`ldmsd_controller(8) <ldmsd_controller>`,

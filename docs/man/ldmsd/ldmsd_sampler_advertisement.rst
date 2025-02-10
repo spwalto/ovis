@@ -1,3 +1,5 @@
+.. _ldmsd_sampler_advertisement:
+
 ===========================
 ldmsd_sampler_advertisement
 ===========================
@@ -304,4 +306,4 @@ listening endpoint on port 412.
 SEE ALSO
 ========
 
-**ldmsd**\ (8) **ldmsd_controller**\ (8)
+:ref:`ldmsd(8) <ldmsd>` :ref:`ldmsd_controller(8) <ldmsd_controller>`

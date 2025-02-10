@@ -1,3 +1,5 @@
+.. _ldms-csv-anonymize:
+
 ==================
 ldms-csv-anonymize
 ==================
@@ -134,7 +136,7 @@ Suffix removal occurs before substitution.
 NOTES
 =====
 
-There is no column delete option; use cut(1) to remove entire columns.
+There is no column delete option; use :ref:`cut(1) <cut>` to remove entire columns.
 
 To ensure map consistency across multiple runs, use the map outputs as
 the map inputs to the second and subsequent runs.
@@ -176,4 +178,4 @@ There is no pipeline filtering mode.
 SEE ALSO
 ========
 
-cut(1)
+:ref:`cut(1) <cut>`

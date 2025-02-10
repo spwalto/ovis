@@ -1,3 +1,5 @@
+.. _loadavg:
+
 ==============
 loadavg
 ==============
@@ -78,9 +80,9 @@ Within ldmsd_controller or a configuration file:
 NOTES
 =====
 
-See proc(5) for the definitions of the metrics.
+See :ref:`proc(5) <proc>` for the definitions of the metrics.
 
 SEE ALSO
 ========
 
-proc(5), ldmsd(8), ldms_sampler_base(7), ldmsd_controller(8)
+:ref:`proc(5) <proc>`, :ref:`ldmsd(8) <ldmsd>`, :ref:`ldms_sampler_base(7) <ldms_sampler_base>`, :ref:`ldmsd_controller(8) <ldmsd_controller>`

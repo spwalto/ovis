@@ -1,3 +1,5 @@
+.. _store_rabbitv3:
+
 =====================
 store_rabbitv3
 =====================
@@ -214,4 +216,4 @@ See the LDMS test script ldms_local_amqptest.sh.
 SEE ALSO
 ========
 
-ldmsd(8), rabbitmq-server(1), ldmsd_controller(8)
+:ref:`ldmsd(8) <ldmsd>`, rabbitmq-:ref:`server(1) <server>`, :ref:`ldmsd_controller(8) <ldmsd_controller>`

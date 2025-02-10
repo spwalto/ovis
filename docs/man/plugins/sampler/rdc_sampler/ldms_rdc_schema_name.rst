@@ -1,3 +1,5 @@
+.. _ldms_rdc_schema_name:
+
 ====================
 ldms_rdc_schema_name
 ====================
@@ -27,7 +29,7 @@ configured.
 CONFIGURATION ATTRIBUTE SYNTAX
 ==============================
 
-See rdc_sampler(7).
+See :ref:`rdc_sampler(7) <rdc_sampler>`.
 
 EXAMPLES
 ========
@@ -56,4 +58,4 @@ inconsequential error messages to stdout. One such begins with
 SEE ALSO
 ========
 
-rdc_sampler(7)
+:ref:`rdc_sampler(7) <rdc_sampler>`

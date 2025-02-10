@@ -1,3 +1,5 @@
+.. _ldms-csv-from-blobs:
+
 ===================
 ldms-csv-from-blobs
 ===================
@@ -178,4 +180,4 @@ with an appropriate storage policy decomposition rule set.
 SEE ALSO
 ========
 
-store_csv(7)
+:ref:`store_csv(7) <store_csv>`

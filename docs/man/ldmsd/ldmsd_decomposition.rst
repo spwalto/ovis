@@ -1,3 +1,5 @@
+.. _ldmsd_decomposition:
+
 ===================
 ldmsd_decomposition
 ===================
@@ -437,4 +439,4 @@ decomposition is applied.
 SEE ALSO
 ========
 
-store_sos(7), store_csv(7), store_kafka(7)
+:ref:`store_sos(7) <store_sos>`, :ref:`store_csv(7) <store_csv>`, :ref:`store_kafka(7) <store_kafka>`

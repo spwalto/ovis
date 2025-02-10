@@ -1,3 +1,5 @@
+.. _filesingle:
+
 =================
 filesingle
 =================
@@ -25,7 +27,7 @@ among others, sensor hardware, file system, and cpu metrics.
 CONFIGURATION ATTRIBUTE SYNTAX
 ==============================
 
-See ldms_sampler_base(7) for the common sampler options.
+See :ref:`ldms_sampler_base(7) <ldms_sampler_base>` for the common sampler options.
 
 **config**
    | conf=<metric_definitions> [timing]
@@ -68,8 +70,8 @@ one of: S8, S16, S32, S64, U8, U16, U32, U64, F32, D64, CHAR.
 Lines starting with # are comment lines. Line continuations are not
 allowed.
 
-The script ./ldms-sensors-config(1) generates an example metrics config
-file from the data reported by sensors(1). Metric names, types, and
+The script ./ldms-sensors-:ref:`config(1) <config>` generates an example metrics config
+file from the data reported by :ref:`sensors(1) <sensors>`. Metric names, types, and
 defaults generated can be tuned to user preferences.
 
 EXAMPLES
@@ -102,12 +104,12 @@ humane units is left to data post-processors. In the specific example
 given, the raw power reading has units of microwatts, the temperatures
 have units of millidegrees Celsius, and the cpu frequency is reported in
 milliHertz. To determine the appropriate unit conversions for your
-system, compare the output of sensors(1) or lscpu(1) to the value found
+system, compare the output of :ref:`sensors(1) <sensors>` or :ref:`lscpu(1) <lscpu>` to the value found
 in the raw data files.
 
 To determine the file locations of metrics on your system consult the
 documentation for the device drivers of interest or the output of
-ldms-sensors-config(1) or
+ldms-sensors-:ref:`config(1) <config>` or
 
 "strace -e trace=open <querytool>"
 
@@ -123,5 +125,5 @@ their data files.
 SEE ALSO
 ========
 
-ldms-sensors-config(1), sensors(1), lscpu(1), ldms_sampler_base(7),
-proc(5), ldmsd(8), ldmsd_controller(8)
+ldms-sensors-:ref:`config(1) <config>`, :ref:`sensors(1) <sensors>`, :ref:`lscpu(1) <lscpu>`, :ref:`ldms_sampler_base(7) <ldms_sampler_base>`,
+:ref:`proc(5) <proc>`, :ref:`ldmsd(8) <ldmsd>`, :ref:`ldmsd_controller(8) <ldmsd_controller>`

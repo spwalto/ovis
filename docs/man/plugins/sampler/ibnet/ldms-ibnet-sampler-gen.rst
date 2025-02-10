@@ -1,3 +1,5 @@
+.. _ldms-ibnet-sampler-gen:
+
 ======================
 ldms-ibnet-sampler-gen
 ======================
@@ -109,4 +111,4 @@ net file makes the results more readable.
 SEE ALSO
 ========
 
-ibnet(7), circo, dot, ldms-get-opa-network, ibnetdiscover
+:ref:`ibnet(7) <ibnet>`, circo, dot, ldms-get-opa-network, ibnetdiscover

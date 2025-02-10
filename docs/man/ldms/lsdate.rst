@@ -1,3 +1,5 @@
+.. _lsdate:
+
 ======
 lsdate
 ======
@@ -17,7 +19,7 @@ SYNOPSIS
 DESCRIPTION
 ===========
 
-Execute ls(1) and apply an output filter to reveal the calendar date of
+Execute :ref:`ls(1) <ls>` and apply an output filter to reveal the calendar date of
 timestamp suffixed files, such as produced by LDMS CVS stores.
 Timestamps are assumed to be seconds since the epoch. Fractional seconds
 are not supported.
@@ -25,7 +27,7 @@ are not supported.
 SEE ALSO
 ========
 
-ls(1), store_csv(7)
+:ref:`ls(1) <ls>`, :ref:`store_csv(7) <store_csv>`
 
 NOTES
 =====

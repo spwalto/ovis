@@ -1,3 +1,5 @@
+.. _ldms-static-test:
+
 ================
 ldms-static-test
 ================
@@ -61,7 +63,7 @@ LDMSD [conf-options] <daemon-numbers>
      each daemon (and its config script) will contain the variable i set
      to one of the given values, as described in ENVIRONMENT. For each
      value of i, a configuration fragment $input_file.$i must also
-     exist. Use seq(1) to generate large number sequences.
+     exist. Use :ref:`seq(1) <seq>` to generate large number sequences.
 
 See CONFIGURATION OPTIONS below for the explanation of [conf-options].
 
@@ -341,4 +343,4 @@ GENERATED FILES
 SEE ALSO
 ========
 
-seq(1)
+:ref:`seq(1) <seq>`

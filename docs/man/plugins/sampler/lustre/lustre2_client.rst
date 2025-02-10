@@ -1,3 +1,5 @@
+.. _lustre2_client:
+
 =====================
 lustre2_client
 =====================
@@ -25,7 +27,7 @@ CONFIGURATION ATTRIBUTE SYNTAX
 
 This plugin uses the sampler_base base class. This man page covers only
 the configuration attributes, or those with default values, specific to
-the this plugin; see **ldms_sampler_base**\ (7) for the attributes of
+the this plugin; see :ref:`ldms_sampler_base(7) <ldms_sampler_base>` for the attributes of
 the base class.
 
 **config**\ **name**\ *=<plugin_name>*\ *<SAMPLER_BASE_OPTIONS> osc*\ **=<CSV>**\ *mdc*\ **=<CSV>**\ *llite*\ **=<CSV>**\ *osc_path =<oscpath>*\ **mdc_path=<mdcpath>**\ *"*\ **llite_path=<llitepath>**
@@ -36,7 +38,7 @@ Descriptions:
       This MUST be lustre2_client.
 
    **<SAMPLER_BASE_OPTIONS>**
-      Please see **ldms_sampler_base**\ (7) for sampler_base options.
+      Please see :ref:`ldms_sampler_base(7) <ldms_sampler_base>` for sampler_base options.
 
    **osc**\ *=<CSV>*
       CSV list of OSC's.
@@ -92,5 +94,5 @@ EXAMPLES
 SEE ALSO
 ========
 
-**ldms_sampler_base**\ (7), **ldmsd**\ (8), **ldms_quickstart**\ (7),
-**ldmsd_controller**\ (8)
+:ref:`ldms_sampler_base(7) <ldms_sampler_base>`, :ref:`ldmsd(8) <ldmsd>`, :ref:`ldms_quickstart(7) <ldms_quickstart>`,
+:ref:`ldmsd_controller(8) <ldmsd_controller>`

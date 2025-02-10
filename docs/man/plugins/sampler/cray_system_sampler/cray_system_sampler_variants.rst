@@ -1,3 +1,5 @@
+.. _cray_system_sampler_variants:
+
 ===================================
 cray_system_sampler_variants
 ===================================
@@ -733,5 +735,5 @@ file:
 SEE ALSO
 ========
 
-ldmsd(7), ldms_sampler_base(7), kgnilnd(7), aries_mmr(7),
-aries_linkstatus(7), ldms_quickstart(7), ldmsd_controller(8)
+:ref:`ldmsd(7) <ldmsd>`, :ref:`ldms_sampler_base(7) <ldms_sampler_base>`, :ref:`kgnilnd(7) <kgnilnd>`, :ref:`aries_mmr(7) <aries_mmr>`,
+:ref:`aries_linkstatus(7) <aries_linkstatus>`, :ref:`ldms_quickstart(7) <ldms_quickstart>`, :ref:`ldmsd_controller(8) <ldmsd_controller>`

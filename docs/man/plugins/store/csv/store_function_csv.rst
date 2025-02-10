@@ -1,3 +1,5 @@
+.. _store_function_csv:
+
 =========================
 store_function_csv
 =========================
@@ -453,4 +455,4 @@ Within ldmsd_controller or a configuration file:
 SEE ALSO
 ========
 
-ldms(7), store_csv(7), msr_interlagos(7)
+:ref:`ldms(7) <ldms>`, :ref:`store_csv(7) <store_csv>`, :ref:`msr_interlagos(7) <msr_interlagos>`

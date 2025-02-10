@@ -1,3 +1,5 @@
+.. _ldms-sensors-config:
+
 ===================
 ldms-sensors-config
 ===================
@@ -26,7 +28,7 @@ DESCRIPTION
 
 The ldms-sensors-config program generates a draft conf file for the
 filesingle sampler. The user should tailor the selection, naming, data
-storage type, and default values per filesingle(7).
+storage type, and default values per :ref:`filesingle(7) <filesingle>`.
 
 OPTIONS
 =======
@@ -87,4 +89,4 @@ transformed to \_.
 SEE ALSO
 ========
 
-sensors(1), lscpu(1), filesingle(7), ldmsd.
+:ref:`sensors(1) <sensors>`, :ref:`lscpu(1) <lscpu>`, :ref:`filesingle(7) <filesingle>`, ldmsd.

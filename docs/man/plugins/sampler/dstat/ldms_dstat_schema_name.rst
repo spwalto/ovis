@@ -1,3 +1,5 @@
+.. _ldms_dstat_schema_name:
+
 ======================
 ldms_dstat_schema_name
 ======================
@@ -26,7 +28,7 @@ options.
 CONFIGURATION ATTRIBUTE SYNTAX
 ==============================
 
-See dstat(7).
+See :ref:`dstat(7) <dstat>`.
 
 EXAMPLES
 ========
@@ -42,4 +44,4 @@ EXAMPLES
 SEE ALSO
 ========
 
-dstat(7)
+:ref:`dstat(7) <dstat>`

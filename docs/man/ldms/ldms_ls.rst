@@ -1,3 +1,5 @@
+.. _ldms_ls:
+
 =======
 ldms_ls
 =======
@@ -87,12 +89,12 @@ If the NAME is specified on the command line without -E/-S/-I, only information 
 
 **-a**\ *AUTH*
    The name of the LDMS Authentication plugin. Please see
-   **ldms_authentication**\ (7) for more details. (default: "none").
+   :ref:`ldms_authentication(7) <ldms_authentication>` for more details. (default: "none").
 
 **-A**\ *NAME*\ **=**\ *VALUE*
    The name-value options for the LDMS Authentication plugin. This
    option can be given multiple times. Please see
-   **ldms_authentication**\ (7) for more information and consult the
+   :ref:`ldms_authentication(7) <ldms_authentication>` for more information and consult the
    plugin manual for the option details.
 
 **-m**\ *MEMORY_SIZE*
@@ -220,4 +222,4 @@ that matched the given regular expression.
 SEE ALSO
 ========
 
-ldms_authentication(7), ldmsd(8), ldms_quickstart(7),
+:ref:`ldms_authentication(7) <ldms_authentication>`, :ref:`ldmsd(8) <ldmsd>`, :ref:`ldms_quickstart(7) <ldms_quickstart>`,

@@ -1,3 +1,5 @@
+.. _json_stream_sampler:
+
 ==========================
 json_stream_sampler
 ==========================
@@ -285,7 +287,7 @@ CONFIG OPTIONS
 
 **perm=\ OCTAL**
    An octal number specifying the read-write permissions for the metric
-   set. See open(3).
+   set. See :ref:`open(3) <open>`.
 
 **heap_sz=\ BYTES**
    The number of bytes to reserve for the metric set heap.
@@ -312,5 +314,5 @@ Plugin configuration example:
 SEE ALSO
 ========
 
-**ldmsd**\ (8), **ldmsd_controller**\ (8),
-**store_avro_kakfa**\ (8)
+:ref:`ldmsd(8) <ldmsd>`, :ref:`ldmsd_controller(8) <ldmsd_controller>`,
+:ref:`store_avro_kakfa(8) <store_avro_kakfa>`

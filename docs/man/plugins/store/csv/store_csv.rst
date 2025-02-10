@@ -1,3 +1,5 @@
+.. _store_csv:
+
 ================
 store_csv
 ================
@@ -224,7 +226,7 @@ STORE_CSV CONFIGURATION ATTRIBUTE SYNTAX
         subdirectory, for processing by other tools that watch
         directories. The metapath template is applied to define a new
         name after file closure. The rename is limited to locations on
-        the same mount point, per the C rename(2) call. Substitutions
+        the same mount point, per the C :ref:`rename(2) <rename>` call. Substitutions
         (%) in the provided template are performed as described in
         METAPATH SUBSTITUTIONS below. Errors in template specification
         will cause the rename to be skipped. As part of the renaming
@@ -333,7 +335,7 @@ output files via identification of the container and schema.
       |
       | Optionally use set-to-row decomposition with the specified
         configuration file in JSON format. See more about decomposition
-        in ldmsd_decomposition(7).
+        in :ref:`ldmsd_decomposition(7) <ldmsd_decomposition>`.
 
 STORE COLUMN ORDERING
 =====================
@@ -479,5 +481,5 @@ after the store_csv defaults have been set.
 SEE ALSO
 ========
 
-ldmsd(8), ldms_quickstart(7), ldmsd_controller(8),
-ldmsd_decomposition(7)
+:ref:`ldmsd(8) <ldmsd>`, :ref:`ldms_quickstart(7) <ldms_quickstart>`, :ref:`ldmsd_controller(8) <ldmsd_controller>`,
+:ref:`ldmsd_decomposition(7) <ldmsd_decomposition>`

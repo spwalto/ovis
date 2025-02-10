@@ -1,3 +1,5 @@
+.. _dstat:
+
 ============
 dstat
 ============
@@ -71,7 +73,7 @@ CONFIGURATION ATTRIBUTE SYNTAX
 
    tick=<bool>
       |
-      | Include the sc_clk_tck from sysconf(3) as a metric.
+      | Include the sc_clk_tck from :ref:`sysconf(3) <sysconf>` as a metric.
 
    statm=<bool>
       |
@@ -114,7 +116,7 @@ Within ldmsd_controller or a configuration file:
 NOTES
 =====
 
-See proc(5) for the definitions of all the metrics except sc_clk_tck and
+See :ref:`proc(5) <proc>` for the definitions of all the metrics except sc_clk_tck and
 fd data. Metrics which are invariant (other than pids and sc_clk_tck)
 are not included. Where naming is potentially ambiguous and a more
 specific name is used in /proc/self/status for the same metrics, the
@@ -145,4 +147,4 @@ custodes?"
 SEE ALSO
 ========
 
-proc(5), ldmsd(8), sysconf(3)
+:ref:`proc(5) <proc>`, :ref:`ldmsd(8) <ldmsd>`, :ref:`sysconf(3) <sysconf>`

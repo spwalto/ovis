@@ -1,3 +1,5 @@
+.. _ldms-reverse-conf:
+
 =================
 ldms-reverse-conf
 =================
@@ -31,4 +33,4 @@ command order given the original scripted configuration.
 SEE ALSO
 ========
 
-ldmsctl(8), ldmsd_controller(8)
+:ref:`ldmsctl(8) <ldmsctl>`, :ref:`ldmsd_controller(8) <ldmsd_controller>`

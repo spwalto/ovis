@@ -1,3 +1,5 @@
+.. _ldmsd_stream_subscribe:
+
 ======================
 ldmsd_stream_subscribe
 ======================
@@ -118,5 +120,5 @@ Sending data to listening subscriber
 SEE ALSO
 ========
 
-ldmsd(8), ldms_quickstart(7), ldmsd_stream_publish(8),
-ldms_authentication(7)
+:ref:`ldmsd(8) <ldmsd>`, :ref:`ldms_quickstart(7) <ldms_quickstart>`, :ref:`ldmsd_stream_publish(8) <ldmsd_stream_publish>`,
+:ref:`ldms_authentication(7) <ldms_authentication>`

@@ -1,3 +1,5 @@
+.. _ldms-run-static-tests:
+
 =====================
 ldms-run-static-tests
 =====================
@@ -70,7 +72,7 @@ testname
 strict
    |
    | If the variable "strict" is used for KILL_LDMSD
-     (ldms-static-test(8)) the script will output "FAIL $testname" and
+     (ldms-static-:ref:`test(8) <test>`) the script will output "FAIL $testname" and
      return an XFAIL to indicate an expected failure only if the test
      case plugin is listed in static-test-list. The stderr of
      ldms-static-test.sh will be redirected to the log file

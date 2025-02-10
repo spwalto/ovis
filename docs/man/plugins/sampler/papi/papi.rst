@@ -1,3 +1,5 @@
+.. _papi:
+
 ===========
 papi
 ===========
@@ -105,4 +107,4 @@ $ldmsctl -S $LDMSD_SOCKPATH
 SEE ALSO
 ========
 
-papi_avail(1) , ldmsd(7), ldms_quickstart(7)
+:ref:`papi_avail(1) <papi_avail>` , :ref:`ldmsd(7) <ldmsd>`, :ref:`ldms_quickstart(7) <ldms_quickstart>`

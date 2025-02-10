@@ -1,3 +1,5 @@
+.. _store_rabbitkw:
+
 =====================
 store_rabbitkw
 =====================
@@ -223,4 +225,4 @@ require epmd.service.
 SEE ALSO
 ========
 
-ldmsd(8), rabbitmq-server(1), ldmsd_controller(8), store_rabbitv3(7)
+:ref:`ldmsd(8) <ldmsd>`, rabbitmq-:ref:`server(1) <server>`, :ref:`ldmsd_controller(8) <ldmsd_controller>`, :ref:`store_rabbitv3(7) <store_rabbitv3>`

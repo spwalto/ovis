@@ -1,3 +1,5 @@
+.. _ldmsd_setgroup:
+
 ==============
 ldmsd_setgroup
 ==============
@@ -203,8 +205,8 @@ The **members** of the group can be **listed** by the following:
                 Size : 184
         Metric Count : 1
                   GN : 1
-                User : root(0)
-               Group : root(0)
+                User : :ref:`root(0) <root>`
+               Group : :ref:`root(0) <root>`
          Permissions : -rwxrwxrwx
      DATA ------------
            Timestamp : Thu Jul 05 16:42:12 2018 [378918us]

@@ -1,3 +1,5 @@
+.. _blob_stream_writer:
+
 =========================
 blob_stream_writer
 =========================
@@ -135,5 +137,5 @@ Examining timestamps in a shell:
 SEE ALSO
 ========
 
-ldmsd(8), ldms_quickstart(7), ldmsd_controller(8), le64toh(3), fseek(3),
-od(1)
+:ref:`ldmsd(8) <ldmsd>`, :ref:`ldms_quickstart(7) <ldms_quickstart>`, :ref:`ldmsd_controller(8) <ldmsd_controller>`, :ref:`le64toh(3) <le64toh>`, :ref:`fseek(3) <fseek>`,
+:ref:`od(1) <od>`

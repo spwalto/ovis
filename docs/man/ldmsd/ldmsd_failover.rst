@@ -1,3 +1,5 @@
+.. _ldmsd_failover:
+
 ==============
 ldmsd_failover
 ==============
@@ -58,7 +60,7 @@ describes the command parameters.
       partner. This is optional in re-configuration.
 
    -  (Optional) The ldmsd name of the failover parter (please see
-      option **-n** in **ldmsd**\ (8)). If this is specified, the ldmsd
+      option **-n** in :ref:`ldmsd(8) <ldmsd>`). If this is specified, the ldmsd
       will only accept a pairing with other ldmsd with matching name.
       Otherwise, the ldmsd will pair with any ldmsd requesting a
       failover pairing.
@@ -274,4 +276,4 @@ back to the original state in the first figure.
 SEE ALSO
 ========
 
-**ldmsd**\ (8), **ldms_quickstart**\ (7), **ldmsd_controller**\ (8)
+:ref:`ldmsd(8) <ldmsd>`, :ref:`ldms_quickstart(7) <ldms_quickstart>`, :ref:`ldmsd_controller(8) <ldmsd_controller>`

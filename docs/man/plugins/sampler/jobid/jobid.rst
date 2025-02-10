@@ -1,3 +1,5 @@
+.. _jobid:
+
 ============
 jobid
 ============
@@ -140,4 +142,4 @@ following lines to slurm.epilog and slurm.prolog, respectively.
 SEE ALSO
 ========
 
-ldms(7), ldmsd(8), ldmsd_controller(8)
+:ref:`ldms(7) <ldms>`, :ref:`ldmsd(8) <ldmsd>`, :ref:`ldmsd_controller(8) <ldmsd_controller>`

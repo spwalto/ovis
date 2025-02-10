@@ -1,3 +1,5 @@
+.. _store_papi:
+
 =================
 store_papi
 =================
@@ -28,7 +30,7 @@ Within ldmsd_controller or a configuration file:
 metrics after a certain job metric (task_ranks) that only
 **papi_sampler** produced. **store_papi** stores data in a SOS container
 (specified by **strgp** **container** option). Unlike **store_sos** (see
-**store_sos**\ (7)) where an entire LDMS snapshot results in an
+:ref:`store_sos(7) <store_sos>`) where an entire LDMS snapshot results in an
 SOS data entry, **store_papi** split the PAPI events in the set into
 their own schemas and data points. For example, if we have PAPI_TOT_INS
 and PAPI_TOT_CYC as PAPI events in the **papi_sampler** set, we will
@@ -106,5 +108,5 @@ PAPI JSON example (/tmp/papi.json):
 
 .SH SEE ALSO
 
-**papi_sampler**\ (7), **ldmsd**\ (8), **ldms_quickstart**\ (7),
-**ldmsd_controller**\ (8), **ldms_sampler_base**\ (7).
+:ref:`papi_sampler(7) <papi_sampler>`, :ref:`ldmsd(8) <ldmsd>`, :ref:`ldms_quickstart(7) <ldms_quickstart>`,
+:ref:`ldmsd_controller(8) <ldmsd_controller>`, :ref:`ldms_sampler_base(7) <ldms_sampler_base>`.

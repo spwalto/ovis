@@ -1,3 +1,5 @@
+.. _syspapi_sampler:
+
 ======================
 syspapi_sampler
 ======================
@@ -23,7 +25,7 @@ DESCRIPTION
 ===========
 
 **syspapi_sampler** collects system-wide hardware event counters using
-Linux perf event (see **perf_event_open**\ (2)), but use PAPI event
+Linux perf event (see :ref:`perf_event_open(2) <perf_event_open>`), but use PAPI event
 names. **libpapi** and **libpfm** are used to translate PAPI event names
 to Linux perf event attributes. In the case of per-process (job) data
 collection, please see **papi_sampler**. There are two approaches
@@ -127,5 +129,5 @@ JSON cfg_file example:
 SEE ALSO
 ========
 
-**papi_sampler**\ (7), **ldmsd**\ (8), **ldms_quickstart**\ (7),
-**ldmsd_controller**\ (8), **ldms_sampler_base**\ (7).
+:ref:`papi_sampler(7) <papi_sampler>`, :ref:`ldmsd(8) <ldmsd>`, :ref:`ldms_quickstart(7) <ldms_quickstart>`,
+:ref:`ldmsd_controller(8) <ldmsd_controller>`, :ref:`ldms_sampler_base(7) <ldms_sampler_base>`.

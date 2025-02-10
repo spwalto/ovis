@@ -1,3 +1,5 @@
+.. _ldmsd_peer_daemon_advertisement:
+
 ===============================
 ldmsd_peer_daemon_advertisement
 ===============================
@@ -228,4 +230,4 @@ prdcr_listen object.
 SEE ALSO
 ========
 
-**ldmsd**\ (8) **ldmsd_controller**\ (8)
+:ref:`ldmsd(8) <ldmsd>` :ref:`ldmsd_controller(8) <ldmsd_controller>`

@@ -1,3 +1,5 @@
+.. _ldms_authentication:
+
 ===================
 ldms_authentication
 ===================
@@ -45,23 +47,23 @@ LIST OF LDMS_AUTH PLUGINS
 
 **none**
    Authentication will NOT be used (allow all connections) (see
-   **ldms_auth_none**\ (7)).
+   :ref:`ldms_auth_none(7) <ldms_auth_none>`).
 
 **ovis**
    The shared secret authentication using ovis_ldms (see
-   **ldms_auth_ovis**\ (7)).
+   :ref:`ldms_auth_ovis(7) <ldms_auth_ovis>`).
 
 **naive**
-   The naive authentication for testing. (see **ldms_auth_naive**\ (7)).
+   The naive authentication for testing. (see :ref:`ldms_auth_naive(7) <ldms_auth_naive>`).
 
 **munge**
    User credential authentication using Munge. (see
-   **ldms_auth_munge**\ (7)).
+   :ref:`ldms_auth_munge(7) <ldms_auth_munge>`).
 
 SEE ALSO
 ========
 
-**ldms_auth_none**\ (7), **ldms_auth_ovis**\ (7),
-**ldms_auth_naive**\ (7), **ldms_auth_munge**\ (7), **ldmsctl**\ (8),
-**ldmsd**\ (8), **ldms_ls**\ (8), **ldmsd_controller**\ (8),
-**ldms_quickstart**\ (7), **ldms_build_install**\ (7)
+:ref:`ldms_auth_none(7) <ldms_auth_none>`, :ref:`ldms_auth_ovis(7) <ldms_auth_ovis>`,
+:ref:`ldms_auth_naive(7) <ldms_auth_naive>`, :ref:`ldms_auth_munge(7) <ldms_auth_munge>`, :ref:`ldmsctl(8) <ldmsctl>`,
+:ref:`ldmsd(8) <ldmsd>`, :ref:`ldms_ls(8) <ldms_ls>`, :ref:`ldmsd_controller(8) <ldmsd_controller>`,
+:ref:`ldms_quickstart(7) <ldms_quickstart>`, :ref:`ldms_build_install(7) <ldms_build_install>`

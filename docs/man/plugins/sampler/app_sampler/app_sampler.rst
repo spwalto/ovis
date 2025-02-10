@@ -1,3 +1,5 @@
+.. _app_sampler:
+
 ==================
 app_sampler
 ==================
@@ -295,5 +297,5 @@ are collected.
 SEE ALSO
 ========
 
-**ldmsd**\ (8), **ldms_quickstart**\ (7), **ldmsd_controller**\ (8),
-**ldms_sampler_base**\ (7), **proc(5),** **sysconf(3),** **environ(3).**
+:ref:`ldmsd(8) <ldmsd>`, :ref:`ldms_quickstart(7) <ldms_quickstart>`, :ref:`ldmsd_controller(8) <ldmsd_controller>`,
+:ref:`ldms_sampler_base(7) <ldms_sampler_base>`, **:ref:`proc(5) <proc>`,** **:ref:`sysconf(3) <sysconf>`,** **:ref:`environ(3) <environ>`.**

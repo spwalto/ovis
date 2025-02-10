@@ -1,3 +1,5 @@
+.. _ldms_ibnet_schema_name:
+
 ======================
 ldms_ibnet_schema_name
 ======================
@@ -26,7 +28,7 @@ configured.
 CONFIGURATION ATTRIBUTE SYNTAX
 ==============================
 
-See ibnet(7).
+See :ref:`ibnet(7) <ibnet>`.
 
 EXAMPLES
 ========
@@ -69,4 +71,4 @@ set will be as for the result given with "_timing" appended.
 SEE ALSO
 ========
 
-ibnet(7)
+:ref:`ibnet(7) <ibnet>`

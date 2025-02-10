@@ -1,3 +1,5 @@
+.. _store_tutorial:
+
 =====================
 store_tutorial
 =====================
@@ -156,5 +158,5 @@ Within ldmsd_controller or in a ldmsd command script file
 SEE ALSO
 ========
 
-ldmsd(8), ldms_quickstart(7), ldmsd_controller(8),
-tutorial_sampler(7), store_csv(7)
+:ref:`ldmsd(8) <ldmsd>`, :ref:`ldms_quickstart(7) <ldms_quickstart>`, :ref:`ldmsd_controller(8) <ldmsd_controller>`,
+:ref:`tutorial_sampler(7) <tutorial_sampler>`, :ref:`store_csv(7) <store_csv>`

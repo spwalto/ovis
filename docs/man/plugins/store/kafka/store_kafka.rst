@@ -1,3 +1,5 @@
+.. _store_kafka:
+
 ==================
 store_kafka
 ==================
@@ -74,9 +76,9 @@ strgp options:
    **decomposition=**\ *DECOMP_CONFIG_JSON_FILE*
       |
       | Set-to-row decomposition configuration file (JSON format). See
-        more about decomposition in **ldmsd_decomposition**\ (7).
+        more about decomposition in :ref:`ldmsd_decomposition(7) <ldmsd_decomposition>`.
 
 SEE ALSO
 ========
 
-ldmsd_decomposition(7)
+:ref:`ldmsd_decomposition(7) <ldmsd_decomposition>`

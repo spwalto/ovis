@@ -1,3 +1,5 @@
+.. _perfevent:
+
 ================
 perfevent
 ================
@@ -349,4 +351,4 @@ $ldmsctl -S $LDMSD_SOCKPATH
 SEE ALSO
 ========
 
-PERF_EVENT_OPEN(2), ldmsd(7), ldms_quickstart(7), ldms_sampler_base(7)
+:ref:`PERF_EVENT_OPEN(2) <PERF_EVENT_OPEN>`, :ref:`ldmsd(7) <ldmsd>`, :ref:`ldms_quickstart(7) <ldms_quickstart>`, :ref:`ldms_sampler_base(7) <ldms_sampler_base>`

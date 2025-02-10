@@ -1,3 +1,5 @@
+.. _geopm_sampler:
+
 ====================
 geopm_sampler
 ====================
@@ -20,7 +22,7 @@ DESCRIPTION
 
 With LDMS (Lightweight Distributed Metric Service), plugins for the
 ldmsd (ldms daemon) are configured via ldmsd_controller or a
-configuration file. The geopm plugin provides access to the geopm(7)
+configuration file. The geopm plugin provides access to the :ref:`geopm(7) <geopm>`
 PlatformIO interface by configuring the request file with signal
 requests.
 
@@ -57,9 +59,9 @@ configured with the option - \``geopm_request_path=<path-to-file>``.
    **<SIGNAL_NAME> <DOMAIN> <DOMAIN_INDEX>**
 
    The signal name must be a signal supported by GEOPM on the system. To
-   see a full list of supported signals run the geopmread(1) command
+   see a full list of supported signals run the :ref:`geopmread(1) <geopmread>` command
    without any options. The domain must match one of the GEOPM domains.
-   Run the geopmread(1) command with the -d option to see a full list of
+   Run the :ref:`geopmread(1) <geopmread>` command with the -d option to see a full list of
    supported domains and the number of instances of each on the system.
    The domain index provided must be greater or equal to zero and less
    than the number of available domains.
@@ -145,5 +147,5 @@ TIMESTAMP_COUNTER_board_0 10913748924506.000000
 SEE ALSO
 ========
 
-ldmsd(8), ldms_quickstart(7), ldmsd_controller(8), ldms_sampler_base(7),
-geopm(7), geopm_pio(7), geopmread(1), geopmwrite(1)
+:ref:`ldmsd(8) <ldmsd>`, :ref:`ldms_quickstart(7) <ldms_quickstart>`, :ref:`ldmsd_controller(8) <ldmsd_controller>`, :ref:`ldms_sampler_base(7) <ldms_sampler_base>`,
+:ref:`geopm(7) <geopm>`, :ref:`geopm_pio(7) <geopm_pio>`, :ref:`geopmread(1) <geopmread>`, :ref:`geopmwrite(1) <geopmwrite>`

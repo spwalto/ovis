@@ -1,3 +1,5 @@
+.. _store_avro_kafka:
+
 =======================
 store_avro_kafka
 =======================
@@ -329,5 +331,5 @@ This man page is a work in progress.
 SEE ALSO
 ========
 
-**ldmsd**\ (8), **ldmsd_controller**\ (8), **ldmsd_decomposition**\ (7),
-**ldms_quickstart**\ (7)
+:ref:`ldmsd(8) <ldmsd>`, :ref:`ldmsd_controller(8) <ldmsd_controller>`, :ref:`ldmsd_decomposition(7) <ldmsd_decomposition>`,
+:ref:`ldms_quickstart(7) <ldms_quickstart>`

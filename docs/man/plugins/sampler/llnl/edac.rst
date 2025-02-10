@@ -1,3 +1,5 @@
+.. _edac:
+
 ===========
 edac
 ===========
@@ -95,4 +97,4 @@ www.kernel.org/doc/Documentation/ABI/testing/sysfs-devices-edac.
 SEE ALSO
 ========
 
-edac(3), edac-util(8), edac-ctl(8), ldms(7), ldms_sampler_base(7)
+:ref:`edac(3) <edac>`, edac-:ref:`util(8) <util>`, edac-:ref:`ctl(8) <ctl>`, :ref:`ldms(7) <ldms>`, :ref:`ldms_sampler_base(7) <ldms_sampler_base>`

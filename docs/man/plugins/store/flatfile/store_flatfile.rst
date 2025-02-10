@@ -1,3 +1,5 @@
+.. _store_flatfile:
+
 =====================
 store_flatfile
 =====================
@@ -100,4 +102,4 @@ Within ldmsd_controller or in a configuration file
 SEE ALSO
 ========
 
-ldmsd(8), ldms_quickstart(7), ldmsd_controller(8)
+:ref:`ldmsd(8) <ldmsd>`, :ref:`ldms_quickstart(7) <ldms_quickstart>`, :ref:`ldmsd_controller(8) <ldmsd_controller>`

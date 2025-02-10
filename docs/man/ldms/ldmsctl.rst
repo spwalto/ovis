@@ -1,3 +1,5 @@
+.. _ldmsctl:
+
 =======
 ldmsctl
 =======
@@ -62,14 +64,14 @@ OPTIONS
 
 **-a**\ *AUTH*
    AUTH is the name of the LDMS Authentication plugin to be used for the
-   connection. Please see **ldms_authentication**\ (7) for more
+   connection. Please see :ref:`ldms_authentication(7) <ldms_authentication>` for more
    information. If this option is not given, the default is "none" (no
    authentication).
 
 **-A**\ *NAME*\ **=**\ *VALUE*
    Passing the *NAME*\ =\ *VALUE* option to the LDMS Authentication
    plugin. This command line option can be given multiple times. Please
-   see **ldms_authentication**\ (7) for more information, and consult
+   see :ref:`ldms_authentication(7) <ldms_authentication>` for more information, and consult
    the plugin manual page for plugin-specific options.
 
 **-s**\ *SOURCE*
@@ -87,7 +89,7 @@ REGULAR EXPRESSION
 
 The regular expression specified in *regex=* option of the commands is a
 POSIX Extended (modern) Regular Expression. In short, "*+?{}|^$." are
-special regular expression characters. Please see **regex(7)** for more
+special regular expression characters. Please see **:ref:`regex(7) <regex>`** for more
 information.
 
 PLUGIN COMMAND SYNTAX
@@ -645,12 +647,12 @@ Query the storage policy status
 FAILOVER COMMAND SYNTAX
 =======================
 
-Please see **ldmsd_failover**\ (7).
+Please see :ref:`ldmsd_failover(7) <ldmsd_failover>`.
 
 SETGROUP COMMAND SYNTAX
 =======================
 
-Please see **ldmsd_setgroup**\ (7).
+Please see :ref:`ldmsd_setgroup(7) <ldmsd_setgroup>`.
 
 STREAM COMMAND SYNTAX
 =====================
@@ -1040,5 +1042,5 @@ ERROR messages will be reported.
 SEE ALSO
 ========
 
-ldms_authentication(7), ldmsd(8), ldms_ls(8), ldmsd_controller(8),
-ldms_quickstart(7)
+:ref:`ldms_authentication(7) <ldms_authentication>`, :ref:`ldmsd(8) <ldmsd>`, :ref:`ldms_ls(8) <ldms_ls>`, :ref:`ldmsd_controller(8) <ldmsd_controller>`,
+:ref:`ldms_quickstart(7) <ldms_quickstart>`

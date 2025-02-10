@@ -1,3 +1,5 @@
+.. _ldms-plugins:
+
 ============
 ldms-plugins
 ============
@@ -25,7 +27,7 @@ OPTIONS
 
 If the NAME is specified, only information for that plugin is displayed.
 The names all, store, and sampler are interpreted as described in
-ldmsd(8).
+:ref:`ldmsd(8) <ldmsd>`.
 
 -b
    |
@@ -56,4 +58,4 @@ the setting of LD_LIBRARY_PATH.
 SEE ALSO
 ========
 
-ldmsd(8)
+:ref:`ldmsd(8) <ldmsd>`

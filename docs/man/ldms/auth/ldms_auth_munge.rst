@@ -1,3 +1,5 @@
+.. _ldms_auth_munge:
+
 ===============
 ldms_auth_munge
 ===============
@@ -17,7 +19,7 @@ SYNOPSIS
 DESCRIPTION
 ===========
 
-**ldms_auth_munge** relies on the **munge** service (see **munge**\ (7))
+**ldms_auth_munge** relies on the **munge** service (see :ref:`munge(7) <munge>`)
 to authenticate users. The munge daemon (**munged**) must be up and
 running.
 
@@ -28,4 +30,4 @@ default path or there are multiple munge domains configured.
 SEE ALSO
 ========
 
-**munge**\ (7), **munged**\ (8)
+:ref:`munge(7) <munge>`, :ref:`munged(8) <munged>`

@@ -1,3 +1,5 @@
+.. _tx2mon:
+
 =============
 tx2mon
 =============
@@ -176,6 +178,6 @@ missing tx2mon kernel module.
 SEE ALSO
 ========
 
-ldmsd(8), ldms_sampler_base
+:ref:`ldmsd(8) <ldmsd>`, ldms_sampler_base
 
 ::

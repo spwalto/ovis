@@ -1,3 +1,5 @@
+.. _tutorial_sampler:
+
 =======================
 tutorial_sampler
 =======================
@@ -91,5 +93,5 @@ u64 job_id 0 D u64 app_id 0 D u64 metric0 6 D u64 metric1 12
 SEE ALSO
 ========
 
-ldmsd(8), ldms_quickstart(7), ldmsd_controller(8), ldms_sampler_base(7),
-test_sampler(7), store_tutorial(7)
+:ref:`ldmsd(8) <ldmsd>`, :ref:`ldms_quickstart(7) <ldms_quickstart>`, :ref:`ldmsd_controller(8) <ldmsd_controller>`, :ref:`ldms_sampler_base(7) <ldms_sampler_base>`,
+:ref:`test_sampler(7) <test_sampler>`, :ref:`store_tutorial(7) <store_tutorial>`

@@ -1,3 +1,5 @@
+.. _kgnilnd:
+
 ==============
 kgnilnd
 ==============
@@ -64,5 +66,5 @@ Within ldmsd_controller or in a configuration file
 SEE ALSO
 ========
 
-ldmsd(8), cray_system_sampler_variants(7), ldms_quickstart(7),
-ldmsd_controller(8), ldms_sampler_base(7)
+:ref:`ldmsd(8) <ldmsd>`, :ref:`cray_system_sampler_variants(7) <cray_system_sampler_variants>`, :ref:`ldms_quickstart(7) <ldms_quickstart>`,
+:ref:`ldmsd_controller(8) <ldmsd_controller>`, :ref:`ldms_sampler_base(7) <ldms_sampler_base>`

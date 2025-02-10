@@ -1,3 +1,5 @@
+.. _ldmsd_controller:
+
 ================
 ldmsd_controller
 ================
@@ -53,12 +55,12 @@ LDMSD_CONTROLLER OPTIONS
 
 **-a,--auth**\ *AUTH*
    The LDMS authentication plugin. Please see
-   **ldms_authentication**\ (7) for more information.
+   :ref:`ldms_authentication(7) <ldms_authentication>` for more information.
 
 **-A,--auth-arg**\ *NAME=VALUE*
    Options *NAME*\ =\ *VALUE* Passing the *NAME*\ =\ *VALUE* option to
    the LDMS Authentication plugin. This command line option can be given
-   multiple times. Please see **ldms_authentication**\ (7) for more
+   multiple times. Please see :ref:`ldms_authentication(7) <ldms_authentication>` for more
    information, and consult the plugin manual page for plugin-specific
    options.
 
@@ -82,7 +84,7 @@ REGULAR EXPRESSION
 
 The regular expression specified in *regex=* option of the commands is a
 POSIX Extended (modern) Regular Expression. In short, "*+?{}|^$." are
-special regular expression characters. Please see **regex(7)** for more
+special regular expression characters. Please see **:ref:`regex(7) <regex>`** for more
 information.
 
 PLUGIN COMMAND SYNTAX
@@ -254,7 +256,7 @@ Instruct ldmsd to listen to a port
         **auth** object created by **auth_add** command) to authenticate
         connections on this port. If not given, the port uses the
         default authentication method specified on the CLI options (see
-        **ldmsd**\ (8) option **-a**).
+        :ref:`ldmsd(8) <ldmsd>` option **-a**).
 
    **[quota**\ *BYTES*\ **]**
       |
@@ -326,7 +328,7 @@ Add a producer to the aggregator
         **auth** object created by **auth_add** command) with the
         connections to this producer. If not given, the default
         authentication method specified on the CLI options (see
-        **ldmsd**\ (8) option **-a**) is used.
+        :ref:`ldmsd(8) <ldmsd>` option **-a**) is used.
 
    **[rail**\ *NUM*\ **]**
       |
@@ -758,12 +760,12 @@ Query the storage policy status
 FAILOVER COMMAND SYNTAX
 =======================
 
-Please see **ldmsd_failover**\ (7).
+Please see :ref:`ldmsd_failover(7) <ldmsd_failover>`.
 
 SETGROUP COMMAND SYNTAX
 =======================
 
-Please see **ldmsd_setgroup**\ (7).
+Please see :ref:`ldmsd_setgroup(7) <ldmsd_setgroup>`.
 
 STREAM COMMAND SYNTAX
 =====================
@@ -1323,5 +1325,5 @@ Example of log_status's report
 SEE ALSO
 ========
 
-ldmsd(8), ldmsctl(8), ldms_quickstart(7), ldmsd_failover(7),
-ldmsd_setgroup(7)
+:ref:`ldmsd(8) <ldmsd>`, :ref:`ldmsctl(8) <ldmsctl>`, :ref:`ldms_quickstart(7) <ldms_quickstart>`, :ref:`ldmsd_failover(7) <ldmsd_failover>`,
+:ref:`ldmsd_setgroup(7) <ldmsd_setgroup>`

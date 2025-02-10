@@ -1,3 +1,5 @@
+.. _ibmad_records_sampler:
+
 ============================
 ibmad_records_sampler
 ============================
@@ -132,4 +134,4 @@ Within ldmsd_controller or a configuration file:
 SEE ALSO
 ========
 
-ldmsd(8), ldms_quickstart(7), ldmsd_controller(8)
+:ref:`ldmsd(8) <ldmsd>`, :ref:`ldms_quickstart(7) <ldms_quickstart>`, :ref:`ldmsd_controller(8) <ldmsd_controller>`

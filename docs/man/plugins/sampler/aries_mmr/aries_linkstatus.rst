@@ -1,3 +1,5 @@
+.. _aries_linkstatus:
+
 =======================
 aries_linkstatus
 =======================
@@ -139,5 +141,5 @@ recvlinkstatus_r4 0x03,0x03,0x00,0x03,0x03,0x03,0x03,0x03
 SEE ALSO
 ========
 
-ldmsd(7), ldms_sampler_base(7), cray_system_sampler_variants(7),
-aries_mmr(7), ldms_quickstart(7), ldmsd_controller(8)
+:ref:`ldmsd(7) <ldmsd>`, :ref:`ldms_sampler_base(7) <ldms_sampler_base>`, :ref:`cray_system_sampler_variants(7) <cray_system_sampler_variants>`,
+:ref:`aries_mmr(7) <aries_mmr>`, :ref:`ldms_quickstart(7) <ldms_quickstart>`, :ref:`ldmsd_controller(8) <ldmsd_controller>`

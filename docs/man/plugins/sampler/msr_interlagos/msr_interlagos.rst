@@ -1,3 +1,5 @@
+.. _msr_interlagos:
+
 =====================
 msr_interlagos
 =====================
@@ -417,5 +419,5 @@ Within ldmsd_controller or a configuration file:
 SEE ALSO
 ========
 
-ldmsd(7), ldms_quickstart(7), ldms_sampler_base(7),
-store_function_csv(7), ldmsd_controller(8)
+:ref:`ldmsd(7) <ldmsd>`, :ref:`ldms_quickstart(7) <ldms_quickstart>`, :ref:`ldms_sampler_base(7) <ldms_sampler_base>`,
+:ref:`store_function_csv(7) <store_function_csv>`, :ref:`ldmsd_controller(8) <ldmsd_controller>`

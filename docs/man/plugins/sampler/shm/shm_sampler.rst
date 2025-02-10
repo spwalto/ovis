@@ -1,3 +1,5 @@
+.. _shm_sampler:
+
 ==================
 shm_sampler
 ==================
@@ -64,4 +66,4 @@ Within ldmsd_controller or a configuration file:
    config name=shm_sampler producer=samplerd instance=samplerd/shm_sampler shm_index=/ldms_shm_mpi_index shm_boxmax=4 component_id=23
    start name=shm_sampler interval=1000000 offset=0
 
-ldmsd(8), ldms_quickstart(7), ldmsd_controller(8)
+:ref:`ldmsd(8) <ldmsd>`, :ref:`ldms_quickstart(7) <ldms_quickstart>`, :ref:`ldmsd_controller(8) <ldmsd_controller>`

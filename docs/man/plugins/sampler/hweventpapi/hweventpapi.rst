@@ -1,3 +1,5 @@
+.. _hweventpapi:
+
 ==================
 hweventpapi
 ==================
@@ -85,4 +87,4 @@ Within the metafile configuration:
 SEE ALSO
 ========
 
-ldmsd(8), ldms_quickstart(7), ldmsd_controller(8), ldms_sampler_base(7)
+:ref:`ldmsd(8) <ldmsd>`, :ref:`ldms_quickstart(7) <ldms_quickstart>`, :ref:`ldmsd_controller(8) <ldmsd_controller>`, :ref:`ldms_sampler_base(7) <ldms_sampler_base>`

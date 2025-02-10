@@ -1,3 +1,5 @@
+.. _procstat:
+
 ===============
 procstat
 ===============
@@ -28,7 +30,7 @@ actually appearing will be reported as 0 values.
 CONFIGURATION ATTRIBUTE SYNTAX
 ==============================
 
-See ldms_sampler_base(7) for the common sampler options.
+See :ref:`ldms_sampler_base(7) <ldms_sampler_base>` for the common sampler options.
 
 **config**
    | maxcpu=<core_count> <standard options>
@@ -49,14 +51,14 @@ See ldms_sampler_base(7) for the common sampler options.
       |
       | Enable optional reporting of sysconf(_SC_CLK_TCK), the scheduler
         ticks-per-second defined at kernel build time as CONFIG_HZ,
-        collected from sysconf(3). Typically HPC systems use 100, while
+        collected from :ref:`sysconf(3) <sysconf>`. Typically HPC systems use 100, while
         250, 300, 1000 may also occur.
 
 DATA
 ====
 
 This reports both interrupt count and time processing them. For detailed
-interrupt data by type, consider procinterrupts(7).
+interrupt data by type, consider :ref:`procinterrupts(7) <procinterrupts>`.
 
 BUGS
 ====
@@ -77,5 +79,5 @@ Within ldmsd_controller or a configuration file:
 SEE ALSO
 ========
 
-ldms_sampler_base(7), procinterrupts(7), Kernel source
-fs/proc/stat.c and proc(5), ldmsd(8), ldmsd_controller(8)
+:ref:`ldms_sampler_base(7) <ldms_sampler_base>`, :ref:`procinterrupts(7) <procinterrupts>`, Kernel source
+fs/proc/stat.c and :ref:`proc(5) <proc>`, :ref:`ldmsd(8) <ldmsd>`, :ref:`ldmsd_controller(8) <ldmsd_controller>`

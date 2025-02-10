@@ -1,3 +1,5 @@
+.. _ldms_auth_naive:
+
 ===============
 ldms_auth_naive
 ===============

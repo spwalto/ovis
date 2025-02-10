@@ -1,3 +1,5 @@
+.. _ldms-csv-export-sos:
+
 ===================
 ldms-csv-export-sos
 ===================
@@ -206,4 +208,4 @@ Other examples
 SEE ALSO
 ========
 
-sos-import-csv(1)
+sos-import-:ref:`csv(1) <csv>`

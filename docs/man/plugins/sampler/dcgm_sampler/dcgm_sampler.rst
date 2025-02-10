@@ -1,3 +1,5 @@
+.. _dcgm_sampler:
+
 ===================
 dcgm_sampler
 ===================
@@ -41,7 +43,7 @@ CONFIGURATION ATTRIBUTE SYNTAX
    use_base=<*>
       |
       | Any value given enables the sampler_base configuration option
-        processing (see ldms_sampler_base(7)). If not given, the options
+        processing (see :ref:`ldms_sampler_base(7) <ldms_sampler_base>`). If not given, the options
         not listed below are ignored.
 
    interval=<interval(us)>
@@ -94,4 +96,4 @@ Multiple instances of the sampler cannot run on the same server.
 SEE ALSO
 ========
 
-ldmsd(8), ldms_quickstart(7), ldmsd_controller(8), ldms_sampler_base(7)
+:ref:`ldmsd(8) <ldmsd>`, :ref:`ldms_quickstart(7) <ldms_quickstart>`, :ref:`ldmsd_controller(8) <ldmsd_controller>`, :ref:`ldms_sampler_base(7) <ldms_sampler_base>`

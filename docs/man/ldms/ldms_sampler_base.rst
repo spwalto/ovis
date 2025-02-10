@@ -1,3 +1,5 @@
+.. _ldms_sampler_base:
+
 =================
 ldms_sampler_base
 =================
@@ -117,12 +119,12 @@ Within ldmsd_controller or a configuration file:
 SEE ALSO
 ========
 
-ldmsd(8), ldms_quickstart(7), ldmsd_controller(8),
-all_example(7), aries_linkstatus(7), aries_mmr(7),
-array_example(7), clock(7),
-cray_sampler_variants(7), cray_dvs_sampler(7),
-procdiskstats(7), fptrans(7), kgnilnd(7),
-lnet_stats(7), meminfo(7), msr_interlagos(7),
-perfevent(7), procinterrupts(7), procnetdev(7),
-procnfs(7), rapl(7), sampler_atasmart(7),
-sysclassib(7), synthetic(7), vmstat(7)
+:ref:`ldmsd(8) <ldmsd>`, :ref:`ldms_quickstart(7) <ldms_quickstart>`, :ref:`ldmsd_controller(8) <ldmsd_controller>`,
+:ref:`all_example(7) <all_example>`, :ref:`aries_linkstatus(7) <aries_linkstatus>`, :ref:`aries_mmr(7) <aries_mmr>`,
+:ref:`array_example(7) <array_example>`, :ref:`clock(7) <clock>`,
+:ref:`cray_sampler_variants(7) <cray_sampler_variants>`, :ref:`cray_dvs_sampler(7) <cray_dvs_sampler>`,
+:ref:`procdiskstats(7) <procdiskstats>`, :ref:`fptrans(7) <fptrans>`, :ref:`kgnilnd(7) <kgnilnd>`,
+:ref:`lnet_stats(7) <lnet_stats>`, :ref:`meminfo(7) <meminfo>`, :ref:`msr_interlagos(7) <msr_interlagos>`,
+:ref:`perfevent(7) <perfevent>`, :ref:`procinterrupts(7) <procinterrupts>`, :ref:`procnetdev(7) <procnetdev>`,
+:ref:`procnfs(7) <procnfs>`, :ref:`rapl(7) <rapl>`, :ref:`sampler_atasmart(7) <sampler_atasmart>`,
+:ref:`sysclassib(7) <sysclassib>`, :ref:`synthetic(7) <synthetic>`, :ref:`vmstat(7) <vmstat>`

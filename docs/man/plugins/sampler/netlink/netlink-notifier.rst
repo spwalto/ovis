@@ -1,3 +1,5 @@
+.. _netlink-notifier:
+
 ================
 netlink-notifier
 ================
@@ -148,7 +150,7 @@ removed by clients or system scripts.
 NOTES
 =====
 
-The core of this utility is derived from forkstat(8).
+The core of this utility is derived from :ref:`forkstat(8) <forkstat>`.
 
 The output of this utility, if used to drive a sampler, usually needs to
 be consumed on the same node.
@@ -198,4 +200,4 @@ debugging files
 SEE ALSO
 ========
 
-forkstat(8), ldmsd(8), ldms-static-test(8)
+:ref:`forkstat(8) <forkstat>`, :ref:`ldmsd(8) <ldmsd>`, ldms-static-:ref:`test(8) <test>`

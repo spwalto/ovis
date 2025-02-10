@@ -1,3 +1,5 @@
+.. _sysclassib:
+
 =================
 sysclassib
 =================
@@ -66,4 +68,4 @@ Within ldmsd_controller or a configuration file:
 SEE ALSO
 ========
 
-ldms(7), procnetdev(7), ldms_sampler_base(7)
+:ref:`ldms(7) <ldms>`, :ref:`procnetdev(7) <procnetdev>`, :ref:`ldms_sampler_base(7) <ldms_sampler_base>`

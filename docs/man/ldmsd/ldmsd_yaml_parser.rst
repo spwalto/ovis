@@ -1,3 +1,5 @@
+.. _ldmsd_yaml_parser:
+
 =================
 ldmsd_yaml_parser
 =================

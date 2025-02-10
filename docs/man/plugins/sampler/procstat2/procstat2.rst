@@ -1,3 +1,5 @@
+.. _procstat2:
+
 ================
 procstat2
 ================
@@ -27,7 +29,7 @@ CONFIGURATION ATTRIBUTE SYNTAX
 
 The procstat2 plugin uses the sampler_base base class. This man page
 covers only the configuration attributes, or those with default values,
-specific to the this plugin; see ldms_sampler_base(7) for the attributes
+specific to the this plugin; see :ref:`ldms_sampler_base(7) <ldms_sampler_base>` for the attributes
 of the base class.
 
 **config**
@@ -69,4 +71,4 @@ Within ldmsd_controller or a configuration file:
 SEE ALSO
 ========
 
-ldmsd(8), ldms_quickstart(7), ldmsd_controller(8), ldms_sampler_base(7)
+:ref:`ldmsd(8) <ldmsd>`, :ref:`ldms_quickstart(7) <ldms_quickstart>`, :ref:`ldmsd_controller(8) <ldmsd_controller>`, :ref:`ldms_sampler_base(7) <ldms_sampler_base>`

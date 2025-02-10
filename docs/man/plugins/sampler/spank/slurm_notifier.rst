@@ -1,3 +1,5 @@
+.. _slurm_notifier:
+
 =====================
 slurm_notifier
 =====================
@@ -69,6 +71,6 @@ EXAMPLES
 SEE ALSO
 ========
 
-**spank**\ (8), **slurm_sampler**\ (7),
-**papi_sampler**\ (7), **linux_proc_sampler**\ (7),
-**ldmsd**\ (8), **ldms_quickstart**\ (7),
+:ref:`spank(8) <spank>`, :ref:`slurm_sampler(7) <slurm_sampler>`,
+:ref:`papi_sampler(7) <papi_sampler>`, :ref:`linux_proc_sampler(7) <linux_proc_sampler>`,
+:ref:`ldmsd(8) <ldmsd>`, :ref:`ldms_quickstart(7) <ldms_quickstart>`,

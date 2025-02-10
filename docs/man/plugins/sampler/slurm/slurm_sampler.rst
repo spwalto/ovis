@@ -1,3 +1,5 @@
+.. _slurm_sampler:
+
 ====================
 slurm_sampler
 ====================
@@ -24,7 +26,7 @@ DESCRIPTION
 **slurm_sampler** is a sampler plugin that collects the information of
 the Slurm jobs running on the node. It subscribes to the specified
 **stream** to which the **slurm_notifier** SPANK plugin (see
-**slurm_notifier**\ (7)) publish Slurm job events (default
+:ref:`slurm_notifier(7) <slurm_notifier>`) publish Slurm job events (default
 stream: *slurm*). The sampler supports multi-tenant jobs.
 
 The **job_count** option is the number of slots in the LDMS set
@@ -85,5 +87,5 @@ Plugin configuration example:
 SEE ALSO
 ========
 
-**ldmsd**\ (8), **ldms_quickstart**\ (7), **ldmsd_controller**\ (8),
-**ldms_sampler_base**\ (7).
+:ref:`ldmsd(8) <ldmsd>`, :ref:`ldms_quickstart(7) <ldms_quickstart>`, :ref:`ldmsd_controller(8) <ldmsd_controller>`,
+:ref:`ldms_sampler_base(7) <ldms_sampler_base>`.

@@ -1,3 +1,5 @@
+.. _coretemp:
+
 ===============
 coretemp
 ===============
@@ -25,7 +27,7 @@ through files located in /sys/devices/platform. Files in this directory
 are walked recursively and regular expressions are used to select
 entries produced by the Linux coretemp module.
 
-See the Linux modprobe(8) command for information on how to load Linux
+See the Linux :ref:`modprobe(8) <modprobe>` command for information on how to load Linux
 modules.
 
 CONFIGURATION ATTRIBUTE SYNTAX
@@ -47,5 +49,5 @@ Within ldmsd_controller or a configuration file:
 SEE ALSO
 ========
 
-ldmsd(8), ldms_quickstart(7), ldmsd_controller(8), ldms_sampler_base(7),
-filesingle(7)
+:ref:`ldmsd(8) <ldmsd>`, :ref:`ldms_quickstart(7) <ldms_quickstart>`, :ref:`ldmsd_controller(8) <ldmsd_controller>`, :ref:`ldms_sampler_base(7) <ldms_sampler_base>`,
+:ref:`filesingle(7) <filesingle>`

@@ -1,3 +1,5 @@
+.. _store_sos:
+
 ================
 store_sos
 ================
@@ -80,7 +82,7 @@ container and schema for a store.
       |
       | Optionally use set-to-row decomposition with the specified
         configuration file in JSON format. See more about decomposition
-        in ldmsd_decomposition(7).
+        in :ref:`ldmsd_decomposition(7) <ldmsd_decomposition>`.
 
 USING SOS COMMANDS TO MANAGE PARTITIONS
 =======================================
@@ -339,4 +341,4 @@ Looking at variable values in a container:
 SEE ALSO
 ========
 
-ldms(7), store_csv(7), ldmsd_decomposition(7)
+:ref:`ldms(7) <ldms>`, :ref:`store_csv(7) <store_csv>`, :ref:`ldmsd_decomposition(7) <ldmsd_decomposition>`

@@ -1,3 +1,5 @@
+.. _rdc_sampler:
+
 ==================
 rdc_sampler
 ==================
@@ -112,5 +114,5 @@ the library code that terminates ldmsd with a C++ exception message.
 SEE ALSO
 ========
 
-ldmsd(8), ldms_quickstart(7), ldmsd_controller(8),
-ldms_rdc_schema_name(1)
+:ref:`ldmsd(8) <ldmsd>`, :ref:`ldms_quickstart(7) <ldms_quickstart>`, :ref:`ldmsd_controller(8) <ldmsd_controller>`,
+:ref:`ldms_rdc_schema_name(1) <ldms_rdc_schema_name>`

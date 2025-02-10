@@ -1,3 +1,5 @@
+.. _ldms_csv_time_drops:
+
 ===================
 ldms_csv_time_drops
 ===================
@@ -162,4 +164,4 @@ For input test.csv containing:
 SEE ALSO
 ========
 
-store_csv(7)
+:ref:`store_csv(7) <store_csv>`

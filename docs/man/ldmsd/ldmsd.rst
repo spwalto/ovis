@@ -1,3 +1,5 @@
+.. _ldmsd:
+
 =====
 ldmsd
 =====
@@ -119,7 +121,7 @@ General/Configuration Options:
    The path to configuration file (optional, default: <none>). The
    configuration file contains a batch of ldmsd controlling commands,
    such as \`load\` for loading a plugin, and \`prdcr_add\` for defining
-   a ldmsd producer to aggregate from (see **ldmsd_controller**\ (8) for
+   a ldmsd producer to aggregate from (see :ref:`ldmsd_controller(8) <ldmsd_controller>` for
    a complete list of commands, or simply run **ldmsd_controller** then
    **help**). The commands in the configuration file are executed
    sequentially, except for **prdcr_start**, **updtr_start**,
@@ -181,22 +183,22 @@ Communication Options:
 
 The listening transports can also be specified in the configuration file
 using **listen** command, e.g. \`listen xprt=sock port=1234
-host=node1-ib`. Please see **ldmsd_controller**\ (8) section **LISTEN
+host=node1-ib`. Please see :ref:`ldmsd_controller(8) <ldmsd_controller>` section **LISTEN
 COMMAND SYNTAX** for more details.
 
 **-a, --default_auth**\ *AUTH*
    Specify the default LDMS Authentication method for the LDMS
    connections in this process (when the connections do not specify
    authentication method/domain). Please see
-   **ldms_authentication**\ (7) for more information. If this option is
+   :ref:`ldms_authentication(7) <ldms_authentication>` for more information. If this option is
    not given, the default is "none" (no authentication). Also see
-   **ldmsd_controller**\ (8) section **AUTHENTICATION COMMAND SYNTAX**
+   :ref:`ldmsd_controller(8) <ldmsd_controller>` section **AUTHENTICATION COMMAND SYNTAX**
    for how to define an authentication domain.
 
 **-A, --default_auth_args**\ *NAME*\ **=**\ *VALUE*
    Passing the *NAME*\ =\ *VALUE* option to the LDMS Authentication
    plugin. This command line option can be given multiple times. Please
-   see **ldms_authentication**\ (7) for more information, and consult
+   see :ref:`ldms_authentication(7) <ldms_authentication>` for more information, and consult
    the plugin manual page for plugin-specific options.
 
 Log Verbosity Options:
@@ -439,5 +441,5 @@ EXAMPLES
 SEE ALSO
 ========
 
-ldms_authentication(7), ldmsctl(8), ldms_ls(8), ldmsd_controller(8),
-ldms_quickstart(7)
+:ref:`ldms_authentication(7) <ldms_authentication>`, :ref:`ldmsctl(8) <ldmsctl>`, :ref:`ldms_ls(8) <ldms_ls>`, :ref:`ldmsd_controller(8) <ldmsd_controller>`,
+:ref:`ldms_quickstart(7) <ldms_quickstart>`

@@ -1,3 +1,5 @@
+.. _ldmsd_qgroup:
+
 ============
 ldmsd_qgroup
 ============
@@ -230,4 +232,4 @@ EXAMPLE
 SEE ALSO
 ========
 
-**ldmsd**\ (8), **ldmsd_controller**\ (8), **ldms_quickstart**\ (7)
+:ref:`ldmsd(8) <ldmsd>`, :ref:`ldmsd_controller(8) <ldmsd_controller>`, :ref:`ldms_quickstart(7) <ldms_quickstart>`

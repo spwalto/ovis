@@ -1,3 +1,5 @@
+.. _aries_mmr:
+
 ================
 aries_mmr
 ================
@@ -135,5 +137,5 @@ AR_NIC_NETMON_ORB_EVENT_CNTR_REQ_FLITS
 SEE ALSO
 ========
 
-ldmsd(8), ldms_sampler_base(7), cray_sampler_variants(7),
-aries_linkstatus(7), ldms_quickstart(7), ldmsd_controller(8)
+:ref:`ldmsd(8) <ldmsd>`, :ref:`ldms_sampler_base(7) <ldms_sampler_base>`, :ref:`cray_sampler_variants(7) <cray_sampler_variants>`,
+:ref:`aries_linkstatus(7) <aries_linkstatus>`, :ref:`ldms_quickstart(7) <ldms_quickstart>`, :ref:`ldmsd_controller(8) <ldmsd_controller>`
