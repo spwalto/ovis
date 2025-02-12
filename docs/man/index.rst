@@ -4,7 +4,7 @@ LDMS
    :maxdepth: 2
    :glob:
    
-   ldms/**
+   ldms/*
 
 auth
 ^^^^
@@ -28,7 +28,7 @@ LDMSD
    :maxdepth: 2
    :glob:
 
-   ldmsd/**
+   ldmsd/*
  
 test
 ^^^^
@@ -36,7 +36,7 @@ test
    :maxdepth: 2
    :glob:
 
-   ldsmd/test/**
+   ldmsd/test/**
 
 Plugins
 -------
@@ -44,7 +44,7 @@ Plugins
    :maxdepth: 2
    :glob:
 
-   plugins/**
+   plugins/*
 
 store
 ^^^^^
@@ -68,7 +68,7 @@ Contrib
    :maxdepth: 2
    :glob:
 
-   contrib/**
+   contrib/*
 
 store
 ^^^^^
