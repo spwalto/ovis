@@ -152,10 +152,10 @@ In bash:
      --gen-args=host:ProducerName,int:uid,name:username,jobid.HEADER)
 
    ldms-csv-anonymize $colargs \
-	--out-dir=/tmp \
-	--save-maps=anonjob_ \
-	--hmap=/home/anonjob_hmap.txt \
-	--input=/home/jobid.csv
+    --out-dir=/tmp \
+    --save-maps=anonjob_ \
+    --hmap=/home/anonjob_hmap.txt \
+    --input=/home/jobid.csv
 
 and in a host map file:
 

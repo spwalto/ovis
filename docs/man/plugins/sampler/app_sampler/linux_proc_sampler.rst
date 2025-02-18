@@ -187,14 +187,14 @@ ignored.
 
    { "event" = "$e",
      "data" : {
-	"job_id" : INT,
-	"task_pid" : INT,
-	"os_pid" : INT,
-	"parent_pid" : INT,
-	"is_thread" : INT,
-	"exe" : STRING,
-	"start" : STRING,
-	"start_tick" : STRING
+    "job_id" : INT,
+    "task_pid" : INT,
+    "os_pid" : INT,
+    "parent_pid" : INT,
+    "is_thread" : INT,
+    "exe" : STRING,
+    "start" : STRING,
+    "start_tick" : STRING
      }
    }
 
@@ -262,17 +262,17 @@ An example metrics configuration file is:
            "/usr/lib"
        ],
      "env_exclude": [
-	"COLORTERM",
-	"DBU.*",
-	"DESKTOP_SESSION",
-	"DISPLAY",
-	"GDM.*",
-	"GNO.*",
-	"XDG.*",
-	"LS_COLORS",
-	"SESSION_MANAGER",
-	"SSH.*",
-	"XAU.*"
+    "COLORTERM",
+    "DBU.*",
+    "DESKTOP_SESSION",
+    "DISPLAY",
+    "GDM.*",
+    "GNO.*",
+    "XDG.*",
+    "LS_COLORS",
+    "SESSION_MANAGER",
+    "SSH.*",
+    "XAU.*"
        ],
      "metrics": [
        "stat_pid",

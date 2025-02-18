@@ -160,8 +160,8 @@ slurm stream:
 
 
    ldms-csv-from-blobs --struct-map ./struct-map.json \
-	--crc-map ./crc-map.json \
-	/dataroot/blobs/slurm.DAT.1682105426
+    --crc-map ./crc-map.json \
+    /dataroot/blobs/slurm.DAT.1682105426
 
 NOTES
 =====

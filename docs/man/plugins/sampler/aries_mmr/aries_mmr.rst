@@ -36,7 +36,7 @@ If you have the code to build the library, be sure to build with
 **CFLAGS=-fPIC**
 
 The difference between the variants is that aries_nic_mmr will skip any
-counters in the inputfile that do NOT begin with AR_NIC_; aries_rtr_mmr
+counters in the inputfile that do NOT begin with **AR_NIC_**; aries_rtr_mmr
 does the opposite; and aries_mmr does NO name filtering.
 
 Different types of metrics are added to separate gpcd_contexts. The

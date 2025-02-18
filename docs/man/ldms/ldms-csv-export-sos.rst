@@ -148,19 +148,19 @@ To test sos-import-csv with the resulting files:
 
 
    ldms-csv-export-sos --data=renamecsv.1553744481 \
-	--strip-udata --schema-name=meminfo \
-	--blacklist=exclude.renamecsv
+    --strip-udata --schema-name=meminfo \
+    --blacklist=exclude.renamecsv
 
    mkdir container
    sos-db --path container --create
    sos-schema --path container \
-	--add renamecsv.SCHEMASOS.1553744481
+    --add renamecsv.SCHEMASOS.1553744481
    sos-import-csv \
-	--path container \
-	--csv renamecsv.1553744481 \
-	--map renamecsv.MAPSOS.1553744481 \
-	--schema meminfo \
-	--status
+    --path container \
+    --csv renamecsv.1553744481 \
+    --map renamecsv.MAPSOS.1553744481 \
+    --schema meminfo \
+    --status
    sos_cmd -C container -l
    sos_cmd -C container -q -S meminfo -X Time
 
@@ -171,36 +171,36 @@ Other examples
 
    # make schema and map from *81 with schema rename from file
    ldms-csv-export-sos --data=renamecsv.1553744481 \
-	--strip-udata --schema-name=meminfo \
-	--blacklist=exclude.renamecsv
+    --strip-udata --schema-name=meminfo \
+    --blacklist=exclude.renamecsv
 
    # reuse schema and make map from *90
    ldms-csv-export-sos --data=renamecsv.1553744490 \
-	--schema-file=renamecsv.SCHEMASOS.1553744481
+    --schema-file=renamecsv.SCHEMASOS.1553744481
 
    # reuse schema and make map from *90 with alternate output name
    ldms-csv-export-sos --data=renamecsv.1553744490 \
-	--strip-udata \
-	--schema-file=renamecsv.SCHEMASOS.1553744481 \
-	--map-file=mymap
+    --strip-udata \
+    --schema-file=renamecsv.SCHEMASOS.1553744481 \
+    --map-file=mymap
 
    # translate array example (when supported)
    ldms-csv-export-sos --data=fptrans.HEADER --strip-udata
 
    # translate array with old schema (when supported)
    ldms-csv-export-sos --data=fptrans2.HEADER \
-	--schema-file=fptrans.SCHEMASOS
+    --schema-file=fptrans.SCHEMASOS
 
    # test input guess when x.14 does not exist
    ldms-csv-export-sos --data=x.HEADER.14 --guess
 
    # test input guess when y.KIND.14 does not exist but y.14 does
    ldms-csv-export-sos --data=y.HEADER.14 \
-	--guess --maxlines=4000
+    --guess --maxlines=4000
 
    # test input guess and widen
    ldms-csv-export-sos --data=y.HEADER.14 \
-	--guess --widen --maxlines=4
+    --guess --widen --maxlines=4
 
    # test assume
    ldms-csv-export-sos --data=y.HEADER.14 --assume=u32
@@ -208,4 +208,4 @@ Other examples
 SEE ALSO
 ========
 
-sos-import-:ref:`csv(1) <csv>`
+sos-import-csv, :ref:`ldms-csv-export-sos(1) <ldms-csv-export-sos>`

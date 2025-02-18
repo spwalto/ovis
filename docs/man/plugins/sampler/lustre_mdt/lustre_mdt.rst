@@ -30,13 +30,13 @@ lustre_mdt and lustre_mdt_job_stats.
 The metric sets using schema lustre_mdt will have a producer name set to
 the hostname, and the instance name set to the mdt name. The data for
 these metrics sets come from a combination of the data in
-/proc/fs/lustre/mdt/*/stats and a few other single-value files in
-/proc/fs/lustre/mdt/*/.
+``/proc/fs/lustre/mdt/*/stats`` and a few other single-value files in
+``/proc/fs/lustre/mdt/*/``.
 
 The metric sets using schema lustre_mdt_job_stats will have a producer
 name set to the hostname, and the instance name will be set to a
 combination of the mdt name and the job_id string. The data for these
-metrics sets come from /proc/fs/lustre/mdt/*/job_stats.
+metrics sets come from ``/proc/fs/lustre/mdt/*/job_stats``.
 
 This plugin currently employs zero configuration. Any user-supplied
 configuration values will be ignored. Future versions may add

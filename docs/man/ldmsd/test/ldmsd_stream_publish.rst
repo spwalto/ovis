@@ -1,3 +1,5 @@
+.. _ldmsd_stream_publish:
+
 ====================
 ldmsd_stream_publish
 ====================
@@ -7,7 +9,8 @@ ldmsd_stream_publish
 NAME
 ====
 
-ldmsd_stream_publish - man page for the LDMS ldmsd_stream_publish executable utility
+ldmsd_stream_publish - man page for the LDMS ldmsd_stream_publish
+executable utility
 
 SYNOPSIS
 ========
@@ -17,12 +20,15 @@ At the command line: ldmsd_stream_publish [args]
 DESCRIPTION
 ===========
 
-The ldmsd_stream_publish executable publishes to the ldmsd_streams interface of a running ldms daemon. The hello_publisher takes a file as input and publishes it either in bulk or line by line. It reuses the connection for all the messages
+The ldmsd_stream_publish executable publishes to the ldmsd_streams
+interface of a running ldms daemon. The hello_publisher takes a file as
+input and publishes it either in bulk or line by line. It reuses the
+connection for all the messages
 
 COMMAND LINE SYNTAX
 ===================
 
-ldmsd_sstream_publish -x <xprt> -h <host> -p <port> -s <stream-name> -a <auth> -A <auth-opt> -t <data-format> -f <file> [-l]
+ldmsd_stream_publish -x <xprt> -h <host> -p <port> -s <stream-name> -a <auth> -A <auth-opt> -t <data-format> -f <file> [-l]
    |
 
    -x <xprt>
@@ -47,20 +53,30 @@ ldmsd_sstream_publish -x <xprt> -h <host> -p <port> -s <stream-name> -a <auth> -
 
    -t <data-format>
       |
-      | Optional data-format. Either 'string' or 'json'. Default is string.
+      | Optional data-format. Either 'string' or 'json'. Default is
+        string.
 
    -l
       |
-      | Optional line mode. Publishes file one line at a time as separate publish calls
+      | Optional line mode. Publishes file one line at a time as
+        separate publish calls
 
    -f <file>
       |
-      | File that is published. If not specified, input is copied from STDIN.
+      | File that is published. If not specified, input is copied from
+        STDIN.
 
    -r N
       |
-      | Repeat the publication of the file N times, with a delay interval specifed by -i. Repeating is not supported unless the input is a file. If the -l option is given, the file and connection are opened once and the lines are replayed to individual ldmsd_stream_publish calls. If -l is not given, the ldmsd_stream_publish_file call is used, resulting in multiple connection openings. -i interval_in_microseconds
-      | Change the default delay (usleep(interval_in_microseconds)) used if repeat is specified.
+      | Repeat the publication of the file N times, with a delay
+        interval specifed by -i. Repeating is not supported unless the
+        input is a file. If the -l option is given, the file and
+        connection are opened once and the lines are replayed to
+        individual ldmsd_stream_publish calls. If -l is not given, the
+        ldmsd_stream_publish_file call is used, resulting in multiple
+        connection openings. -i interval_in_microseconds
+      | Change the default delay (usleep(interval_in_microseconds)) used
+        if repeat is specified.
 
 BUGS
 ====
@@ -72,7 +88,12 @@ NOTES
 
 This executable is in development and may change at any time.
 
-The difference in repeat behavior if -l is present allows for testing two scenarios: repeating many messages to a single connection and repeating connection attempts to a daemon that may come and go during publication attempts. Environment variables LDMSD_STREAM_CONN_TIMEOUT and LDMSD_STREAM_ACK_TIMEOUT will affect the timing of the repeat loop when -l is not given.
+The difference in repeat behavior if -l is present allows for testing
+two scenarios: repeating many messages to a single connection and
+repeating connection attempts to a daemon that may come and go during
+publication attempts. Environment variables LDMSD_STREAM_CONN_TIMEOUT
+and LDMSD_STREAM_ACK_TIMEOUT will affect the timing of the repeat loop
+when -l is not given.
 
 EXAMPLES
 ========
@@ -104,4 +125,5 @@ Within ldmsd_controller or a configuration file:
 SEE ALSO
 ========
 
-ldmsd(8), ldms_quickstart(7), ldmsd_controller(8), ldms_sampler_base(7), Plugin_hello_sampler(7), Plugin_stream_csv_store(7)
+:ref:`ldmsd(8) <ldmsd>`, :ref:`ldms_quickstart(7) <ldms_quickstart>`, :ref:`ldmsd_controller(8) <ldmsd_controller>`, :ref:`ldms_sampler_base(7) <ldms_sampler_base>`,
+:ref:`hello_sampler(7) <hello_sampler>`, :ref:`stream_csv_store(7) <stream_csv_store>`

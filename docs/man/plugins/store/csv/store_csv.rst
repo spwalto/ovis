@@ -459,9 +459,9 @@ And in the options file for store_csv
    store_csv altheader=1 path=/XXX/storedir rolltype=2 rollover=0
    # tailored setting for loadavg instance
    container=loadavg_store schema=loadavg altheader=0 path=/XXX/loaddir \
-	create_gid=1000000039 create_perm=640 \
-	rename_template=%D/archive-spool/%{HOSTNAME}/%B \
-	rename_perm=444
+    create_gid=1000000039 create_perm=640 \
+    rename_template=%D/archive-spool/%{HOSTNAME}/%B \
+    rename_perm=444
 
 Updating from v3:
 

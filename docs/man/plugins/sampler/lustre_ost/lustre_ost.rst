@@ -30,13 +30,13 @@ lustre_ost and lustre_ost_job_stats.
 The metric sets using schema lustre_ost will have a producer name set to
 the hostname, and the instance name set to the ost name. The data for
 these metrics sets come from a combination of the data in
-/proc/fs/lustre/ost/*/stats and a few other single-value files in
-/proc/fs/lustre/ost/*/.
+``/proc/fs/lustre/ost/*/stats`` and a few other single-value files in
+``/proc/fs/lustre/ost/*/``.
 
 The metric sets using schema lustre_ost_job_stats will have a producer
 name set to the hostname, and the instance name will be set to a
 combination of the ost name and the job_id string. The data for these
-metrics sets come from /proc/fs/lustre/ost/*/job_stats.
+metrics sets come from ``/proc/fs/lustre/ost/*/job_stats``.
 
 This plugin currently employs zero configuration. Any user-supplied
 configuration values will be ignored. Future versions may add

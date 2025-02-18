@@ -1037,8 +1037,6 @@ ERROR messages will be reported.
    change accordingly.
    ldmsctl>
 
-::
-
 SEE ALSO
 ========
 

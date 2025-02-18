@@ -25,8 +25,8 @@ ldmsd (ldms daemon) are configured via ldmsd_controller or a
 configuration file.
 
 The lustre_mdc plugin provides schema lustre_mdc for daemons with read
-access to the lustre files in /proc/fs/lustre/mdc/*/md_stats and
-/sys/kernel/debug/lustre/mdc/*/stats. The metric sets will have instance
+access to the lustre files in ``/proc/fs/lustre/mdc/*/md_stats`` and
+``/sys/kernel/debug/lustre/mdc/*/stats``. The metric sets will have instance
 names combining the producer name and the mdc name.
 
 This plugin will work with Lustre versions 2.12 and others which share
@@ -63,7 +63,7 @@ CONFIGURATION ATTRIBUTE SYNTAX
    mdc_timing=0
       |
       | Optionally exclude timing data from
-        /sys/kernel/debug/lustre/mdc/*/stats. If given, the sampler may
+        ``/sys/kernel/debug/lustre/mdc/*/stats``. If given, the sampler may
         be run by unprivileged users. If /sys/kernel/debug/ cannot be
         opened by the user, it is a configuration error unless
         mdc_timing=0 is given.
@@ -89,7 +89,7 @@ fs_name: The lustre file system name, e.g. xscratch. mdc: The mdc target
 that goes with the metrics, e.g. xscratch-MDT0000. last_reset: The time
 of the last reset performed by this sampler for any of its metric sets.
 
-Operation counts from /proc/fs/lustre/mdc/*/md_stats. See also kernel
+Operation counts from ``/proc/fs/lustre/mdc/*/md_stats``. See also kernel
 source lustre/lustre/obdclass/lprocfs_status.c and
 lustre/lustre/include/obd_class.h: mps_stats[]: "close", "create",
 "enqueue", "getattr", "intent_lock", "link", "rename", "setattr",
@@ -98,7 +98,7 @@ lustre/lustre/include/obd_class.h: mps_stats[]: "close", "create",
 
 Client operation timing statistics (all but .count are in microseconds)
 for the following list of fields in
-/sys/kernel/debug/lustre/mdc/*/stats: "req_waittime", "mds_getattr",
+``/sys/kernel/debug/lustre/mdc/*/stats``: "req_waittime", "mds_getattr",
 "mds_getattr_lock", "mds_close", "mds_readpage", "mds_connect",
 "mds_get_root", "mds_statfs", "ldlm_cancel", "obd_ping", "seq_query",
 "fld_query"
@@ -127,11 +127,14 @@ reset with bash:
 ::
 
    for i in /proc/fs/lustre/mdc/*/md_stats /sys/kernel/debug/lustre/mdc/*/stats; do
-	echo 0 $i;
+    echo 0 $i;
    done
 
 The lustre utility equivalent of this plugin is to inspect the output of
-lctl get_param -R mdc.*.stats lctl get_param -R mdc.*.md_stats
+
+::
+
+   lctl get_param -R mdc.*.stats lctl get_param -R mdc.*.md_stats
 
 Specifying instance=xxx as an option will be ignored.
 

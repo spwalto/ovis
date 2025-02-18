@@ -25,7 +25,7 @@ ldmsd (ldms daemon) are configured via ldmsd_controller or a
 configuration file. The lustre_client plugin provide a metric set for
 each of the lustre client mounts found on a node. The schema is named
 "lustre_client". The data for the metric sets is generally found in
-/proc/fs/lustre/llite/*/stats.
+``/proc/fs/lustre/llite/*/stats``.
 
 This plugin currently employs zero configuration. The producer name is
 set to the hostname by default, and the metric set instance names are

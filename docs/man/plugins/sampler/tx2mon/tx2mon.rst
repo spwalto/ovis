@@ -179,5 +179,3 @@ SEE ALSO
 ========
 
 :ref:`ldmsd(8) <ldmsd>`, ldms_sampler_base
-
-::

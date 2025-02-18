@@ -10,7 +10,7 @@ on:
 
 # convert all existing .man under ldms/ to .rst
 env:
- CONVERT_MAN_PAGES: true
+ CONVERT_MAN_PAGES: false
 
 jobs:
   generate-rst:
