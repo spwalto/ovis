@@ -3,7 +3,7 @@ LDMS
 .. toctree::
    :maxdepth: 2
    :glob:
-   
+
    ldms/*
 
 auth
@@ -29,7 +29,7 @@ LDMSD
    :glob:
 
    ldmsd/*
- 
+
 test
 ^^^^
 .. toctree::
@@ -85,7 +85,7 @@ sampler
    :glob:
 
    contrib/sampler/**
-   
+
 Third-plugins
 -------------
 .. toctree::
