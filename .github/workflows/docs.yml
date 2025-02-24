@@ -8,10 +8,6 @@ on:
     paths:
       - 'docs/**'           # Same triggers for pull requests
 
-# convert all existing .man under ldms/ to .rst
-env:
- CONVERT_MAN_PAGES: false
-
 jobs:
   generate-rst:
     runs-on: ubuntu-22.04
@@ -30,29 +26,6 @@ jobs:
           sudo apt-get update
           sudo apt-get install pandoc
 
-      - name: Convert .man files to .rst
-        run: |
-          if [ "$CONVERT_MAN_PAGES" == "true" ]; then
-            echo "CONVERT_MAN_PAGES is set, converting all .man files"
-            find ldms/src ldms/man -name "*.man" | while IFS= read -r man_file; do
-              target_file="docs/man/$(echo "$man_file" | sed 's|^ldms/src/||;s|^ldms/man/||;s/\.man$/.rst/')"
-              mkdir -p "$(dirname "$target_file")"
-              base_name=$(basename "$man_file" .man)
-              # Convert the .man file to .rst
-              if pandoc -f man -t rst --wrap=preserve "$man_file" -s -o "$target_file" --metadata title="$base_name" 2>/tmp/pandoc_error.log; then
-                echo "Successfully converted $man_file -> $target_file"
-              else
-                echo "Error processing $man_file. See error log for details:"
-                cat /tmp/pandoc_error.log | while IFS= read -r error_line; do
-                echo "$error_line"
-              done
-              fi
-            done
-            echo "Cleaning up white spaces and empty lines."
-            find docs/ -type f -exec sed -i -e 's/^[ \t]*\t/\t/' -e ':a; /^\s*$/{$d; N; ba}' {} +
-            find docs/ -type f -exec sed -i -e 's/[[:space:]]\+$//' {} +
-          fi
-      
       - name: Commit and Push Changes
         run: |
           if [ -n "$(git status --porcelain)" ]; then

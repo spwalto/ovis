@@ -52,10 +52,8 @@ templates_path = ['_templates']
 
 html_theme = 'sphinx_rtd_theme'
 html_logo = 'https://ovis-hpc.readthedocs.io/en/latest/_images/ovis-logo.png'
-html_url = 'https://ovis-hpc.readthedocs.io/en/latest/index.html'
 html_theme_options = {
     'logo_only': True,
-    'logo_url': 'https://ovis-hpc.readthedocs.io/en/latest/',
     'display_version': False,
 }
 
