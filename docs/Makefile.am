@@ -2,9 +2,8 @@ EXTRA_DIST = conf.py index.rst README.rst requirements.txt
 
 if HAVE_RST2MAN
 
-EXTENSIONS = 1 7 8
-RST_FILES = $(shell find $(srcdir)/man -type f -name '*.rst*' ! -name 'index.rst')
-MAN_FILES = $(foreach rst, $(RST_FILES), $(shell echo $(rst) | sed -E 's|$(srcdir)/man/(.*)\.rst(\.[0-9]+)?|$(builddir)/man/\1.man\2|'))
+RST_FILES = $(shell find $(srcdir)/man -type f -name '*.rst' ! -name 'index.rst')
+MAN_FILES = $(patsubst $(srcdir)/man/%.rst, $(builddir)/man/%.man, $(RST_FILES))
 MAN_IDX = $(builddir)/man/ldms-idx.man
 
 # Function to categorize man pages by section. Default to 7 if filename does not have .rst.<section>.
@@ -18,9 +17,10 @@ categorize_man_pages = $(shell for man in $(MAN_FILES); do \
 done)
 
 # convert to man, fix generated "/" after every special characer and remove any unnecessary rst2man output.
-rst2man_convert = \
-	sed 's/:ref:`\([^`]*\)<[^`]*>`/\1/g' $< | \
-	rst2man | sed -e 's/\\\([`'\''\-]\)/\1/g' \
+%.man: %.rst
+	@echo "Generating $@..."
+	@mkdir -p $(dir $@)
+	@sed 's/:ref:`\([^`]*\)<[^`]*>`/\1/g' $< | rst2man | sed -e 's/\\\([`'\''\-]\)/\1/g' \
 		-e '/rst2man/d' \
 		-e '/rstR/d' \
 		-e '/. RS/d' \
@@ -28,19 +28,7 @@ rst2man_convert = \
 		-e '/an-margin/d' \
 		-e '/INDENT/d' > $@
 
-# generate rules for each man page section (i.e. %.man.1:%.rst.1, etc.)
-$(foreach ext, $(EXTENSIONS), \
-	$(eval %.man.$(ext): %.rst.$(ext); \
-	echo "Generating $$@..."; \
-	mkdir -p $$(dir $$@); \
-	$$(call rst2man_convert, $<)))
-
-%.man: %.rst
-	@echo "Generating $@..."
-	@mkdir -p $(dir $@)
-	@$(call rst2man_convert, $<)
-
-# Create ldms-idx page with lsit of all available manpages.
+# Create ldms-idx page listing  all available manpages.
 $(MAN_IDX):
 	@echo "Generating $@..."
 	@echo ".TH ldms-idx" > $@
