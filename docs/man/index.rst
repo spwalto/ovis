@@ -5,6 +5,7 @@ LDMS
    :glob:
 
    ldms/*
+   ldms/*.*
 
 auth
 ^^^^
@@ -13,6 +14,7 @@ auth
    :glob:
 
    ldms/auth/**
+   ldms/auth/**.*
 
 test
 ^^^^
@@ -21,6 +23,7 @@ test
    :glob:
 
    ldms/test/**
+   ldms/test/**.*
 
 LDMSD
 -----
