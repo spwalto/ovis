@@ -25,13 +25,13 @@ done)
 %.man: %.rst
 	@echo "Generating $@..."
 	@mkdir -p $(dir $@)
-	@sed 's/:ref:`\([^`]*\)<[^`]*>`/\1/g' $< | rst2man | sed -e 's/\\\([`'\''\-]\)/\1/g' \
+	@sed 's/:ref:`\([^`]*\)<[^`]*>`/\1/g' $< | rst2man --title="$(basename $(notdir $<) .rst)" | sed -e 's/\\\([`'\''\-]\)/\1/g' \
 		-e '/rst2man/d' \
 		-e '/rstR/d' \
 		-e '/. RS/d' \
 		-e '/. RE/d' \
 		-e '/an-margin/d' \
-		-e '/INDENT/d' > $@
+		-e '/INDENT/d' > $(dir $@)/$(basename $(notdir $<) .rst).man
 
 # Create ldms-idx page listing all available manpages.
 $(MAN_IDX):

@@ -30,7 +30,7 @@ CONFIGURATION ATTRIBUTE SYNTAX
 
 The daos_sampler plugin uses the sampler_base base class. This man page
 only covers the configuration attributes specific to this plugin; see
-ldms_sampler_base.man for the attributes of the base class.
+:ref:`ldms_sampler_base(7) <ldms_sampler_base>` for the attributes of the base class.
 
 name=<plugin_name>
    |

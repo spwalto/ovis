@@ -38,7 +38,7 @@ CONFIGURATION ATTRIBUTE SYNTAX
 
 The cray_dvs_sampler plugin uses the sampler_base base class. This man
 page covers only the configuration attributes, or those with default
-values, specific to the this plugin; see ldms_sampler_base.man for the
+values, specific to the this plugin; see :ref:`ldms_sampler_base(7) <ldms_sampler_base>` for the
 attributes of the base class.
 
 **config**

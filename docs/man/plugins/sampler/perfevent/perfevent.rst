@@ -38,7 +38,7 @@ CONFIGURATION ATTRIBUTE SYNTAX
 
 The perfevent plugin uses the sampler_base base class. This man page
 covers only the configuration attributes, or those with default values,
-specific to the this plugin. See ldms_sampler_base.man for the
+specific to the this plugin. See :ref:`ldms_sampler_base(7) <ldms_sampler_base>` for the
 attributes of the base class; those attributes are specified as part of
 the 'init' action arguments.
 
