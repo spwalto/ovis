@@ -103,6 +103,9 @@ static int hello_recv_cb(ldms_stream_event_t ev, void *arg)
 	case LDMS_STREAM_STRING:
 		type = "STRING";
 		break;
+	default:
+		/* unhandled type */
+		return 0;
 	}
 	ovis_log(mylog, OVIS_LCRITICAL, "stream_type: %s, msg: \"%s\", "
 					  "msg_len: %d, entity: %p\n",
@@ -129,8 +132,6 @@ static int config(struct ldmsd_plugin *self, struct attr_value_list *kwl,
 
 static void term(struct ldmsd_plugin *self)
 {
-	if (mylog)
-		ovis_log_destroy(mylog);
 }
 
 static struct ldmsd_sampler hello_sampler = {

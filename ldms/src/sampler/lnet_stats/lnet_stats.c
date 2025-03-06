@@ -304,7 +304,7 @@ static int config(struct ldmsd_plugin *self, struct attr_value_list *kwl, struct
 		ovis_log(mylog, OVIS_LDEBUG, SAMP ": User-defined lnet_state_file %s.\n", pvalue);
 	}
 
-	base = base_config(avl, SAMP, SAMP, mylog);
+	base = base_config(avl, self->cfg_name, SAMP, mylog);
 	if (!base)
 		return EINVAL;
 
@@ -355,8 +355,6 @@ static void term(struct ldmsd_plugin *self)
 	if (set)
 		ldms_set_delete(set);
 	set = NULL;
-	if (mylog)
-		ovis_log_destroy(mylog);
 }
 
 static struct ldmsd_sampler lnet_stats_plugin = {

@@ -3669,7 +3669,7 @@ linux_proc_sampler_config(struct ldmsd_plugin *pi, struct attr_value_list *kwl,
 		return EALREADY;
 	}
 
-	inst->base_data = base_config(avl, SAMP, SAMP, inst->mylog);
+	inst->base_data = base_config(avl, pi->cfg_name, SAMP, inst->mylog);
 	if (!inst->base_data) {
 		/* base_config() already log error message */
 		return errno;
@@ -4005,8 +4005,6 @@ void linux_proc_sampler_term(struct ldmsd_plugin *pi)
 	if (inst->fd_use_regex)
 		regfree(&(inst->fd_regex));
 	free(tmp);
-	if (inst->mylog)
-		ovis_log_destroy(inst->mylog);
 }
 
 static int

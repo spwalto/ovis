@@ -132,7 +132,6 @@ struct req_str_id req_str_id_table[] = {
 	{  "qgroup_start",       LDMSD_QGROUP_START_REQ },
 	{  "qgroup_stop",        LDMSD_QGROUP_STOP_REQ },
 	{  "set_memory",         LDMSD_MEMORY_REQ },
-	{  "set_route",          LDMSD_SET_ROUTE_REQ  },
 	{  "set_sec_mod",        LDMSD_SET_SEC_MOD_REQ  },
 	{  "set_stats",          LDMSD_SET_STATS_REQ  },
 	{  "setgroup_add",       LDMSD_SETGROUP_ADD_REQ  },
@@ -169,7 +168,7 @@ struct req_str_id req_str_id_table[] = {
 	{  "updtr_status",       LDMSD_UPDTR_STATUS_REQ  },
 	{  "updtr_stop",         LDMSD_UPDTR_STOP_REQ  },
 	{  "updtr_task",         LDMSD_UPDTR_TASK_REQ  },
-	{  "usage",              LDMSD_PLUGN_LIST_REQ  },
+	{  "usage",              LDMSD_PLUGN_USAGE_REQ  },
 	{  "version",            LDMSD_VERSION_REQ  },
 	{  "worker_threads",     LDMSD_WORKER_THR_SET_REQ  },
 	{  "xprt_stats",         LDMSD_XPRT_STATS_REQ  },
@@ -177,6 +176,9 @@ struct req_str_id req_str_id_table[] = {
 
 /* This table need to be sorted by keyword for bsearch() */
 struct req_str_id attr_str_id_table[] = {
+	{  "advertiser_auth",   LDMSD_ATTR_AUTH  },
+	{  "advertiser_port",   LDMSD_ATTR_PORT  },
+	{  "advertiser_xprt",   LDMSD_ATTR_XPRT  },
 	{  "ask_amount",        LDMSD_ATTR_ASK_AMOUNT },
 	{  "ask_interval",      LDMSD_ATTR_ASK_INTERVAL },
 	{  "ask_mark",          LDMSD_ATTR_ASK_MARK },
@@ -188,6 +190,7 @@ struct req_str_id attr_str_id_table[] = {
 	{  "container",         LDMSD_ATTR_CONTAINER  },
 	{  "decomposition",     LDMSD_ATTR_DECOMP  },
 	{  "disable_start",     LDMSD_ATTR_AUTO_INTERVAL  },
+	{  "exclusive_thread",  LDMSD_ATTR_XTHREAD  },
 	{  "flush",             LDMSD_ATTR_INTERVAL },
 	{  "gid",               LDMSD_ATTR_GID  },
 	{  "host",              LDMSD_ATTR_HOST  },
@@ -313,7 +316,7 @@ const char *ldmsd_req_id2str(enum ldmsd_request req_id)
 	case LDMSD_PLUGN_LOAD_REQ   : return "PLUGN_LOAD_REQ";
 	case LDMSD_PLUGN_TERM_REQ   : return "PLUGN_TERM_REQ";
 	case LDMSD_PLUGN_CONFIG_REQ : return "PLUGN_CONFIG_REQ";
-	case LDMSD_PLUGN_LIST_REQ   : return "PLUGN_LIST_REQ";
+	case LDMSD_PLUGN_USAGE_REQ   : return "PLUGN_USAGE_REQ";
 	case LDMSD_PLUGN_SETS_REQ   : return "PLUGN_SETS_REQ";
 
 	case LDMSD_SET_UDATA_REQ         : return "SET_UDATA_REQ";
@@ -327,7 +330,6 @@ const char *ldmsd_req_id2str(enum ldmsd_request req_id)
 	case LDMSD_LOGROTATE_REQ         : return "LOGROTATE_REQ";
 	case LDMSD_EXIT_DAEMON_REQ       : return "EXIT_DAEMON_REQ";
 	case LDMSD_RECORD_LEN_ADVICE_REQ : return "RECORD_LEN_ADVICE_REQ";
-	case LDMSD_SET_ROUTE_REQ         : return "SET_ROUTE_REQ";
 	case LDMSD_CMDLINE_OPTIONS_SET_REQ : return "CMDLINE_OPTION_SET_REQ";
 	case LDMSD_SET_SEC_MOD_REQ       : return "SET_SEC_REQ";
 	case LDMSD_LOG_STATUS_REQ        : return "LOG_STATUS_REQ";
@@ -1161,6 +1163,8 @@ char *ldmsd_req_attr_str_value_get_by_id(ldmsd_req_ctxt_t req, uint32_t attr_id)
 {
 	ldmsd_req_attr_t attr = ldmsd_req_attr_get_by_id(req->req_buf, attr_id);
 	if (!attr)
+		return NULL;
+	if (attr->attr_value[0] == '\0')
 		return NULL;
 	return str_repl_env_vars((char *)attr->attr_value);
 }

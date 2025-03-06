@@ -4,12 +4,15 @@
 ldmsd_decomposition
 ===================
 
-:Date:   2 Jun 2022
+------------------------------
+manual for LDMSD decomposition
+------------------------------
 
-NAME
-====
+:Version: v4
+:Date: 2022-06-02
+:Manual section: 7
+:Manual group: LDMSD Decomposition man page
 
-ldmsd_decomposition - manual for LDMSD decomposition
 
 DESCRIPTION
 ===========
@@ -109,15 +112,29 @@ as follows.
       specified in the form of "*LIST*\ [*MEMBER*]" to refer to MEMBER
       of the record in the list NAME. For example,
 
-   ::
+     ::
 
           "src" : "netdev_list[rx_bytes]"
 
-   refers to the "rx_bytes" member of records in "netdev_list".
+     refers to the "rx_bytes" member of records in "netdev_list".
 
-   The **"timestamp"**, **"producer"**, and **"instance"** are special
-   "src" that refer to update timestamp, producer name and instance name
-   of the set respectively.
+     special src
+       The following is a list of special metric names that can be used in "src"
+       to access set information as column data:
+
+       | - **"timestamp"**: the sampling timestamp.
+       | - **"producer"**: the producer name of the set.
+       | - **"instance"**: the instance name of the set.
+       | - **"M_card"**: the cardinality of the set.
+       | - **"M_digest"**: the digest string of the set schema.
+       | - **"M_duration"**: the sampling duration of the set.
+       | - **"M_gid"**: the set's owner GID.
+       | - **"M_instance"**: the instance name of the set (same as "instance").
+       | - **"M_perm"**: the integer value of the permission of the set.
+       | - **"M_producer"**: the producer name of the set (same as "producer").
+       | - **"M_schema"**: the schema name of the set.
+       | - **"M_timestamp"**: the sampling timestamp (same as "timestamp").
+       | - **"M_uid"**: the set's owner UID.
 
    **"dst"** : "*DST_COL_NAME*" (optional)
       This is the name of the output column, later consumed by storage
@@ -337,7 +354,7 @@ FLEX DECOMPOSITION
 ==================
 
 The **flex** decomposition applies various decompositions by LDMS schema
-digests specified in the configuration. The configurations of the
+digests or `matches` specified in the configuration. The configurations of the
 applied decompositions are also specified in \`flex\` decomposition file
 as follows:
 
@@ -359,10 +376,28 @@ as follows:
        "<LDMS_DIGEST_2>": [ "<DECOMP_B>", "<DECOMP_c>" ],
        ...
        "*": "<DECOMP_Z>" /* optional : the unmatched */
-     }
+     },
+     /* specifying matching conditions and decompositions to apply */
+     "matches": [
+       {
+         "schema": "<REGEX>", /* schema matching */
+         "instance": "<REGEX>", /* instance matching */
+
+         /* If both "schema" and "instance" are specified, a set must
+          * satisfies both conditions.
+          */
+
+         /* specifying decompositions to apply to the matched set */
+         "apply": "<DECOMP_X>"|[ "DECOMP_A", ...]
+       },
+       ...
+     ],
+     /* Optional "default" decompositions if a set does not match any "matches"
+      * or any digest in the "digest" section. */
+     "default": "<DECOMP_X>"|[ "DECOMP_A", ...]
    }
 
-**Example:** In the following example, the "meminfo" LDMS sets have 2
+**Example1:** In the following example, the "meminfo" LDMS sets have 2
 digests due to different metrics from different architecture. The
 configuration then maps those digests to "meminfo" static decomposition
 (producing "meminfo_filter" rows). It also showcases the ability to
@@ -436,7 +471,72 @@ decomposition is applied.
      }
    }
 
+
+**Example2:** This is another example with the same setup as Example1, but we
+use "matches" with "schema" instead of "digest".
+
+::
+
+   {
+     "type": "flex",
+     "decomposition": {
+       "meminfo": {
+         "type": "static",
+         "rows": [
+           {
+             "schema": "meminfo_filter",
+             "cols": [
+               { "src":"timestamp",    "dst":"ts",      "type":"ts"                         },
+               { "src":"producer",     "dst":"prdcr",   "type":"char_array", "array_len":64 },
+               { "src":"instance",     "dst":"inst",    "type":"char_array", "array_len":64 },
+               { "src":"component_id", "dst":"comp_id", "type":"u64"                        },
+               { "src":"MemFree",      "dst":"free",    "type":"u64"                        },
+               { "src":"MemActive",    "dst":"active",  "type":"u64"                        }
+             ],
+             "indices": [
+               { "name":"time_comp", "cols":["ts", "comp_id"] },
+               { "name":"time", "cols":["ts"] }
+             ]
+           }
+         ]
+       },
+       "netdev2" : {
+         "type" : "static",
+         "rows": [
+           {
+             "schema": "procnetdev2",
+             "cols": [
+               { "src":"timestamp", "dst":"ts","type":"ts" },
+               { "src":"component_id", "dst":"comp_id","type":"u64" },
+               { "src":"netdev_list", "rec_member":"name", "dst":"dev.name",
+                 "type":"char_array", "array_len": 16 },
+                 { "src":"netdev_list", "rec_member":"rx_bytes", "dst":"dev.rx_bytes",
+                   "type":"u64" },
+                   { "src":"netdev_list", "rec_member":"tx_bytes", "dst":"dev.tx_bytes",
+                     "type":"u64" }
+             ],
+             "indices": [
+               { "name":"time_comp", "cols":["ts", "comp_id"] }
+             ]
+           }
+         ]
+       },
+       "the_default": {
+         "type": "as_is",
+         "indices": [
+           { "name": "time", "cols": [ "timestamp" ] },
+           { "name": "time_comp", "cols": [ "timestamp", "component_id" ] }
+         ]
+       }
+     },
+     "matches": [
+       { "schema": "meminfo", "apply": "meminfo" },
+       { "schema": "procnetdev2", "apply": [ "netdev2", "the_default" ] }
+     ],
+     "default": "the_default"
+   }
+
 SEE ALSO
 ========
 
-:ref:`store_sos(7) <store_sos>`, :ref:`store_csv(7) <store_csv>`, :ref:`store_kafka(7) <store_kafka>`
+**Plugin_store_sos**\ (7), **Plugin_store_csv**\ (7), **Plugin_store_kafka**\ (7)

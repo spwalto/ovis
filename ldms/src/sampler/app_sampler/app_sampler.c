@@ -1537,7 +1537,7 @@ app_sampler_config(struct ldmsd_plugin *pi, struct attr_value_list *kwl,
 		return EALREADY;
 	}
 
-	inst->base_data = base_config(avl, SAMP, SAMP, inst->mylog);
+	inst->base_data = base_config(avl, pi->cfg_name, SAMP, inst->mylog);
 	if (!inst->base_data) {
 		/* base_config() already log error message */
 		return errno;
@@ -1655,8 +1655,6 @@ void app_sampler_term(struct ldmsd_plugin *pi)
 	bzero(inst->fn, sizeof(inst->fn));
 	inst->n_fn = 0;
 	bzero(inst->metric_idx, sizeof(inst->metric_idx));
-	if (inst->mylog)
-		ovis_log_destroy(inst->mylog);
 }
 
 static int

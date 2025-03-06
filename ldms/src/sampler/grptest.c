@@ -153,7 +153,7 @@ static int config_init(struct ldmsd_plugin *self, struct attr_value_list *kwl,
 		       struct attr_value_list *avl)
 {
 	int rc;
-	base = base_config(avl, SAMP, SAMP, mylog);
+	base = base_config(avl, self->cfg_name, SAMP, mylog);
 	if (!base) {
 		rc = errno;
 		goto err0;
@@ -258,8 +258,6 @@ static void term(struct ldmsd_plugin *self)
 	if (grp)
 		ldms_set_delete(grp);
 	grp = NULL;
-	if (mylog)
-		ovis_log_destroy(mylog);
 }
 
 static struct ldmsd_sampler meminfo_plugin = {

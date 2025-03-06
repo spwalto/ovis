@@ -192,7 +192,7 @@ static int config(struct ldmsd_plugin *self, struct attr_value_list *kwl, struct
 		return rc;
 	}
 
-	base = base_config(avl, "cray_gemini_r_sampler", default_schema_name,
+	base = base_config(avl, self->cfg_name, default_schema_name,
                            cray_gemini_log);
         if (!base) {
                 rc = errno;
@@ -332,8 +332,6 @@ static void term(struct ldmsd_plugin *self)
 	if (set)
 		ldms_set_delete(set);
 	set = NULL;
-	if (cray_gemini_log)
-		ovis_log_destroy(cray_gemini_log);
 }
 
 static const char *usage(struct ldmsd_plugin *self)

@@ -59,7 +59,7 @@
 #include "ldms.h"
 #include "ldmsd.h"
 
-#define SAMP "slurm2"
+#define SAMP "slurm_sampler2"
 
 #ifndef ARRAY_LEN
 #define ARRAY_LEN(a) (sizeof(a)/sizeof(*a))
@@ -1206,8 +1206,6 @@ static void term(struct ldmsd_plugin *self)
 		ldms_set_delete(set);
 	}
 	set = NULL;
-	if (mylog)
-		ovis_log_destroy(mylog);
 }
 
 static int sample(struct ldmsd_sampler *self)

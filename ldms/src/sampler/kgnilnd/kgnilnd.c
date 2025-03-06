@@ -217,7 +217,7 @@ static int config(struct ldmsd_plugin *self, struct attr_value_list *kwl, struct
 	}
 
 
-	base = base_config(avl, SAMP, SAMP, mylog);
+	base = base_config(avl, self->cfg_name, SAMP, mylog);
 	if (!base){
 		rc = EINVAL;
 		goto err;
@@ -323,8 +323,6 @@ static void term(struct ldmsd_plugin *self)
 	if (set)
 		ldms_set_delete(set);
 	set = NULL;
-	if (mylog)
-		ovis_log_destroy(mylog);
 }
 
 static const char *usage(struct ldmsd_plugin *self)

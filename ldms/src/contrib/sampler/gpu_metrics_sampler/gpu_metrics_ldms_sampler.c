@@ -254,7 +254,7 @@ static int config(struct ldmsd_plugin *self,
 
     // Create an instance from the base "class".  This is effectively calling
     // the base class constructor.
-    base = base_config(attribute_value_list, SAMP, SAMP, __gpu_metrics_log);
+    base = base_config(attribute_value_list, self->cfg_name, SAMP, __gpu_metrics_log);
     if (!base) {
         rc = errno;
         goto err;
@@ -332,8 +332,6 @@ static void term(struct ldmsd_plugin *self) {
     free_base();
     free_set();
     free_schema();
-    if (__gpu_metrics_log)
-	    ovis_log_destroy(__gpu_metrics_log);
 }
 
 /**

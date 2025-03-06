@@ -1269,7 +1269,7 @@ static int init(struct attr_value_list *kwl, struct attr_value_list *avl,
 
 	pthread_mutex_lock(&cfglock);
 
-	base = base_config(avl, SAMP, SAMP, mylog);
+	base = base_config(avl, self->cfg_name, SAMP, mylog);
         if (!base) {
                 rc = errno;
 		_free_names();
@@ -1735,8 +1735,6 @@ static void term(struct ldmsd_plugin *self)
 	if (set)
 		ldms_set_delete(set);
 	set = NULL;
-	if (mylog)
-		ovis_log_destroy(mylog);
 }
 
 static struct ldmsd_sampler msr_interlagos_plugin = {

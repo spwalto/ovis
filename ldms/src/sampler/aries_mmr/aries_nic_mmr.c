@@ -398,7 +398,7 @@ static int config(struct ldmsd_plugin *self, struct attr_value_list *kwl, struct
 		return EINVAL;
 	}
 
-	base = base_config(avl, "aries_nic_mmr", default_schema_name, mylog);
+	base = base_config(avl, self->cfg_name, default_schema_name, mylog);
 	if (!base)
 		return EINVAL;
 
@@ -562,8 +562,6 @@ static void term(struct ldmsd_plugin *self)
 	set = NULL;
 	base_del(base);
 	base = NULL;
-	if (mylog)
-		ovis_log_destroy(mylog);
 }
 
 static const char *usage(struct ldmsd_plugin *self)

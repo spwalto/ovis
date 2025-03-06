@@ -288,7 +288,7 @@ static int config(struct ldmsd_plugin *self, struct attr_value_list *kwl,
 	}
 
 	/* Invoke base sampler config, let it do what it needs */
-	base = base_config(avl, SAMP, SAMP, mylog);
+	base = base_config(avl, self->cfg_name, SAMP, mylog);
 	if (!base) {
 		rc = errno;
 		goto err;
@@ -465,8 +465,6 @@ static void term(struct ldmsd_plugin *self)
 	shm_unlink(shmem_name);
 	sem_unlink(sem_name);
 	ovis_log(mylog, OVIS_LDEBUG, "Done terminating.\n");
-	if (mylog)
-		ovis_log_destroy(mylog);
 }
 
 /**

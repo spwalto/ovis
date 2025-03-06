@@ -164,7 +164,7 @@ static int config(struct ldmsd_plugin *self,
 
 	ovis_log(mylog, OVIS_LDEBUG, SAMP " config() called\n");
 
-	sampler_base = base_config(avl, SAMP, "zfs_topvdevs", mylog);
+	sampler_base = base_config(avl, self->cfg_name, "zfs_topvdevs", mylog);
 	if ((g_zfs = libzfs_init()) == NULL) {
 		rc = errno;
 		ovis_log(mylog, OVIS_LERROR,
@@ -240,8 +240,6 @@ static void term(struct ldmsd_plugin *self)
 	base_set_delete(sampler_base);
 	base_del(sampler_base);
 	sampler_base = NULL;
-        if (mylog)
-		ovis_log_destroy(mylog);
 
 }
 

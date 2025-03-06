@@ -422,7 +422,7 @@ static int config(struct ldmsd_plugin *self, struct attr_value_list *kwl, struct
 {
 	int rc;
 
-	cfg_base = base_config(avl, SAMP, SAMP, mylog);
+	cfg_base = base_config(avl, self->cfg_name, SAMP, mylog);
 	if (!cfg_base)
 		return EINVAL;
 	rc = local_config(avl, SAMP, SAMP);
@@ -712,8 +712,6 @@ static void term(struct ldmsd_plugin *self)
 	free(cfgmetrics);
 	cfgmetrics = NULL;
 	num_cfgmetrics = 0;
-	if (mylog)
-		ovis_log_destroy(mylog);
 }
 
 static struct ldmsd_sampler dvs_plugin = {

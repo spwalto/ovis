@@ -87,12 +87,10 @@ int prdcr_resolve(const char *hostname, unsigned short port_no,
 void ldmsd_prdcr___del(ldmsd_cfgobj_t obj)
 {
 	ldmsd_prdcr_t prdcr = (ldmsd_prdcr_t)obj;
-	if (prdcr->host_name)
-		free(prdcr->host_name);
-	if (prdcr->xprt_name)
-		free(prdcr->xprt_name);
-	if (prdcr->conn_auth)
-		free(prdcr->conn_auth);
+	free(prdcr->host_name);
+	free(prdcr->xprt_name);
+	free(prdcr->conn_auth);
+	free(prdcr->conn_auth_dom_name);
 	if (prdcr->conn_auth_args)
 		av_free(prdcr->conn_auth_args);
 	ldmsd_cfgobj___del(obj);
@@ -139,8 +137,13 @@ void __prdcr_set_del(ldmsd_prdcr_set_t set)
 	ldmsd_strgp_ref_t strgp_ref = LIST_FIRST(&set->strgp_list);
 	while (strgp_ref) {
 		LIST_REMOVE(strgp_ref, entry);
+		if (strgp_ref->decomp_ctxt && strgp_ref->strgp->decomp &&
+				strgp_ref->strgp->decomp->decomp_ctxt_release) {
+			strgp_ref->strgp->decomp->decomp_ctxt_release(strgp_ref->strgp,
+					&strgp_ref->decomp_ctxt);
+		}
 		__atomic_fetch_sub(&strgp_ref->strgp->prdset_cnt, 1, __ATOMIC_SEQ_CST);
-		ldmsd_strgp_put(strgp_ref->strgp);
+		ldmsd_strgp_put(strgp_ref->strgp, "prdset_strgp_ref");
 		free(strgp_ref);
 		strgp_ref = LIST_FIRST(&set->strgp_list);
 	}
@@ -805,7 +808,8 @@ void prdcr_connect_cb(ldms_t x, ldms_xprt_event_t e, void *cb_arg)
 	switch (prdcr->type) {
 		case LDMSD_PRDCR_TYPE_ACTIVE:
 		case LDMSD_PRDCR_TYPE_PASSIVE:
-		case LDMSD_PRDCR_TYPE_ADVERTISED:
+		case LDMSD_PRDCR_TYPE_ADVERTISED_PASSIVE:
+		case LDMSD_PRDCR_TYPE_ADVERTISED_ACTIVE:
 			is_reset_prdcr = __agg_routine(x, e, prdcr);
 			break;
 		case LDMSD_PRDCR_TYPE_BRIDGE:
@@ -844,7 +848,7 @@ reset_prdcr:
 	}
 	if (prdcr->xprt) {
 		if ((prdcr->type == LDMSD_PRDCR_TYPE_PASSIVE) ||
-				(prdcr->type == LDMSD_PRDCR_TYPE_ADVERTISED)) {
+				(prdcr->type == LDMSD_PRDCR_TYPE_ADVERTISED_PASSIVE)) {
 			/* Put back the ldms_xprt_by_remote_sin() reference. */
 			ldms_xprt_put(prdcr->xprt);
 		}
@@ -881,6 +885,7 @@ static void prdcr_connect(ldmsd_prdcr_t prdcr)
 	case LDMSD_PRDCR_TYPE_ACTIVE:
 	case LDMSD_PRDCR_TYPE_BRIDGE:
 	case LDMSD_PRDCR_TYPE_ADVERTISER:
+	case LDMSD_PRDCR_TYPE_ADVERTISED_ACTIVE:
 		assert(prdcr->xprt == NULL);
 		prdcr->conn_state = LDMSD_PRDCR_STATE_CONNECTING;
 		prdcr->xprt = ldms_xprt_rail_new(prdcr->xprt_name,
@@ -912,7 +917,7 @@ static void prdcr_connect(ldmsd_prdcr_t prdcr)
 			break;
 		ldms_xprt_event_cb_set(prdcr->xprt, prdcr_connect_cb, prdcr);
 		/* let through */
-	case LDMSD_PRDCR_TYPE_ADVERTISED:
+	case LDMSD_PRDCR_TYPE_ADVERTISED_PASSIVE:
 		if (prdcr->xprt) {
 			/*
 			 * For 'ADVERTISED' producers,
@@ -974,7 +979,7 @@ int ldmsd_prdcr_str2type(const char *type)
 	else if (0 == strcasecmp(type, "advertiser"))
 		prdcr_type = LDMSD_PRDCR_TYPE_ADVERTISER;
 	else if (0 == strcasecmp(type, "advertised"))
-		prdcr_type = LDMSD_PRDCR_TYPE_ADVERTISED;
+		prdcr_type = LDMSD_PRDCR_TYPE_ADVERTISED_PASSIVE;
 	else
 		return -EINVAL;
 	return prdcr_type;
@@ -992,8 +997,10 @@ const char *ldmsd_prdcr_type2str(enum ldmsd_prdcr_type type)
 		return "bridge";
 	else if (LDMSD_PRDCR_TYPE_ADVERTISER == type)
 		return "advertiser";
-	else if (LDMSD_PRDCR_TYPE_ADVERTISED == type)
-		return "advertised";
+	else if (LDMSD_PRDCR_TYPE_ADVERTISED_PASSIVE == type)
+		return "advertised, passive";
+	else if (LDMSD_PRDCR_TYPE_ADVERTISED_ACTIVE == type)
+		return "advertised, active";
 	else
 		return NULL;
 }
@@ -1001,16 +1008,6 @@ const char *ldmsd_prdcr_type2str(enum ldmsd_prdcr_type type)
 int prdcr_ref_cmp(void *a, const void *b)
 {
 	return strcmp(a, b);
-}
-
-ldmsd_prdcr_ref_t prdcr_ref_new(ldmsd_prdcr_t prdcr)
-{
-	ldmsd_prdcr_ref_t ref = calloc(1, sizeof *ref);
-	if (ref) {
-		ref->prdcr = ldmsd_prdcr_get(prdcr);
-		rbn_init(&ref->rbn, prdcr->obj.name);
-	}
-	return ref;
 }
 
 ldmsd_prdcr_t
@@ -1065,6 +1062,8 @@ ldmsd_prdcr_new_with_auth(const char *name, const char *xprt_name,
 		auth = DEFAULT_AUTH;
 	auth_dom = ldmsd_auth_find(auth);
 	if (!auth_dom) {
+		ovis_log(config_log, OVIS_LERROR,
+			  "Authentication domain '%s' not found.\n", auth);
 		errno = ENOENT;
 		goto out;
 	}
@@ -1081,12 +1080,15 @@ ldmsd_prdcr_new_with_auth(const char *name, const char *xprt_name,
 	}
 
 	ldmsd_task_init(&prdcr->task);
+#ifdef _CFG_REF_DUMP_
+	ref_dump(&prdcr->obj.ref, prdcr->obj.name, stderr);
+#endif
 	ldmsd_cfgobj_unlock(&prdcr->obj);
 	return prdcr;
 out:
 	rbt_del(cfgobj_trees[LDMSD_CFGOBJ_PRDCR], &prdcr->obj.rbn);
 	ldmsd_cfgobj_unlock(&prdcr->obj);
-	ldmsd_cfgobj_put(&prdcr->obj);
+	ldmsd_prdcr_put(prdcr, "cfgobj_tree");
 	return NULL;
 }
 
@@ -1103,14 +1105,13 @@ ldmsd_prdcr_new(const char *name, const char *xprt_name,
 }
 
 extern struct rbt *cfgobj_trees[];
-extern pthread_mutex_t *cfgobj_locks[];
 ldmsd_cfgobj_t __cfgobj_find(const char *name, ldmsd_cfgobj_type_t type);
 
 int ldmsd_prdcr_del(const char *prdcr_name, ldmsd_sec_ctxt_t ctxt)
 {
 	int rc = 0;
 	ldmsd_prdcr_t prdcr;
-	pthread_mutex_lock(cfgobj_locks[LDMSD_CFGOBJ_PRDCR]);
+	ldmsd_cfg_lock(LDMSD_CFGOBJ_PRDCR);
 	prdcr = (ldmsd_prdcr_t) __cfgobj_find(prdcr_name, LDMSD_CFGOBJ_PRDCR);
 	if (!prdcr) {
 		rc = ENOENT;
@@ -1125,23 +1126,30 @@ int ldmsd_prdcr_del(const char *prdcr_name, ldmsd_sec_ctxt_t ctxt)
 		rc = EBUSY;
 		goto out_1;
 	}
-	if (ldmsd_cfgobj_refcount(&prdcr->obj) > 2) {
+#ifdef _CFG_REF_DUMP_
+	ref_dump(&prdcr->obj.ref, prdcr->obj.name, stderr);
+#endif
+	/*
+	 * Check that only 'init', 'find', and 'cfgobj_tree' references
+	 * remain.
+	 */
+	if (ldmsd_cfgobj_refcount(&prdcr->obj) > 3) {
 		rc = EBUSY;
 		goto out_1;
 	}
 
 	/* removing from the tree */
 	rbt_del(cfgobj_trees[LDMSD_CFGOBJ_PRDCR], &prdcr->obj.rbn);
-	ldmsd_prdcr_put(prdcr); /* putting down reference from the tree */
-
+	ldmsd_prdcr_put(prdcr, "cfgobj_tree"); /* putting down reference from the tree */
+	ldmsd_prdcr_put(prdcr, "init");
 	rc = 0;
 	/* let-through */
 out_1:
 	ldmsd_prdcr_unlock(prdcr);
 out_0:
-	pthread_mutex_unlock(cfgobj_locks[LDMSD_CFGOBJ_PRDCR]);
+	ldmsd_cfg_unlock(LDMSD_CFGOBJ_PRDCR);
 	if (prdcr)
-		ldmsd_prdcr_put(prdcr); /* `find` reference */
+		ldmsd_prdcr_put(prdcr, "find"); /* `find` reference */
 	return rc;
 }
 
@@ -1163,7 +1171,7 @@ int __ldmsd_prdcr_start(ldmsd_prdcr_t prdcr, ldmsd_sec_ctxt_t ctxt)
 	if (rc)
 		goto out;
 
-	if (prdcr->type == LDMSD_PRDCR_TYPE_ADVERTISED) {
+	if (prdcr->type == LDMSD_PRDCR_TYPE_ADVERTISED_PASSIVE) {
 		if (prdcr->conn_state == LDMSD_PRDCR_STATE_STOPPED) {
 			/* The connect was disconnected. */
 			prdcr->conn_state = LDMSD_PRDCR_STATE_DISCONNECTED;
@@ -1215,7 +1223,8 @@ int ldmsd_prdcr_start(const char *name, const char *interval_str,
 		prdcr->conn_intrvl_us = reconnect;
 	}
 	rc = __ldmsd_prdcr_start(prdcr, ctxt);
-	ldmsd_prdcr_put(prdcr);
+	ldmsd_prdcr_get(prdcr, "start");
+	ldmsd_prdcr_put(prdcr, "find");
 	return rc;
 }
 
@@ -1237,7 +1246,7 @@ int __ldmsd_prdcr_stop(ldmsd_prdcr_t prdcr, ldmsd_sec_ctxt_t ctxt)
 		goto out;
 	}
 
-	if (prdcr->type == LDMSD_PRDCR_TYPE_ADVERTISED) {
+	if (prdcr->type == LDMSD_PRDCR_TYPE_ADVERTISED_PASSIVE) {
 		if (prdcr->conn_state == LDMSD_PRDCR_STATE_STANDBY) {
 			/*
 			 * Already stopped, return 0 so that caller knows stop succeeds.
@@ -1261,6 +1270,9 @@ int __ldmsd_prdcr_stop(ldmsd_prdcr_t prdcr, ldmsd_sec_ctxt_t ctxt)
 	if (!prdcr->xprt)
 		prdcr->conn_state = LDMSD_PRDCR_STATE_STOPPED;
 out:
+#ifdef _CFG_REF_DUMP_
+	ref_dump(&prdcr->obj.ref, prdcr->obj.name, stderr);
+#endif
 	ldmsd_prdcr_unlock(prdcr);
 	return rc;
 }
@@ -1272,12 +1284,12 @@ int ldmsd_prdcr_stop(const char *name, ldmsd_sec_ctxt_t ctxt)
 	if (!prdcr)
 		return ENOENT;
 	rc = __ldmsd_prdcr_stop(prdcr, ctxt);
-	ldmsd_prdcr_put(prdcr);
+	ldmsd_prdcr_put(prdcr, "find");
 	return rc;
 }
 
 /*
- * Guessing if the string s is a regular expression or just a string.
+ * Guessing if the string is a regular expression or just a string.
  */
 static int __is_regex(const char *s)
 {

@@ -90,7 +90,7 @@ static const char *get_env_var(const char *src, size_t start_off, size_t end_off
 	return name;
 }
 
-int _scpy(char **buff, size_t *slen, size_t *alen,
+static int _scpy(char **buff, size_t *slen, size_t *alen,
 	    const char *str, size_t len)
 {
 	size_t xlen;
@@ -641,6 +641,34 @@ int ovis_time_str2us(const char *s, long *v)
 	return 0;
 }
 
+void ovis_time_us2str(long time_us, char *output, size_t output_sz)
+{
+	if (time_us >= 86400000000L) {
+		/* Days */
+		long days = time_us / 86400000000L;
+		snprintf(output, output_sz, "%ldd", days);
+	} else if (time_us >= 3600000000L) {
+		/* Hours */
+		long hours = time_us / 3600000000L;
+		snprintf(output, output_sz, "%ldh", hours);
+	} else if (time_us >= 60000000L) {
+		/* Minutes */
+		long minutes = time_us / 60000000L;
+		snprintf(output, output_sz, "%ldm", minutes);
+	} else if (time_us >= 1000000L) {
+		/* Seconds */
+		long seconds = time_us / 1000000L;
+		snprintf(output, output_sz, "%lds", seconds);
+	} else if (time_us >= 1000L) {
+		/* Milliseconds */
+		long milliseconds = time_us / 1000L;
+		snprintf(output, output_sz, "%ldms", milliseconds);
+	} else {
+		/* Microseconds */
+		snprintf(output, output_sz, "%ldus", time_us);
+	}
+}
+
 pid_t ovis_execute(const char *command)
 {
 	char *argv[] = {"/bin/sh", "-c", (char*)command, NULL};
@@ -823,7 +851,7 @@ FILE *fopen_perm(const char *path, const char *f_mode, int o_mode)
  * \retval 0 OK
  * \retval errno for error
  */
-int __uid_gid_check(uid_t uid, gid_t gid)
+static int __uid_gid_check(uid_t uid, gid_t gid)
 {
 	struct passwd pw;
 	struct passwd *p;

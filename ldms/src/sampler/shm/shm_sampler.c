@@ -750,11 +750,11 @@ static int scan_index(const char* const index_name, int boxlen, int metric_max,
 	return rc;
 }
 
-static int shm_sampler_config(struct attr_value_list* avl)
+static int shm_sampler_config(struct ldmsd_plugin *self, struct attr_value_list* avl)
 {
 
 	int rc;
-	initial_base_config = base_config(avl, SAMP, SAMP, mylog);
+	initial_base_config = base_config(avl, self->cfg_name, SAMP, mylog);
 	if(!initial_base_config) {
 		rc = errno;
 		base_del(initial_base_config);
@@ -880,7 +880,7 @@ static int config(struct ldmsd_plugin *self, struct attr_value_list *kwl,
 		return rc;
 	}
 
-	rc = shm_sampler_config(avl);
+	rc = shm_sampler_config(self, avl);
 
 	if(rc) {
 		ovis_log(mylog, OVIS_LERROR, "failed to config shm_sampler\n");
@@ -994,8 +994,6 @@ static void term(struct ldmsd_plugin *self)
 	}
 	ldms_shm_clear_index(box_cache.index);
 	clear_box_cache();
-	if (mylog)
-		ovis_log_destroy(mylog);
 	ovis_log(mylog, OVIS_LINFO, SAMP " was successfully terminated\n");
 }
 

@@ -43,7 +43,7 @@
 # A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
 # OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
 # SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-# LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+# LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,p
 # DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
 # THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
@@ -165,48 +165,6 @@ class LdmsdCmdParser(cmd.Cmd):
         """
         print(args)
 
-    def do_connect(self, args):
-        if self.state != self.comm.CONNECTED:
-            if self.comm:
-                self.comm.connect()
-            kwargs = {
-                "xprt": "sock",
-                "host": "localhost",
-                "port": None,
-                "auth": "none",
-                "auth_opt": {},
-            }
-            r = re.compile(r"\s*(\w+)=(\w+)")
-            for attr, value in r.findall(args):
-                if attr in kwargs:
-                    kwargs[attr] = value
-                else:
-                    # treat as auth options
-                    kwargs["auth_opt"][attr] = value
-            self.comm = Communicator(kwargs['xprt'],
-                                     kwargs['host'],
-                                     kwargs['port'],
-                                     kwargs['auth'],
-                                     kwargs['auth_opt'])
-            rc = self.comm.connect()
-            if rc:
-                self.promt = "Error connecting to {1} on port {2} with {0}".format(xprt, host, port)
-            else:
-                self.prompt = "{0}:{1}:{2}> ".format(xprt, host, port)
-        else:
-            print(f"WARN: Already connected, do nothing.")
-            return None
-
-    def complete_connect(self, text, line, begidx, endidx):
-        name_list = ["xprt=", "host=", "port=", "auth="]
-        full_list = ["xprt=(sock|rdma|ugni)",
-                     "host=HOSTNAME",
-                     "port=PORT",
-                     "auth=AUTH_METHOD"]
-        if not text:
-            return full_list
-        return [x for x in name_list if x.startswith(text)]
-
     def precmd(self, line):
         if line[0:1] == '#':
             return ''
@@ -276,6 +234,9 @@ class LdmsdCmdParser(cmd.Cmd):
             if rc:
                 print(f'Error {rc} printing current configuration: {msg}')
 
+    def complete_dump_cfg(self, text, line, begidx, endidx):
+        return self.__complete_attr_list('dump_cfg', text)
+
     def do_source(self, arg):
         """
         Parse commands from the specified file as if they were entered
@@ -330,13 +291,20 @@ class LdmsdCmdParser(cmd.Cmd):
         """
         Load a plugin at the Aggregator/Producer
         Parameters:
-        name=     The plugin name
+        name=   The plugin to load
+        plugin= The configuration name for the plugin (default = <name>)
         """
         arg = self.handle_args('load', arg)
         if arg:
-            rc, msg = self.comm.plugn_load(arg['name'])
+            name = arg['name']
+            if arg['plugin']:
+                plugin = arg['plugin']
+            else:
+                plugin = name
+            rc, msg = self.comm.plugn_load(name, plugin)
             if rc:
-                print(f'Error loading plugin {arg["name"]}: {msg}')
+                print(f'Error loading configuration named {arg["name"]} '
+                      f'with plugin {arg["plugin"]}')
 
     def complete_load(self, text, line, begidx, endidx):
         return self.__complete_attr_list('load', text)
@@ -818,16 +786,20 @@ class LdmsdCmdParser(cmd.Cmd):
         """
         Start updaters. The parameters to the commands are as
         follows:
-        name=     The update policy name
-        [interval=] The update interval in micro-seconds. If this is not
-                  specified, the previously configured value will be used.
-        [offset=]   Offset for synchronization
-                    If 'interval' is given but not 'offset,
-                    the updater will update sets asynchronously.
-        [auto_interval=]   [true|false] If true, the updater will schedule
-                           set updates according to the update hint. If false,
-                           the updater will schedule the set updates according
-                           to the default schedule, i.e., the given interval and offset values.
+        name=string
+               The update policy name
+        [interval=us]
+               The update interval in micro-seconds. If this is not
+               specified, the previously configured value will be used.
+        [offset=us]
+               Offset for synchronization If 'interval' is given but not
+               offset, The default is 0.
+        [auto_interval={true|false}]
+               If true, the updater will schedule
+               set updates according to the update hint. If false,
+               the updater will schedule the set updates according
+               to the default schedule, i.e., the given interval and
+               offset values.
         """
         arg = self.handle_args('updtr_start', arg)
         if arg:
@@ -1028,8 +1000,8 @@ class LdmsdCmdParser(cmd.Cmd):
             rc, msg = self.comm.prdcr_status(arg['name'])
             if rc == 0 and msg is not None:
                 producers = fmt_status(msg)
-                print("Name             Host             Port         Transport    State        Type")
-                print("---------------- ---------------- ------------ ------------ ------------ ----------")
+                print(f"{'Name':16} {'Host':16} {'Port':12} {'Transport':12} {'auth':16} {'State':12} {'Type':20}")
+                print(f"{'-'*16} {'-'*16} {'-'*12} {'-'*12} {'-'*16} {'-'*12} {'-'*20}")
                 for prdcr in producers:
                     port = prdcr['port']
                     if prdcr['type'] == 'bridge':
@@ -1043,6 +1015,7 @@ class LdmsdCmdParser(cmd.Cmd):
                     print(f"{prdcr['name']:16} {prdcr['host']:16} " \
                           f"{port:12} " \
                           f"{prdcr['transport']:12} " \
+                          f"{prdcr['auth']:16} " \
                           f"{pstate:12} {prdcr['type']:10}")
                     for pset in prdcr['sets']:
                         print("    {0:16} {1:16} {2}".format(pset['inst_name'],
@@ -1282,6 +1255,8 @@ class LdmsdCmdParser(cmd.Cmd):
                 'count' : 0,
                 'start_ts' : None,
                 'end_ts' : None,
+                'min_ts' : None,
+                'max_ts' : None,
                 'min_member' : None,
                 'max_member' : None,
                 'min_avg_member' : None,
@@ -1311,16 +1286,20 @@ class LdmsdCmdParser(cmd.Cmd):
 
     def __avg_update(self, cur_avg, cur_cnt, v, cnt):
         new_cnt = cur_cnt + cnt
+        if new_cnt == 0:
+            return 0.0
         return (cur_avg * (cur_cnt / new_cnt) + v * (cnt / new_cnt), new_cnt)
 
     def __min_max(self, tbl, data):
         is_min = False
         is_max = False
-        if tbl['min'] > data['min']:
+
+        if tbl['min'] is None or tbl['min'] > data['min']:
             tbl['min'] = data['min']
             tbl['min_ts'] = data['min_ts']
             is_min = True
-        if tbl['max'] < data['max']:
+
+        if tbl['max'] is None or tbl['max'] < data['max']:
             tbl['max'] = data['max']
             tbl['max_ts'] = data['max_ts']
             is_max = True
@@ -1371,50 +1350,89 @@ class LdmsdCmdParser(cmd.Cmd):
         # -----------------------------------------------
         # SOURCE DICT
         # -----------------------------------------------
-        # Assume that d = { <strgp_name> :{ 'sets': { <set_name> : { <data> }
-        #                                            }
-        #                                 }
-        #                 },
-        # where, <data> = { 'min' : <float>,
-        #                   'max' : <float>,
-        #                   'avg' : <float>,
-        #                   'cnt' : <int>,
-        #                   'start_ts' : <float>, # in seconds
-        #                   'end_ts' : <float> # in seconds
-        #                 }
+        # Assume that the returned jSON object is
+        # { <strgp_name> :{
+        #     "producers" : { <producer_name> : { EMPTY } },
+        #     "threads"   : { <producer set's thread ID> : { EMPTY }},
+        #     "schemas"   : { <set schema name> : { EMPTY }},
+        #     "sets"      : {
+        #        <set instance name> : {
+        #           "producer" : <producer name>,
+        #           "schema"   : <schema name>,
+        #           "thead_id" : <thread ID>,
+        #           "stats"    : {
+        #              "min"      : <float>,
+        #              "max"      : <float>,
+        #              "min_ts"   : <float>,
+        #              "max_ts"   : <float>,
+        #              "avg"      : <float>,
+        #              "count"    : <integer>,
+        #              "start_ts" : <float>, # seconds
+        #              "end_ts"   : <float>  # seconds
+        #           }
+        #        }
+        #     }
+        # }
         #
         # -----------------------------------------------
-        # RESULT TABLES
+        # RESULT TABLES FROM __store_time_process()
         # -----------------------------------------------
-        # stats = { 'min' : <float>,
-        #           'max' : <float>,
-        #           'avg' : <float>,
-        #           'cnt' : <int>,
-        #           'start' : <float> in seconds,
-        #           'end' : <float> in seconds,
-        #           'set_name' : [<set name, the order is the name as the lists above>]
-        #         }
+        # The function returns a tuple of three tables: (strgp_tbl, schema_tbl, thread_tbl)
         #
-        # schema_tbl = { 'stats': <stats>,
-        #                <schema_name> : {'stats' : <stats>},
-        #                ...
-        #              }
+        # Each table organizes the same underlying data from different perspectives
+        # and contains statistics at various levels of hierarchy.
+        #
+        # First, the common stats dictionary structure used throughout:
+        # stats_dict = {
+        #   'set_name': [],          # List of set names in this group
+        #   'min': float,            # Minimum value
+        #   'max': float,            # Maximum value
+        #   'avg': float,            # Weighted average
+        #   'count': int,            # Count of operations
+        #   'start_ts': float,       # Earliest start timestamp (might be None)
+        #   'end_ts': float,         # Latest end timestamp (might be None)
+        #   'min_ts': float,         # Timestamp of minimum value (might be None)
+        #   'max_ts': float,         # Timestamp of maximum value (might be None)
+        #   'min_member': str/None,  # Member with minimum value (None at leaf level)
+        #   'max_member': str/None,  # Member with maximum value (None at leaf level)
+        #   'min_avg_member': str/None, # Member with minimum average (None at leaf level)
+        #   'max_avg_member': str/None  # Member with maximum average (None at leaf level)
+        # }
+        #
+        # 1. Storage Policy Table (strgp_tbl) - Organized by storage policy → schema → thread
+        # strgp_tbl = {
+        #   'stats': stats_dict,       # Global stats across all storage policies
+        #   '<strgp_name>': {          # Per storage policy entry
+        #     'stats': stats_dict,     # Stats for this storage policy
+        #     '<schema_name>': {       # Per schema within this storage policy
+        #       'stats': stats_dict,   # Stats for this schema within this storage policy
+        #       '<thread_id>': {       # Per thread within this schema and storage policy
+        #         'stats': stats_dict  # Stats for this thread, schema, and storage policy
+        #       }
+        #     }
+        #   }
+        # }
+        #
+        # 2. Schema Table (schema_tbl) - Organized by schema
+        # schema_tbl = {
+        #   'stats': stats_dict,       # Global stats across all schemas
+        #   '<schema_name>': {         # Per schema entry
+        #     'stats': stats_dict      # Stats for this schema
+        #   }
+        # }
+        #
+        # 3. Thread Table (thread_tbl) - Organized by thread → schema
+        # thread_tbl = {
+        #   'stats': stats_dict,       # Global stats across all threads
+        #   '<thread_id>': {           # Per thread entry
+        #     'stats': stats_dict,     # Stats for this thread
+        #     '<schema_name>': {       # Per schema within this thread
+        #       'stats': stats_dict    # Stats for this schema within this thread
+        #     }
+        #   }
+        # }
         schema_tbl = {'stats' : self.__datatbl_new()}
-        # thread_tbl = { 'stats' : <stats>,
-        #                <thread_id> : { 'stats' : <stats>,
-        #                                <schema_name> : {'stats' : <stats> },
-        #                                ...
-        #                              }
-        #               }
         thread_tbl = {'stats' : self.__datatbl_new()}
-        #strgp_tbl = { 'stats' : <stats>,
-        #              <strgp name> : { 'stats' : <stats>,
-        #                               <schema_name> : { 'stats' : <stats>,
-        #                                                 <thread_id> : { 'stats' : <stats>},
-        #                                                 ...
-        #                                               },
-        #                               ...
-        #                             }
         strgp_tbl = {'stats' : self.__datatbl_new()}
 
         for strgp_name, strgp in d.items():
@@ -1496,8 +1514,9 @@ class LdmsdCmdParser(cmd.Cmd):
 
         try:
             strgp_tbl, schema_tbl, thread_tbl = self.__store_time_process(j)
-        except:
-            raise
+        except Exception as e:
+            print(e)
+            return
 
         # Schema Table
         print(f"{'='*(4+21+16+16+16+21+21+11+11)}")
@@ -1541,6 +1560,8 @@ class LdmsdCmdParser(cmd.Cmd):
             if strgp == 'stats':
                 continue
             stats = strgp_tbl[strgp]['stats']
+            if 0 == len(stats['set_name']):
+                continue
             print(f"{self.__symbols(strgp, strgp_tbl['stats']):>5}  {strgp:18} {stats['min']:15.4f} {stats['avg']:15.4f} {stats['max']:15.4f} {stats['min_ts']:20.4f} {stats['max_ts']:20.4f} {len(set(stats['set_name'])):10} {stats['count']:10}")
             schemas = sorted([s for s in list(strgp_tbl[strgp].keys()) if s != 'stats'])
             for schema in schemas:
@@ -1567,12 +1588,11 @@ class LdmsdCmdParser(cmd.Cmd):
         rc, msg = self.comm.plugn_status(arg['name'])
         if rc == 0:
             plugins = fmt_status(msg)
-            print("Name         Type         Interval     Offset       Libpath")
-            print("------------ ------------ ------------ ------------ ------------")
+            print("Config Name  Plugin                   Type         libpath")
+            print("------------ ------------------------ ------------ ------------")
             for plugn in plugins:
-                print("{0:12} {1:12} {2:12} {3:12} {4:12}".format(
-                    plugn['name'], plugn['type'],
-                    plugn['sample_interval_us'], plugn['sample_offset_us'],
+                print("{0:12} {1:24} {2:12} {3}".format(
+                    plugn['name'], plugn['plugin'], plugn['type'],
                     plugn['libpath']))
 
     def do_plugn_sets(self, arg):
@@ -1673,7 +1693,7 @@ class LdmsdCmdParser(cmd.Cmd):
         if arg:
             rc, msg = self.comm.plugn_config(arg['name'], arg['cfg_str'])
             if rc:
-                print(f'Error configuring {arg["name"]} plugin: {msg}')
+                print(f'Error configuring the \'{arg["name"]}\' plugin: {msg}')
 
     def complete_config(self, text, line, begidx, endidx):
         return self.__complete_attr_list('config', text)
@@ -1689,10 +1709,17 @@ class LdmsdCmdParser(cmd.Cmd):
                   the sample interval. If this offset is specified, including 0,
                   collection will be synchronous; if the offset is not specified,
                   collection will be asynchronous.
+        [exclusive_thread=]
+                  If exclusive_thread is 0, the sampler shares a thread with
+                  other sampler. If exclusive_thread is 1, the sampler has an
+                  exclusive thread to work on. The default is 0 (i.e. share
+                  sampling threads).
         """
         arg = self.handle_args('start', arg)
         if arg:
-            rc, msg = self.comm.plugn_start(arg['name'], arg['interval'], arg['offset'])
+            rc, msg = self.comm.plugn_start(arg['name'], arg['interval'],
+                                            arg['offset'],
+                                            arg.get('exclusive_thread'))
             if rc:
                 print(f'Error starting {arg["name"]} plugin: {msg}')
 
@@ -2135,63 +2162,15 @@ class LdmsdCmdParser(cmd.Cmd):
         usec = int(ts % 1.0 * 1000000)
         return self.__ts2human(sec, usec)
 
-    def do_set_route(self, arg):
-        """
-        Display the route of the set from aggregators to the sampler daemon.
-        Parameters:
-        instance=   Set instance name
-        """
-        arg = self.handle_args('set_route', arg)
-        if not arg:
-            return
-        rc, msg = self.comm.set_route(arg['instance'])
-        attr_list = msg
-        if attr_list is None:
-            print("No response back")
-
-        if attr_list[0].attr_id != LDMSD_Req_Attr.JSON:
-            # Assume that this is an error message
-            return
-
-        try:
-            src = json.loads(attr_list[0].attr_value)
-            route = src['route']
-            print("---------------------")
-            print("instance: '{0}'".format(src['instance']))
-            print("schema: '{0}'".format(src['schema']))
-            print("=====================")
-            print("{0:20} {1:15} {2:15} {3:15} {4:10} {5:10} {6:5} {7:25} {8:25}".format(
-                "host", "type", "name", "prdcr_host", "interval", "offset", "sync", "start", "end"))
-            print("-------------------- --------------- --------------- --------------- "
-                    "---------- ---------- ----- ------------------------- -------------------------")
-            for hop in route:
-                detail = hop['detail']
-                if hop['type'] == "producer":
-                    print("{0:20} {1:15} {2:15} {3:15} {4:10} {5:10} {6:5} {7:25} {8:25}".format(
-                        hop['host'], hop['type'], detail['name'], detail['host'], detail['update_int'],
-                        detail['update_off'], detail['update_sync'],
-                        self.__ts2human(detail['last_start_sec'], detail['last_start_usec']),
-                        self.__ts2human(detail['last_end_sec'], detail['last_end_usec'])))
-                else:
-                    print("{0:20} {1:15} {2:15} {3:15} {4:10} {5:10} {6:5} {7:25} {8:25}".format(
-                        hop['host'], hop['type'], detail['name'], "---", detail['interval_us'],
-                        detail['offset_us'], detail['sync'],
-                        self.__ts2human(detail['trans_start_sec'], detail['trans_start_usec']),
-                        self.__ts2human(detail['trans_end_sec'], detail['trans_end_usec'])))
-        except:
-            raise
-
-    def complete_set_route(self, text, line, begidx, endidx):
-        return self.__complete_attr_list('set_info', text)
-
-    def display_worker_thread_stats(self, worker_threads):
-        print(f"LDMSD Worker Thread Statistics")
+    def display_worker_thread_stats(self, worker_threads, hdr):
+        print(hdr)
         print(f"{'='*60}")
-        print(f"{'Thread ID':15} {'Linux Thread ID':20} {'Idle':15} {'Active':15} {'Duration (sec)':15} {'Event Counts':15}")
-        print(f"{'-'*15} {'-'*20} {'-'*15} {'-'*15} {'-'*15} {'-'*15}")
+        print(f"{'Thread ID':15} {'Linux Thread ID':20} {'Name':20} {'Idle':15} {'Active':15} {'Duration (sec)':15} {'Event Counts':15}")
+        print(f"{'-'*15} {'-'*20} {'-'*20} {'-'*15} {'-'*15} {'-'*15} {'-'*15}")
         for e in worker_threads:
-            print(f"{e['tid']:^15} {e['thread_id']:20} {e['idle_pc']:14.2f}% " \
-                  f"{e['active_pc']:14.2f}% {e['total_us']/1000000:15.2f}" \
+            print(f"{e['tid']:^15} {e['thread_id']:20} {e['name']:20} " \
+                  f"{e['idle_pc']:14.2f}% " \
+                  f"{e['active_pc']:14.2f}% {e['total_us']/1000000:14.2f}" \
                   f"{e['ev_cnt']:15}")
 
     def display_io_thread_stats(self, io_threads):
@@ -2228,10 +2207,14 @@ class LdmsdCmdParser(cmd.Cmd):
         if msg == "":
             return
         if rc != 0:
-            print(f"Error {msg['errcode']}: {resp['msg']}")
+            print(f"Error {rc}: {msg}")
             return
         msg = fmt_status(msg)
-        self.display_worker_thread_stats(msg['worker_threads'])
+        print()
+        self.display_worker_thread_stats(msg['worker_threads'],
+                                         f"LDMSD Worker Thread Statistics")
+        self.display_worker_thread_stats(msg['xthreads'],
+                                         f"Exclusive Worker Thread Statistics")
         print(f"{'='*60}")
         self.display_io_thread_stats(msg['io_threads'])
         print(f"{'='*60}")
@@ -2976,7 +2959,7 @@ class LdmsdCmdParser(cmd.Cmd):
                 [disable_start=]  Tell LDMSD not to start the producers
                 [ip=]              An IP masks to filter advertisements using the source IP
                 [regex=]           A regular expression to match sampler hostnames
-                [rail=]            The number of rail endpoints for the prdcr (default: 1).
+            Parameters to Control Advertised Producers:
                 [quota=]           The send quota our ldmsd (the one we are controlling)
                                    advertises to the prdcr (default: value from ldmsd --quota
                                    option). This limits how much outstanding data our ldmsd
@@ -2984,6 +2967,12 @@ class LdmsdCmdParser(cmd.Cmd):
                                    not have enough send quota.
                 [rx_rate=]         The recv rate (bytes/sec) limit for this connection. The
                                    default is -1 (unlimited).
+                [type=]            Passive(default) or active
+              Parameters for Active, Advertised Producers:
+                [advertiser_xprt=] Advertiser transport for active, advertised producer to use
+                [advertiser_port=] Advertiser port for active, advertised producer to connect to
+                [advertiser_auth=] Autentication domain to be used to connect to the advertiser
+                [rail=]            The number of rail endpoints for the prdcr (default: 1)
         """
         arg = self.handle_args('prdcr_listen_add', arg)
         if arg is None:
@@ -3071,12 +3060,32 @@ class LdmsdCmdParser(cmd.Cmd):
         rc, msg = self.comm.prdcr_listen_status(**arg)
         if rc == 0 and msg is not None:
             l = fmt_status(msg)
-            print(f"{'Name':20} {'State':10} {'Regex':15} {'IP Range':30}")
-            print(f"{'-'*20} {'-'*10} {'-'*15} {'-'*30}")
+            print(f"{'Name':20} {'State':10} {'Type':8} {'IP Range':30} {'Regex':20}")
+            print(f"{'-'*20} {'-'*10} {'-'*8} {'-'*30} {'-'*20}")
             for pl in l:
-                print(f"{pl['name']:20} {pl['state']:10} {pl['regex']:15} {pl['IP range']:30}")
+                print(f"{pl['name']:20} {pl['state']:10} {pl['type']:8} {pl['IP range']:30} {pl['regex']:20}")
+
+                if pl['type'] == "active":
+                    print(f"    Connection config: xprt={pl['xprt']} port={pl['port']} " \
+                          f"reconnect={pl['reconnect']}", end="")
+                    if pl['auth_dom'] is not None and pl['auth_dom'] != "_DEFAULT_":
+                        print(f" auth={pl['auth_dom']}", end="")
+                    if pl['rail_sz'] is not None:
+                        print(f" rail={pl['rail_sz']}", end="")
+                else:
+                    print(f"    Connection config: ", end="")
+                    if pl['rx_rate'] == "-1" and pl['quota'] == "-1":
+                        print("None", end="")
+
+                if pl['rx_rate'] != "-1":
+                    print(f" rx_rate={pl['rx_rate']}", end="")
+                if pl['quota'] != "-1":
+                    print(f" quota={pl['quota']}", end="")
+                print(end="\n")
+
                 if len(pl['producers']):
                     print(f"Producers: {', '.join(p for p in pl['producers'])}")
+                print(end="\n")
         else:
             print(f'Error getting prdcr_listen status: {msg}')
 
