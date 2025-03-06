@@ -16,4 +16,4 @@ libdcgm_sampler_la_CPPFLAGS = \
 
 pkglib_LTLIBRARIES = libdcgm_sampler.la
 
-dist_man7_MANS = Plugin_dcgm_sampler.man
+dist_man7_MANS = dcgm_sampler.man

@@ -25,7 +25,7 @@ bin_SCRIPTS += scripts/ldms-get-opa-network.sh
 pkglib_LTLIBRARIES += libibnet.la
 
 bin_PROGRAMS += ldms_ibnet_schema_name
-dist_man7_MANS += Plugin_ibnet.man
+dist_man7_MANS += ibnet.man
 dist_man1_MANS += ldms_ibnet_schema_name.man ldms-ibnet-sampler-gen.man
 
 ldms_ibnet_schema_name_SOURCES = ibnet_data.c

@@ -16,5 +16,5 @@ libtest_sampler_la_SOURCES = test_sampler.c
 libtest_sampler_la_LIBADD = $(COMMON_LIBADD) $(top_builddir)/lib/src/ovis_json/libovis_json.la
 
 pkglib_LTLIBRARIES += libtest_sampler.la
-#dist_man7_MANS += Plugin_test_sampler.man
+#dist_man7_MANS += test_sampler.man
 endif

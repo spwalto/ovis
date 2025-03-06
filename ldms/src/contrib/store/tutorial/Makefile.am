@@ -17,7 +17,7 @@ if ENABLE_TUTORIAL_STORE
 libstore_tutorial_la_SOURCES = store_tutorial.c
 libstore_tutorial_la_LIBADD = $(STORE_LIBADD)
 pkglib_LTLIBRARIES += libstore_tutorial.la
-dist_man7_MANS += Plugin_store_tutorial.man
+dist_man7_MANS += store_tutorial.man
 endif
 
-EXTRA_DIST = Plugin_store_tutorial.man
+EXTRA_DIST = store_tutorial.man

@@ -12,7 +12,7 @@ if ENABLE_VARSET
 libvariable_la_SOURCES = variable.c 
 libvariable_la_LIBADD = $(COMMON_LIBADD)
 pkglib_LTLIBRARIES += libvariable.la
-dist_man7_MANS += Plugin_variable.man
+dist_man7_MANS += variable.man
 endif
 
 

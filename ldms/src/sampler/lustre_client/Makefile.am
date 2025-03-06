@@ -19,4 +19,4 @@ liblustre_client_la_CPPFLAGS = \
 
 pkglib_LTLIBRARIES = liblustre_client.la
 
-dist_man7_MANS = Plugin_lustre_client.man
+dist_man7_MANS = lustre_client.man

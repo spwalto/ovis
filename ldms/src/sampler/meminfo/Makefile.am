@@ -12,7 +12,7 @@ if ENABLE_MEMINFO
 libmeminfo_la_SOURCES = meminfo.c 
 libmeminfo_la_LIBADD = $(COMMON_LIBADD)
 pkglib_LTLIBRARIES += libmeminfo.la
-dist_man7_MANS += Plugin_meminfo.man
+dist_man7_MANS += meminfo.man
 endif
 
 

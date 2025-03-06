@@ -19,12 +19,12 @@ if ENABLE_IPMIREADER
 libipmireader_la_SOURCES = ipmireader.c
 libipmireader_la_LIBADD = $(COMMON_LIBADD)
 pkglib_LTLIBRARIES += libipmireader.la
-dist_man7_MANS += Plugin_ipmireader.man
+dist_man7_MANS += ipmireader.man
 
 libipmisensors_la_SOURCES = ipmisensors.c
 libipmisensors_la_LIBADD = $(COMMON_LIBADD) 
 pkglib_LTLIBRARIES += libipmisensors.la
-dist_man7_MANS += Plugin_ipmisensors.man
+dist_man7_MANS += ipmisensors.man
 endif
-EXTRA_DIST += Plugin_ipmireader.man
-EXTRA_DIST += Plugin_ipmisensors.man
+EXTRA_DIST += ipmireader.man
+EXTRA_DIST += ipmisensors.man

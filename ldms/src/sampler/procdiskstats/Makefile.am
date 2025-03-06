@@ -11,4 +11,4 @@ COMMON_LIBADD = -lsampler_base -lldms -lovis_util -lcoll \
 libprocdiskstats_la_SOURCES = procdiskstats.c
 libprocdiskstats_la_LIBADD = $(COMMON_LIBADD)
 pkglib_LTLIBRARIES += libprocdiskstats.la
-dist_man7_MANS += Plugin_procdiskstats.man
+dist_man7_MANS += procdiskstats.man

@@ -16,7 +16,7 @@ if ENABLE_PROCINTERRUPTS
 libprocinterrupts_la_SOURCES = procinterrupts.c 
 libprocinterrupts_la_LIBADD = $(COMMON_LIBADD)
 pkglib_LTLIBRARIES += libprocinterrupts.la
-dist_man7_MANS += Plugin_procinterrupts.man
+dist_man7_MANS += procinterrupts.man
 endif
 
 

@@ -17,9 +17,9 @@ if ENABLE_TIMESCALE_STORE
 libstore_timescale_la_SOURCES = store_timescale.c
 libstore_timescale_la_LIBADD = $(STORE_LIBADD) $(LTLIBPQ)
 pkglib_LTLIBRARIES += libstore_timescale.la
-dist_man7_MANS += Plugin_store_timescale.man
+dist_man7_MANS += store_timescale.man
 endif
 
-EXTRA_DIST = Plugin_store_timescale.man
+EXTRA_DIST = store_timescale.man
 EXTRA_DIST += example.conf
 EXTRA_DIST += README.txt

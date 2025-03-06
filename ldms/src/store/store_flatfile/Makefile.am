@@ -18,5 +18,5 @@ if ENABLE_FLATFILE
 libstore_flatfile_la_SOURCES = store_flatfile.c
 libstore_flatfile_la_LIBADD = $(STORE_LIBADD)
 pkglib_LTLIBRARIES += libstore_flatfile.la
-dist_man7_MANS += Plugin_store_flatfile.man
+dist_man7_MANS += store_flatfile.man
 endif
