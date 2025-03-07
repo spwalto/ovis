@@ -31,7 +31,8 @@ Plugin_store_csv.man \
 Plugin_store_sos.man \
 Plugin_store_papi.man \
 Plugin_store_app.man \
-Plugin_store_kafka.man
+Plugin_store_kafka.man \
+ldms_stream.man
 
 if ENABLE_SLURMTEST
 dist_man8_MANS += pll-ldms-static-test.man
