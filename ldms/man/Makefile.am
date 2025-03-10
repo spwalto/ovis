@@ -18,10 +18,6 @@ ldmsctl.man
 
 dist_man7_MANS= \
 ldms_authentication.man \
-ldms_auth_none.man \
-ldms_auth_ovis.man \
-ldms_auth_munge.man \
-ldms_auth_naive.man \
 ldms_quickstart.man \
 ldms_sampler_base.man \
 ldmsd_failover.man \

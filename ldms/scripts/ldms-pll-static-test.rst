@@ -1,7 +1,7 @@
 .. _pll-ldms-static-test:
 
 ====================
-pll-ldms-static-test
+ldms-pll-static-test
 ====================
 
 :Date:   4 Oct 2020

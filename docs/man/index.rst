@@ -4,7 +4,7 @@ LDMS
    :maxdepth: 2
    :glob:
 
-   ../../ldms/man/**
+   ../../ldms/man/*
    ldms/*
 
 auth
