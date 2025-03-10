@@ -12,5 +12,5 @@ COMMON_LIBADD = -lsampler_base -lldms -lovis_util -lcoll -lovis_log \
 libvariorum_sampler_la_SOURCES = variorum_sampler.c
 libvariorum_sampler_la_LIBADD = $(COMMON_LIBADD) $(LTLIBVARIORUM) $(LTLIBJANSSON)
 pkglib_LTLIBRARIES += libvariorum_sampler.la
-dist_man7_MANS += variorum_sampler.man
+dist_man7_MANS += ldms-variorum-sampler.man
 EXTRA_DIST += README.md

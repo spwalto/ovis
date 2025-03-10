@@ -11,4 +11,4 @@ COMMON_LIBADD = -lsampler_base -lldms -lovis_util -lcoll \
 libprocnfs_la_SOURCES = procnfs.c
 libprocnfs_la_LIBADD = $(COMMON_LIBADD)
 pkglib_LTLIBRARIES += libprocnfs.la
-dist_man7_MANS += procnfs.man
+dist_man7_MANS += ldms-procnfs.man

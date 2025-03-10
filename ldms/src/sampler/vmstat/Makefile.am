@@ -15,7 +15,7 @@ if ENABLE_VMSTAT
 libvmstat_la_SOURCES = vmstat.c 
 libvmstat_la_LIBADD = $(COMMON_LIBADD)
 pkglib_LTLIBRARIES += libvmstat.la
-dist_man7_MANS += vmstat.man
+dist_man7_MANS += ldms-vmstat.man
 endif
 
 

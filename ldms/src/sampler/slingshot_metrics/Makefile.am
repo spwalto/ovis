@@ -12,4 +12,4 @@ libslingshot_metrics_la_CPPFLAGS = @OVIS_INCLUDE_ABS@
 
 pkglib_LTLIBRARIES = libslingshot_metrics.la
 
-dist_man7_MANS = slingshot_metrics.man
+dist_man7_MANS = ldms-slingshot-metrics.man

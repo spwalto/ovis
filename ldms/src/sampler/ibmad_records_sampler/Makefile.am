@@ -14,4 +14,4 @@ libibmad_records_sampler_la_CPPFLAGS = \
 
 pkglib_LTLIBRARIES = libibmad_records_sampler.la
 
-dist_man7_MANS = ibmad_records_sampler.man
+dist_man7_MANS = ldms-ibmad-records-sampler.man

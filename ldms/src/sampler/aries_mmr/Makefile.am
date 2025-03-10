@@ -19,7 +19,7 @@ libaries_mmr_la_SOURCES = aries_mmr.c
 libaries_mmr_la_LDFLAGS = $(AM_LDFLAGS) -L@ARIES_LIBGPCD_LIBDIR@
 libaries_mmr_la_LIBADD = $(COMMON_LIBADD) -lgpcd
 pkglib_LTLIBRARIES += libaries_mmr.la
-dist_man7_MANS += aries_mmr.man
+dist_man7_MANS += ldms-aries-mmr.man
 
 libaries_nic_mmr_la_CFLAGS = -I$(ARIES_LIBGPCD_INCDIR)
 libaries_nic_mmr_la_SOURCES = aries_nic_mmr.c
@@ -40,7 +40,7 @@ libaries_mmr_configurable_la_SOURCES = aries_mmr_configurable.c
 libaries_mmr_configurable_la_LDFLAGS = $(AM_LDFLAGS) -L@ARIES_LIBGPCD_LIBDIR@ -lgpcd
 libaries_mmr_configurable_la_LIBADD = $(COMMON_LIBADD) -lgpcd
 pkglib_LTLIBRARIES += libaries_mmr_configurable.la
-dist_man7_MANS += aries_mmr_configurable.man
+dist_man7_MANS += ldms-aries-mmr-configurable.man
 
 check_mmr_configurable_CFLAGS = -I$(ARIES_LIBGPCD_INCDIR)
 check_mmr_configurable_SOURCES = check_mmr_configurable.c
@@ -57,8 +57,8 @@ if ENABLE_ARIES_LINKSTATUS
 libaries_linkstatus_la_SOURCES = aries_linkstatus.c
 libaries_linkstatus_la_LIBADD = $(COMMON_LIBADD)
 pkglib_LTLIBRARIES += libaries_linkstatus.la
-dist_man7_MANS += aries_linkstatus.man
+dist_man7_MANS += ldms-aries-linkstatus.man
 
 endif
-EXTRA_DIST = aries_linkstatus.man aries_mmr_configurable.man aries_mmr.man
+EXTRA_DIST = ldms-aries-linkstatus.man ldms-aries-mmr-configurable.man ldms-aries-mmr.man
 

@@ -13,7 +13,7 @@ if ENABLE_LLNL_EDAC
 libedac_la_SOURCES = edac.c
 libedac_la_LIBADD = $(COMMON_LIBADD)
 pkglib_LTLIBRARIES += libedac.la
-dist_man7_MANS += edac.man
+dist_man7_MANS += ldms-edac.man
 endif
 
 EXTRA_DIST = LLNL_LICENSE_EDAC

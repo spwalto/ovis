@@ -35,4 +35,4 @@ pkglib_LTLIBRARIES += liblustre2_oss.la
 liblustre2_client_la_SOURCES = lustre2_client.c
 liblustre2_client_la_LIBADD = $(COMMON_LIBADD)
 pkglib_LTLIBRARIES += liblustre2_client.la
-dist_man7_MANS += lustre2_client.man
+dist_man7_MANS += ldms-lustre2-client.man

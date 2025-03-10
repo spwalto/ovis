@@ -11,4 +11,4 @@ COMMON_LIBADD = -lsampler_base -lldms -lovis_util -lcoll \
 libclock_la_SOURCES = clock.c
 libclock_la_LIBADD = $(COMMON_LIBADD)
 pkglib_LTLIBRARIES += libclock.la
-dist_man7_MANS += clock.man
+dist_man7_MANS += ldms-clock.man

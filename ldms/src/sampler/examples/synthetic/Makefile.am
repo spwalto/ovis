@@ -19,5 +19,5 @@ if ENABLE_SYNTHETIC
 libsynthetic_la_SOURCES = synthetic.c
 libsynthetic_la_LIBADD = $(COMMON_LIBADD) -lm
 pkglib_LTLIBRARIES += libsynthetic.la
-dist_man7_MANS += synthetic.man
+dist_man7_MANS += ldms-synthetic.man
 endif

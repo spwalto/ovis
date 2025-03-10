@@ -3,42 +3,42 @@ EXTRA_DIST=
 dist_man1_MANS= \
 ldms-csv-anonymize.man \
 ldms-csv-export-sos.man \
-lsdate.man
+ldms-lsdate.man
 
 dist_man8_MANS= \
-ldms_build_install.man \
-ldms_ls.man \
+ldms-build-install.man \
+ldms-ls.man \
 ldms-static-test.man \
 ldmsd.man \
 ldms-plugins.man \
-ldmsd_exits.man \
-ldmsd_controller.man \
-ldmsd_yaml_parser.man \
+ldmsd-exits.man \
+ldmsd-controller.man \
+ldmsd-yaml-parser.man \
 ldmsctl.man
 
 dist_man7_MANS= \
-ldms_authentication.man \
-ldms_quickstart.man \
-ldms_sampler_base.man \
-ldmsd_failover.man \
-ldmsd_setgroup.man \
-Plugin_jobid.man \
-Plugin_store_csv.man \
-Plugin_store_sos.man \
-Plugin_store_papi.man \
-Plugin_store_app.man \
-Plugin_store_kafka.man \
-ldms_stream.man
+ldms-authentication.man \
+ldms-quickstart.man \
+ldms-sampler-base.man \
+ldmsd-failover.man \
+ldmsd-setgroup.man \
+ldms-jobid.man \
+ldms-store-csv.man \
+ldms-store-sos.man \
+ldms-store-papi.man \
+ldms-store-app.man \
+ldms-store-kafka.man \
+ldms-stream.man
 
 if ENABLE_SLURMTEST
-dist_man8_MANS += pll-ldms-static-test.man
+dist_man8_MANS += ldms-ldms-pll-ldms-static-test.man
 endif
-EXTRA_DIST += pll-ldms-static-test.man
+EXTRA_DIST += ldms-ldms-pll-ldms-static-test.man
 
-dist_man7_MANS += Plugin_store_rabbitv3.man
-dist_man7_MANS += Plugin_store_rabbitkw.man
+dist_man7_MANS += ldms-store-rabbitv3.man
+dist_man7_MANS += ldms-store-rabbitkw.man
 
-ldmsd_exits.man: $(srcdir)/../src/ldmsd/ldmsd.c $(srcdir)/../src/ldmsd/ldmsd_config.c
-	$(srcdir)/make_exits_man.sh $(srcdir)/../src/ldmsd/ldmsd.c $(srcdir)/../src/ldmsd/ldmsd_config.c > ldmsd_exits.man
+ldmsd-exits.man: $(srcdir)/../src/ldmsd/ldmsd.c $(srcdir)/../src/ldmsd/ldmsd_config.c
+	$(srcdir)/make_exits_man.sh $(srcdir)/../src/ldmsd/ldmsd.c $(srcdir)/../src/ldmsd/ldmsd_config.c > ldmsd-exits.man
 
-CLEANFILES=ldmsd_exits.man
+CLEANFILES=ldmsd-exits.man

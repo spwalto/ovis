@@ -26,6 +26,6 @@ if ENABLE_TX2MON
 libtx2mon_la_SOURCES = tx2mon_cli.c tx2mon.c tx2mon.h
 libtx2mon_la_LIBADD = $(COMMON_LIBADD)
 pkglib_LTLIBRARIES = libtx2mon.la
-dist_man7_MANS = tx2mon.man
+dist_man7_MANS = ldms-tx2mon.man
 endif
 

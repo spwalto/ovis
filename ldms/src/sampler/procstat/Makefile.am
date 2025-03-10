@@ -16,7 +16,7 @@ if ENABLE_PROCSTAT
 libprocstat_la_SOURCES = procstat.c 
 libprocstat_la_LIBADD = $(COMMON_LIBADD)
 pkglib_LTLIBRARIES += libprocstat.la
-dist_man7_MANS += procstat.man
+dist_man7_MANS += ldms-procstat.man
 endif
 
 

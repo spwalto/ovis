@@ -16,7 +16,7 @@ if ENABLE_CRAY_SYSTEM_SAMPLER
 libcray_dvs_sampler_la_SOURCES = dvs_sampler.c
 libcray_dvs_sampler_la_LIBADD = $(COMMON_LIBADD)
 pkglib_LTLIBRARIES += libcray_dvs_sampler.la
-dist_man7_MANS += cray_dvs_sampler.man
+dist_man7_MANS += ldms-cray-dvs-sampler.man
 
 # then build cray_system_sampler
 
@@ -66,7 +66,7 @@ endif
 libcray_gemini_r_sampler_la_LIBADD = $(CRAY_LIBADD_) \
 	./librtr_util.la
 pkglib_LTLIBRARIES += libcray_gemini_r_sampler.la
-dist_man7_MANS += cray_system_sampler_variants.man
+dist_man7_MANS += ldms-cray-system-sampler-variants.man
 endif
 
 if ENABLE_ARIES_GPCDR
@@ -86,7 +86,7 @@ libcray_aries_r_sampler_la_LDFLAGS = $(CRAY_LDFLAGS_)
 endif
 libcray_aries_r_sampler_la_LIBADD = $(CRAY_LIBADD_)
 pkglib_LTLIBRARIES += libcray_aries_r_sampler.la
-dist_man7_MANS += cray_system_sampler_variants.man
+dist_man7_MANS += ldms-cray-system-sampler-variants.man
 endif
 
 endif

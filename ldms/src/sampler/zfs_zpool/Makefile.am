@@ -16,4 +16,4 @@ libzfs_zpool_la_SOURCES = zfs_zpool.c
 libzfs_zpool_la_LIBADD = $(COMMON_LIBADD)
 
 pkglib_LTLIBRARIES += libzfs_zpool.la
-dist_man7_MANS = zfs_zpool.man
+dist_man7_MANS = ldms-zfs-zpool.man
