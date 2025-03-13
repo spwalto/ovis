@@ -1,5 +1,7 @@
 LDMS
 ----
+.. include:: ../ldms/man/ldmsd-controller
+.. include:: ../ldms/man/*
 .. toctree::
    :maxdepth: 2
    :glob:
