@@ -9,6 +9,9 @@ LDMS
    ../../../ldms/**
    ldms/man/ldms*
    ldms/man/**
+   ../ldms/man/ldmsd-controller
+   ../../ldms/man/ldmsd-controller
+   ldms/man/ldmsd-controller
 
 auth
 ^^^^
