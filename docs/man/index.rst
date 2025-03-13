@@ -5,6 +5,8 @@ LDMS
    :glob:
 
    ../ldms/man/ldms*
+   ../ldms/*
+   ../../ldms/**
 
 auth
 ^^^^
@@ -13,6 +15,7 @@ auth
    :glob:
 
    ../ldms/src/auth/**
+   ../../ldms/src/auth/**
 
 test
 ^^^^
