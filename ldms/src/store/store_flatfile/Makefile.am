@@ -1,8 +1,10 @@
+include $(top_srcdir)/ldms/rules.mk
+
+
 SUBDIRS =
 lib_LTLIBRARIES =
 pkglib_LTLIBRARIES =
 dist_man7_MANS =
-
 AM_LDFLAGS = @OVIS_LIB_ABS@
 #COMMON_LIBADD = -lldms -lldmsd_plugattr @LDFLAGS_GETTIME@ -lovis_util -lcoll
 AM_CPPFLAGS = $(DBGFLAGS) @OVIS_INCLUDE_ABS@

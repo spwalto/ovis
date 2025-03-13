@@ -1,3 +1,6 @@
+include $(top_srcdir)/ldms/rules.mk
+
+
 SUBDIRS =
 pkglib_LTLIBRARIES =
 lib_LTLIBRARIES =

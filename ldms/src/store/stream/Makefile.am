@@ -1,3 +1,6 @@
+include $(top_srcdir)/ldms/rules.mk
+
+
 SUBDIRS =
 lib_LTLIBRARIES =
 pkglib_LTLIBRARIES =
@@ -16,9 +19,9 @@ if ENABLE_HELLO_STREAM
 libstream_csv_store_la_SOURCES = stream_csv_store.c
 libstream_csv_store_la_LIBADD = $(STORE_LIBADD) -lovis_json
 pkglib_LTLIBRARIES += libstream_csv_store.la
-dist_man7_MANS += ldms-stream-csv-store.man
+dist_man7_MANS += ldms-store-stream-csv.man
 
 endif
 
 EXTRA_DIST = \
-	ldms-stream-csv-store.man
+	ldms-store-stream-csv.man

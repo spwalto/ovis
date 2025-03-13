@@ -22,14 +22,14 @@ LDMS is a lightweight framework for collecting, aggregating, and transporting sy
    :maxdepth: 3
    :caption: Introduction To LDMS
 
-   intro/ldms-quickstart
+   intro/quick-start
    intro/docker-quickstart
 
 .. toctree::
    :maxdepth: 3
    :caption: LDMS Streams
 
-   streams/ldms_stream_apps
+   streams/ldms-streams-apps
 
 .. toctree::
    :maxdepth: 3

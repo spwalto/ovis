@@ -1,3 +1,6 @@
+include $(top_srcdir)/ldms/rules.mk
+
+
 
 AM_CFLAGS = \
 $(BOOST_CPPFLAGS)

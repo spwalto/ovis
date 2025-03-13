@@ -1,5 +1,8 @@
+include $(top_srcdir)/ldms/rules.mk
+
 sbin_PROGRAMS =
 pkglib_LTLIBRARIES =
+dist_man8_MANS =
 
 AM_LDFLAGS = @OVIS_LIB_ABS@
 AM_CPPFLAGS = @OVIS_INCLUDE_ABS@
@@ -18,4 +21,7 @@ ldmsd_stream_publish_LDADD = $(COMMON_LD_ADD)
 sbin_PROGRAMS += ldmsd_stream_subscribe
 ldmsd_stream_subscribe_SOURCES = ldmsd_stream_subscribe.c
 ldmsd_stream_subscribe_LDADD = $(COMMON_LD_ADD)
-ldmsd_stream_subscribe_LDFLAGS = $(AM_LDFLAGS) -pthread 
+ldmsd_stream_subscribe_LDFLAGS = $(AM_LDFLAGS) -pthread
+
+dist_man8_MANS += ldmsd-stream-subscribe.man \
+		  ldmsd-stream-publish.man

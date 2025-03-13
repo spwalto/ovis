@@ -19,7 +19,16 @@ extensions = [
     'sphinx.ext.intersphinx',
 ]
 
-man_pages = []
+# Define base paths to search for .rst files
+search_paths = [
+    os.path.abspath('../../ldms/'),
+]
+
+# Find and add only directories that contain .rst files
+for base_path in search_paths:
+    for root, _, files in os.walk(base_path):
+        if any(file.endswith('.rst') for file in files):
+            sys.path.insert(0, root)  # Add the directory to sys.path
 
 from docutils.parsers.rst import roles
 

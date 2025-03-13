@@ -1,3 +1,6 @@
+include $(top_srcdir)/ldms/rules.mk
+
+
 ACLOCAL_AMFLAGS = -I m4
 lib_LTLIBRARIES =
 pkglib_LTLIBRARIES =
