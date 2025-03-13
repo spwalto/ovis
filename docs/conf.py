@@ -21,6 +21,10 @@ extensions = [
 ]
 
 sys.path.insert(0, os.path.abspath(".."))
+sys.path.insert(0, os.path.abspath("../ldms"))
+sys.path.insert(0, os.path.abspath("../ldms/man"))
+sys.path.insert(0, os.path.abspath("../ldms/src"))
+sys.path.insert(0, os.path.abspath("../ldms/src/sampler"))
 
 # Define base paths to search for .rst files
 #search_paths = [

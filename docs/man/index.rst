@@ -7,11 +7,10 @@ LDMS
    ../ldms/man/ldms*
    ../ldms/*
    ../../../ldms/**
-   ldms/man/ldms*
-   ldms/man/**
+   /../ldms/man/**
+   ../../ldms/*
    ../ldms/man/ldmsd-controller
    ../../ldms/man/ldmsd-controller
-   ldms/man/ldmsd-controller
 
 auth
 ^^^^
