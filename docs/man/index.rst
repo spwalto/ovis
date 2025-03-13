@@ -6,7 +6,9 @@ LDMS
 
    ../ldms/man/ldms*
    ../ldms/*
-   ../../ldms/**
+   ../../../ldms/**
+   ldms/man/ldms*
+   ldms/man/**
 
 auth
 ^^^^
