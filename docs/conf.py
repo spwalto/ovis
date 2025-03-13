@@ -22,7 +22,7 @@ extensions = [
 
 # Define base paths to search for .rst files
 search_paths = [
-    os.path.abspath('../../ldms/'),
+    os.path.abspath('../ldms/'),
 ]
 
 # Find and add only directories that contain .rst files
