@@ -20,25 +20,16 @@ extensions = [
     'sphinx.ext.intersphinx',
 ]
 
-sys.path.insert(0, os.path.abspath(".."))
-sys.path.insert(0, os.path.abspath("../ldms"))
-sys.path.insert(0, os.path.abspath("../ldms/man"))
-sys.path.insert(0, os.path.abspath("../ldms/src"))
-sys.path.insert(0, os.path.abspath("../ldms/src/sampler"))
-
 # Define base paths to search for .rst files
-#search_paths = [
-#    os.path.abspath('../ldms/'),
-#    os.path.abspath('../ldms/src/auth'),
-#    os.path.abspath('../../ldms/'),
-#    os.path.abspath('../ldms/src/auth')
-#]
+search_paths = [
+    os.path.abspath('../ldms/'),
+]
 
 # Find and add only directories that contain .rst files
-#for base_path in search_paths:
-#    for root, _, files in os.walk(base_path):
-#        if any(file.endswith('.rst') for file in files):
-#            sys.path.insert(0, root)  # Add the directory to sys.path
+for base_path in search_paths:
+    for root, _, files in os.walk(base_path):
+        if any(file.endswith('.rst') for file in files):
+            sys.path.insert(0, root)  # Add the directory to sys.path
 
 from docutils.parsers.rst import roles
 
