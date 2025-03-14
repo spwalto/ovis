@@ -47,7 +47,7 @@ LDMS is a lightweight framework for collecting, aggregating, and transporting sy
    :maxdepth: 3
    :caption: Man Pages
 
-   man/index
+   rst_man/index
 
 .. toctree::
    :maxdepth: 2
