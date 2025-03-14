@@ -1,6 +1,6 @@
 # 1. Fix duplicate titles when converting to man
 # 	- Remove "NAME" and "=====" underneath
-# 	- Add :title: after :Date:
+# 	- Add :title: to first sentence after :Date:
 # 2. Remove :ref:`<>` links in .rst to avoid rs2man "Unkown interpretd text role "ref"" errors
 # 	Ex: :ref:`ldms_quickstart(7) <ldms_quickstart>` --> ldms_quickstart(7).
 # 3. Remove generated "/" after every special character.
@@ -10,10 +10,11 @@
 %.man: %.rst
 	@echo "Generating $@..."
 	@mkdir -p $(dir $@)
-	@sed -e '/NAME/{N;d;}' \
-		-e '/^:Date:/a :title:' \
-		-e 's/:ref:`\([^`]*\)<[^`]*>`/\1/g' $< | \
-		rst2man | sed -e 's/\\\([`'\''\-]\)/\1/g' \
+	@sed -e '/^NAME$$/ {N; d;}' $< | \
+	sed -e '/^:Date:/ {n; :loop; /^[[:space:]]*$$/ {n; b loop}; s/^/:title: /; :join; N; s/\n/ /g;}' | \
+	sed -e 's/:ref:`\([^`]*\)<[^`]*>`/\1/g' | \
+	rst2man | \
+	sed -e 's/\\\([`'\''\-]\)/\1/g' \
 		-e '/rst2man/d' \
 		-e '/rstR/d' \
 		-e '/. RS/d' \

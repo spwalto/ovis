@@ -16,7 +16,7 @@ ldmsd-yaml-parser.man \
 ldms-stream.man
 
 dist_man7_MANS= \
-ldmsd-qgroup.rst \
+ldmsd-qgroup.man \
 ldms-quickstart.man \
 ldms-reverse-conf.man \
 ldms-csv-time-drops.man \
