@@ -5,7 +5,7 @@ LDMS
    :glob:
 
    man/ldms*
-   ../../man/ldms*
+   ../../man/ldms-*
 
 auth
 ^^^^
@@ -22,6 +22,7 @@ test
    :glob:
 
    src/test/**
+   scripts/*test*
 
 LDMSD
 -----
@@ -29,7 +30,7 @@ LDMSD
    :maxdepth: 2
    :glob:
 
-   man/ldmsd*
+   man/ldmsd-*
    src/ldmsd/*
    src/decomp/*
 
@@ -56,6 +57,7 @@ store
    :glob:
 
    src/store/**
+   scripts/*csv*
 
 sampler
 ^^^^^^^
