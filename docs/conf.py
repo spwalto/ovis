@@ -1,8 +1,4 @@
 # Configuration file for the Sphinx documentation builder.
-import os
-import shutil
-from sphinx.application import Sphinx
-
 # -- Project information
 
 project = 'LDMS'
@@ -60,24 +56,3 @@ html_theme_options = {
 
 # -- Options for EPUB output
 epub_show_urls = 'footnote'
-
-# Define source and destination directories
-RST_SRC = os.path.join(os.getcwd(), '..', 'ldms')  # Replace with your actual path
-RST_DST = os.path.join(os.getcwd(), 'docs', 'rst_man')
-
-# Function to copy the .rst files
-def copy_rst_files(app, env):
-    if os.path.exists(RST_DST):
-        shutil.rmtree(RST_DST)  # Remove existing destination directory
-    os.makedirs(RST_DST)  # Create destination directory
-    for root, dirs, files in os.walk(RST_SRC):
-        for file in files:
-            if file.endswith('.rst'):
-                src_file = os.path.join(root, file)
-                dst_file = os.path.join(RST_DST, os.path.relpath(src_file, RST_SRC))
-                os.makedirs(os.path.dirname(dst_file), exist_ok=True)
-                shutil.copy(src_file, dst_file)
-
-# Hook the function into the Sphinx build process
-def setup(app: Sphinx):
-    app.connect('builder-inited', copy_rst_files)
