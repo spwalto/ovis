@@ -4,8 +4,8 @@ LDMS
    :maxdepth: 2
    :glob:
 
-   man/ldms*
-   ../../man/ldms-*
+   man/ldms-*
+   src/ldmsd/ldmsd-*
 
 auth
 ^^^^
@@ -31,7 +31,7 @@ LDMSD
    :glob:
 
    man/ldmsd-*
-   src/ldmsd/*
+   src/ldmsd/ldmsd-*
    src/decomp/*
 
 test
