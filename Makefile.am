@@ -11,7 +11,11 @@ autogen.sh \
 m4/Ovis-top.m4 \
 m4/gnulib-cache.m4 \
 SHA.txt \
-README.rst
+README.rst \
+docs/conf.py \
+docs/index.rst \
+docs/README.rst \
+docs/requirements.txt
 
 EXTRA_DIST += $(top_srcdir)/.version
 BUILT_SOURCES = $(top_srcdir)/.version
