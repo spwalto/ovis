@@ -28,8 +28,9 @@ jobs:
 
       - name: Copy .rst Files
         run: |
-          RST_SRC="ldms"
-          RST_DST="rst_man"
+          pwd
+          RST_SRC="ldms/"
+          RST_DST="docs/rst_man"
           mkdir -p "$RST_DST"
           cd "$RST_SRC"
           find . -name "*.rst" -exec cp --parents {} "$(realpath ../$RST_DST)" \;
