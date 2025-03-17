@@ -1,7 +1,7 @@
 .. _dcgm_sampler:
 
 ===================
-dcgm_sampler
+TESTING-dcgm_sampler
 ===================
 
 :Date:   1 May 2019
