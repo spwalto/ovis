@@ -4,7 +4,7 @@
 ldmsd_yaml_parser
 =================
 
-:Date: 20 Nov 2024 "ovis-4.4.5" 
+:Date: 20 Nov 2024 "ovis-4.4.5"
 
 NAME
 ====

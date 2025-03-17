@@ -1,6 +1,5 @@
 include $(top_srcdir)/ldms/rules.mk
 
-
 EXTRA_DIST=
 
 dist_man1_MANS= \
