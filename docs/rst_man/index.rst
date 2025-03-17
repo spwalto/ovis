@@ -5,7 +5,7 @@ LDMS
    :glob:
 
    man/ldms-*
-   src/ldmsd/ldmsd-*
+   src/ldmsd/ldms-*
 
 auth
 ^^^^
