@@ -1,7 +1,7 @@
 .. _dcgm_sampler:
 
 ===================
-TESET-dcgm_sampler
+TESET-2dcgm_sampler
 ===================
 
 :Date:   1 May 2019

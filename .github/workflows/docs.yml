@@ -3,12 +3,10 @@ name: Build and Trigger Readthedocs
 on:
   push:
     paths:
-      - 'docs/**'           # Trigger for changes in the docs and .rst files in ldms/ directory
-      - 'ldms/**/*.rst'
+      - '**.rst'           # Trigger for any .rst changes
   pull_request:
     paths:
-      - 'docs/**'           # Same triggers for pull requests
-      - 'ldms/**/*.rst'
+      - '**.rst'           # Same triggers for pull requests
 
 jobs:
   generate-rst:
