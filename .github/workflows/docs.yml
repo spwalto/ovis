@@ -26,9 +26,8 @@ jobs:
           sudo apt-get update
           sudo apt-get install pandoc
 
-      - name: Copy .rst Files
+      - name: Copy man page .rst files
         run: |
-          pwd
           RST_SRC="ldms/"
           RST_DST="docs/rst_man"
           mkdir -p "$RST_DST"
@@ -41,7 +40,7 @@ jobs:
             git config --global user.name "github-actions[bot]"
             git config --global user.email "github-actions[bot]@users.noreply.github.com"
             git add docs/
-            git commit -m "Update .rst and index.rst files"
+            git commit -m "Update man page .rst files"
             git push origin HEAD
           else
             echo "No changes to commit."
