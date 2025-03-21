@@ -5,7 +5,9 @@ LDMS
    :glob:
 
    man/ldms-*
+   man/ldms_*
    src/ldmsd/ldms-*
+   src/ldmsd/ldms_*
 
 auth
 ^^^^
@@ -31,7 +33,9 @@ LDMSD
    :glob:
 
    man/ldmsd-*
+   man/ldmsd_*
    src/ldmsd/ldmsd-*
+   src/ldmsd/ldmsd_*
    src/decomp/*
 
 test

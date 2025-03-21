@@ -962,6 +962,7 @@ AC_SUBST(ac_configure_args)
 AC_SUBST(configure_input)
 
 AC_CONFIG_FILES([Makefile
+docs/Makefile
 util/Makefile
 util/relocation/Makefile
 lib/Doxyfile
