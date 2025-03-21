@@ -5,7 +5,6 @@ ldmsd_failover
 ==============
 
 :Date:   13 Aug 2018
-:Version:
 :Manual section: 7
 :Manual group: LDMSD
 

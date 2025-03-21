@@ -5,7 +5,6 @@ ldmsd_sampler_advertisement
 ===========================
 
 :Date:   27 March 2024
-:Version:
 :Manual section: 7
 :Manual group: LDMSD
 

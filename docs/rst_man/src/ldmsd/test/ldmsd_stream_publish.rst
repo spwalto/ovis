@@ -5,7 +5,6 @@ ldmsd_stream_publish
 ====================
 
 :Date:   21 Aug 2021
-:Version:
 :Manual section:
 :Manual group: LDMSD
 

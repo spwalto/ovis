@@ -5,7 +5,6 @@ ibmad_sampler
 ====================
 
 :Date:   1 May 2019
-:Version:
 :Manual section: 7
 :Manual group: LDMS sampler
 

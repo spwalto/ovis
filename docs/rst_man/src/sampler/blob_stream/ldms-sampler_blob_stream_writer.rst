@@ -5,7 +5,6 @@ blob_stream_writer
 =========================
 
 :Date:   15 Jun 2021
-:Version:
 :Manual section: 7
 :Manual group: LDMS sampler
 

@@ -5,7 +5,6 @@ my_plugin
 ================
 
 :Date:   26 Sep 2019
-:Version:
 :Manual section:
 :Manual group: LDMS
 

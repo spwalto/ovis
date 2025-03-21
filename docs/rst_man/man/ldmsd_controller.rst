@@ -5,7 +5,6 @@ ldmsd_controller
 ================
 
 :Date: 19 Nov 2019
-:Version:
 :Manual section: 8
 :Manual group: LDMSD
 

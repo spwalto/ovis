@@ -5,7 +5,6 @@ opa2
 ===========
 
 :Date:   5 Feb 2018
-:Version:
 :Manual section: 7
 :Manual group: LDMS sampler
 

@@ -5,7 +5,6 @@ procnetdev2
 ==================
 
 :Date:   07 Jan 2022
-:Version:
 :Manual section: 7
 :Manual group: LDMS sampler
 

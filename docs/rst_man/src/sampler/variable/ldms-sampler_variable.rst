@@ -5,7 +5,6 @@ variable
 ===============
 
 :Date:   08 Jul 2020
-:Version:
 :Manual section: 7
 :Manual group: LDMS sampler
 

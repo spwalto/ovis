@@ -5,7 +5,6 @@ cray_dvs_sampler
 =======================
 
 :Date:   05 Feb 2018
-:Version:
 :Manual section:
 :Manual group: LDMS sampler
 

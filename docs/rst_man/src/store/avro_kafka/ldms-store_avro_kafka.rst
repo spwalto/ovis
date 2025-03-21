@@ -5,7 +5,6 @@ store_avro_kafka
 =======================
 
 :Date:   30 Mar 2023
-:Version:
 :Manual section: 7
 :Manual group: LDMS store
 

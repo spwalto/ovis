@@ -3,7 +3,6 @@ ldmsd_peer_daemon_advertisement
 ===============================
 
 :Date: 12 December 2024
-:Version:
 :Manual section: 7
 :Manual group: LDMSD
 

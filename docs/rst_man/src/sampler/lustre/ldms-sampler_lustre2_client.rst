@@ -5,7 +5,6 @@ lustre2_client
 =====================
 
 :Date:   26 Oct 2017
-:Version:
 :Manual section: 7
 :Manual group: LDMS sampler
 

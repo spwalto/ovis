@@ -5,7 +5,6 @@ tx2mon
 =============
 
 :Date:   25 Dec 2020
-:Version:
 :Manual section:
 :Manual group: LDMS sampler
 

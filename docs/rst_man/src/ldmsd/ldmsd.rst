@@ -3,7 +3,6 @@ ldmsd
 =====
 
 :Date: 28 Feb 2018
-:Version:
 :Manual section:
 :Manual group: LDMSD
 

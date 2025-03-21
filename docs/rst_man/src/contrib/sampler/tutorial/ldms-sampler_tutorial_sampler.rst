@@ -5,7 +5,6 @@ tutorial_sampler
 =======================
 
 :Date:   24 Oct 2019
-:Version:
 :Manual section: 7
 :Manual group: LDMS store
 

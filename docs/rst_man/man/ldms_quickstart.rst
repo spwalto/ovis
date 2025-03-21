@@ -5,7 +5,6 @@ ldms_quickstart
 ===============
 
 :Date:   12 Dec 2016
-:Version:
 :Manual section: 7
 :Manual group: LDMS
 

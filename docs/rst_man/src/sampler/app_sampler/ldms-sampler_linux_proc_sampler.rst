@@ -5,7 +5,6 @@ linux_proc_sampler
 =========================
 
 :Date:   15 Jul 2021
-:Version:
 :Manual section: 7
 :Manual group: LDMS sampler
 

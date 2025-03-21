@@ -5,7 +5,6 @@ ldmsd_store_app
 ================
 
 :Date:   30 Sep 2019
-:Version:
 :Manual section: 7
 :Manual group: LDMS store
 

@@ -5,7 +5,6 @@ ldms-reverse-conf
 =================
 
 :Date:   6 Jun 2022
-:Version:
 :Manual section: 7
 :Manual group: LDMS
 

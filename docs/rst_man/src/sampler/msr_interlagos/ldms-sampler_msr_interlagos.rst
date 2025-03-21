@@ -5,7 +5,6 @@ msr_interlagos
 =====================
 
 :Date:   04 Jan 2018
-:Version:
 :Manual section: 7
 :Manual group: LDMS sampler
 

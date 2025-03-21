@@ -5,7 +5,6 @@ netlink-notifier
 ================
 
 :Date:   25 June 2021
-:Version:
 :Manual section: 8
 :Manual group: LDMS sampler
 

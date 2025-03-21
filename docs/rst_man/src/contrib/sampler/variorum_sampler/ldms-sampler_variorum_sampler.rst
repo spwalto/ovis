@@ -5,7 +5,6 @@ variorum_sampler
 =======================
 
 :Date:   27 Jun 2022
-:Version:
 :Manual section: 7
 :Manual group: LDMS store
 

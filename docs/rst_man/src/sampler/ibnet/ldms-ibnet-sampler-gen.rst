@@ -5,7 +5,6 @@ ldms-ibnet-sampler-gen
 ======================
 
 :Date:   4 June 2020
-:Version:
 :Manual section: 1
 :Manual group: LDMS sampler
 

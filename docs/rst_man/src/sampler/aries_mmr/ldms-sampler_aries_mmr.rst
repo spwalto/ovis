@@ -5,7 +5,6 @@ aries_mmr
 ================
 
 :Date:   05 Jan 2020
-:Version:
 :Manual section: 7
 :Manual group: LDMS sampler
 

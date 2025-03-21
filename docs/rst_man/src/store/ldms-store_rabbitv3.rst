@@ -5,7 +5,6 @@ store_rabbitv3
 =====================
 
 :Date:   03 Dec 2016
-:Version:
 :Manual section: 7
 :Manual group: LDMS store
 

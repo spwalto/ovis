@@ -5,7 +5,6 @@ ldmsd_qgroup
 ============
 
 :Date:   11 Sep 2024
-:Version:
 :Manual section: 7
 :Manual group: LDMSD
 

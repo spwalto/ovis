@@ -5,7 +5,6 @@ ldms_auth_munge
 ===============
 
 :Date:   10 May 2018
-:Version:
 :Manual section: 7
 :Manual group: LDMS authentication
 

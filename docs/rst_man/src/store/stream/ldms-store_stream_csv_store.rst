@@ -5,7 +5,6 @@ stream_csv_store
 =======================
 
 :Date:   03 Oct 2021
-:Version:
 :Manual section: 7
 :Manual group: LDMS store
 

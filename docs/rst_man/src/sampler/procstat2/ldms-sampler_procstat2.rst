@@ -3,7 +3,6 @@ procstat2
 =========
 
 :Date: 14 Jan 2022
-:Version:
 :Manual section: 7
 :Manual group: LDMS sampler
 

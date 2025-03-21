@@ -5,7 +5,6 @@ procnet
 ==============
 
 :Date:   9 Apr 2021
-:Version:
 :Manual section: 7
 :Manual group: LDMS sampler
 

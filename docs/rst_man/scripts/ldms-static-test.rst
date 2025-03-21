@@ -5,7 +5,6 @@ ldms-static-test
 ================
 
 :Date:   4 Oct 2020
-:Version:
 :Manual section: 8
 :Manual group: LDMS scripts
 
