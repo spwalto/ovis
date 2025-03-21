@@ -108,20 +108,18 @@ To create a new dashboard, click on the + sign on the left side of the home page
 
 * Next, add your analysis by filling out the required fields shown below:
 
-.. image:: images/grafana/grafana_query.png
+.. image:: ../images/grafana/grafana_query.png
 
 * These fields are identical to the python script you can generate to test in your terminal window so please refer to :ref:`Test Analysis via Terminal Window` or `Grafana Panel <grafanapanel>`_ for more details.
 
 * Now change the analysis to query from the last 5 minutes by selecting the down arrow in the top right of the panel and selecting "Last 5 minutes"
 
-.. image:: images/grafana/grafana_time.png
+.. image:: ../images/grafana/grafana_time.png
     :height: 250
     :width: 50
 
 * Then change the refresh rate to 5 seconds so that Grafana will automatically query the data every 5 seconds
 
-.. image:: images/grafana/grafana_timerange.png
+.. image:: ../images/grafana/grafana_timerange.png
 
-* Now you should be able to see a the "Active" and "Inactive" values for each job_id.
-
-.. image::
+* Now you should be able to see a the "Active" and "Inactive" values for each job_id (as seen in `Expected Results & Output`_).
