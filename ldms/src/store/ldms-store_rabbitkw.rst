@@ -5,7 +5,6 @@ store_rabbitkw
 =====================
 
 :Date:   10 Jun 2018
-:Version:
 :Manual section: 7
 :Manual group: LDMS store
 

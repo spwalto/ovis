@@ -5,7 +5,6 @@ ldms-csv-export-sos
 ===================
 
 :Date:   18 Apr 2019
-:Version:
 :Manual section: 1
 :Manual group: LDMS scripts
 

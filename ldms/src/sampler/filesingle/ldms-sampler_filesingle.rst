@@ -5,7 +5,6 @@ filesingle
 =================
 
 :Date:   15 Dec 2018
-:Version:
 :Manual section: 7
 :Manual group: LDMS sampler
 

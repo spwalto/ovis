@@ -5,7 +5,6 @@ ldmsd_yaml_parser
 =================
 
 :Date: 20 Nov 2024 "ovis-4.4.5"
-:Version:
 :Manual section: 8
 :Manual group: LDMSD
 

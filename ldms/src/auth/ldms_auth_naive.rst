@@ -5,7 +5,6 @@ ldms_auth_naive
 ===============
 
 :Date:   28 Feb 2018
-:Version:
 :Manual section: 7
 :Manual group: LDMS authentication
 

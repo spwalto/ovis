@@ -5,7 +5,6 @@ ldms_rdc_schema_name
 ====================
 
 :Date:   2 April 2021
-:Version:
 :Manual section: 1
 :Manual group: LDMS sampler
 

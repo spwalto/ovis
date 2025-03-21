@@ -5,7 +5,6 @@ rdc_sampler
 ==================
 
 :Date:   1 Apr 2021
-:Version:
 :Manual section: 7
 :Manual group: LDMS sampler
 

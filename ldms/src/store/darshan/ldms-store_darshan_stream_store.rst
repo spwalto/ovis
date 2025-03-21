@@ -5,7 +5,6 @@ darshan_stream_store
 ===========================
 
 :Date:   26 September 2021
-:Version:
 :Manual section: 7
 :Manual group: LDMS store
 

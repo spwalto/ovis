@@ -5,7 +5,6 @@ zfs_leafvdevs
 ====================
 
 :Date:   19 Apr 2023
-:Version:
 :Manual section: 7
 :Manual group: LDMS sampler
 

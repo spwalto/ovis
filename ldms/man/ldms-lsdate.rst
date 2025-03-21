@@ -5,7 +5,6 @@ lsdate
 ======
 
 :Date:   June 2018
-:Version:
 :Manual section: 1
 :Manual group: LDMS
 

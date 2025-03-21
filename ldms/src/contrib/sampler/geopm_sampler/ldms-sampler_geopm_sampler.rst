@@ -5,7 +5,6 @@ geopm_sampler
 ====================
 
 :Date:   06 May 2022
-:Version:
 :Manual section: 7
 :Manual group: LDMS store
 

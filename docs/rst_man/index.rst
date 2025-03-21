@@ -1,7 +1,7 @@
 LDMS
 ----
 .. toctree::
-   :maxdepth: 3
+   :maxdepth: 4
    :glob:
 
    man/ldms-*
@@ -12,7 +12,7 @@ LDMS
 auth
 ^^^^
 .. toctree::
-   :maxdepth: 3
+   :maxdepth: 4
    :glob:
 
    src/auth/**
@@ -20,7 +20,7 @@ auth
 test
 ^^^^
 .. toctree::
-   :maxdepth: 3
+   :maxdepth: 4
    :glob:
 
    src/test/**
@@ -29,7 +29,7 @@ test
 LDMSD
 -----
 .. toctree::
-   :maxdepth: 3
+   :maxdepth: 4
    :glob:
 
    man/ldmsd-*
@@ -41,7 +41,7 @@ LDMSD
 test
 ^^^^
 .. toctree::
-   :maxdepth: 3
+   :maxdepth: 5
    :glob:
 
    src/ldmsd/test/**
@@ -57,7 +57,7 @@ Plugins
 store
 ^^^^^
 .. toctree::
-   :maxdepth: 3
+   :maxdepth: 4
    :glob:
 
    src/store/**
@@ -66,7 +66,7 @@ store
 sampler
 ^^^^^^^
 .. toctree::
-   :maxdepth: 3
+   :maxdepth: 4
    :glob:
 
    src/sampler/**
@@ -74,7 +74,7 @@ sampler
 Contributing
 ------------
 .. toctree::
-   :maxdepth: 3
+   :maxdepth: 4
    :glob:
 
    src/contrib/*
@@ -82,7 +82,7 @@ Contributing
 store
 ^^^^^
 .. toctree::
-   :maxdepth: 3
+   :maxdepth: 5
    :glob:
 
    src/contrib/store/**
@@ -90,7 +90,7 @@ store
 sampler
 ^^^^^^^
 .. toctree::
-   :maxdepth: 3
+   :maxdepth: 5
    :glob:
 
    src/contrib/sampler/**
@@ -98,7 +98,7 @@ sampler
 Third-plugins
 -------------
 .. toctree::
-   :maxdepth: 3
+   :maxdepth: 4
    :glob:
 
    src/third-plugins/**

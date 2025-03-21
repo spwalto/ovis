@@ -5,7 +5,6 @@ daos_sampler
 ===================
 
 :Date:   28 Apr 2022
-:Version:
 :Manual section:
 :Manual group: LDMS store
 

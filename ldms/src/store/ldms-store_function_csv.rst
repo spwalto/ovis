@@ -5,7 +5,6 @@ store_function_csv
 =========================
 
 :Date:   22 Aug 2017
-:Version:
 :Manual section: 7
 :Manual group: LDMS store
 

@@ -5,7 +5,6 @@ json_stream_sampler
 ==========================
 
 :Date:   5 Aug 2023
-:Version:
 :Manual section: 7
 :Manual group: LDMS sampler
 

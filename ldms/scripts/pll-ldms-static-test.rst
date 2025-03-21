@@ -5,7 +5,6 @@ ldms-pll-static-test
 ====================
 
 :Date:   4 Oct 2020
-:Version:
 :Manual section:
 :Manual group: LDMS scripts
 

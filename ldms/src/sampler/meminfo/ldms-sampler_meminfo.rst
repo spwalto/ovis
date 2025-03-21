@@ -5,7 +5,6 @@ meminfo
 ==============
 
 :Date:   04 Feb 2018
-:Version:
 :Manual section: 7
 :Manual group: LDMS sampler
 

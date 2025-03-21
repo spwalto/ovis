@@ -5,7 +5,6 @@ ldms-csv-from-blobs
 ===================
 
 :Date:   21 Apr 2023
-:Version:
 :Manual section:
 :Manual group: LDMS sampler
 

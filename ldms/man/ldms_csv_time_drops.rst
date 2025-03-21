@@ -5,12 +5,12 @@ ldms_csv_time_drops
 ===================
 
 :Date:   07 Jul 2022
-:Version:
 :Manual section: 7
 :Manual group: LDMS
 
-
-ldms_csv_time_drops the LDMS CSV data quality check
+-------------------------------
+The LDMS CSV data quality check
+-------------------------------
 
 SYNOPSIS
 ========

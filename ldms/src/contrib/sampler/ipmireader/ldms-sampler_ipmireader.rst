@@ -5,7 +5,6 @@ ipmireader
 =================
 
 :Date:   18 Feb 2019
-:Version:
 :Manual section: 7
 :Manual group: LDMS store
 

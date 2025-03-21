@@ -5,7 +5,6 @@ store_sos
 ================
 
 :Date:   21 Dec 2015
-:Version:
 :Manual section: 7
 :Manual group: LDMS store
 

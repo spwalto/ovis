@@ -5,7 +5,6 @@ ldms_ibnet_schema_name
 ======================
 
 :Date:   4 June 2020
-:Version:
 :Manual section: 1
 :Manual group: LDMS sampler
 

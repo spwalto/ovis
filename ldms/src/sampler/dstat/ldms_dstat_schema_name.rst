@@ -5,7 +5,6 @@ ldms_dstat_schema_name
 ======================
 
 :Date:   17 Nov 2020
-:Version:
 :Manual section: 1
 :Manual group: LDMS sampler
 

@@ -5,7 +5,6 @@ slurm_sampler
 ====================
 
 :Date:   30 Sep 2019
-:Version:
 :Manual section: 7
 :Manual group: LDMS sampler
 

@@ -5,7 +5,6 @@ dstat
 ============
 
 :Date:   4 Nov 2020
-:Version:
 :Manual section: 7
 :Manual group: LDMS sampler
 

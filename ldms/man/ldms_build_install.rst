@@ -5,7 +5,6 @@ ldms_build_install
 ==================
 
 :Date:   22 Dec 2016
-:Version:
 :Manual section: 8
 :Manual group: LDMS
 

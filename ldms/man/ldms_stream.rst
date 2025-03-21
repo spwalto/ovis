@@ -126,13 +126,10 @@ This is the setup for the following figure:
 
 - ``samp``: an LDMS daemon (sampler).
 
--------------------------------------------------------------------------
-A plugin in ``samp`` has an LDMS Stream Client ``cli`` that subscribes to
+  - A plugin in ``samp`` has an LDMS Stream Client ``cli`` that subscribes to
     all streams (regex ``.*``).
 
---------------------------------------------------------------
-Another plugin ``plug0`` in ``samp`` publishes ``s1`` stream. 
---------------------------------------------------------------
+  - Another plugin ``plug0`` in ``samp`` publishes ``s1`` stream.
 
 - ``agg``: another LDMS daemon (aggregator). It has an LDMS connection to
   ``samp``.

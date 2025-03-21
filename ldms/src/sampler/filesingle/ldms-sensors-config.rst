@@ -5,7 +5,6 @@ ldms-sensors-config
 ===================
 
 :Date:   15 Dec 2018
-:Version:
 :Manual section: 1
 :Manual group: LDMS sampler
 

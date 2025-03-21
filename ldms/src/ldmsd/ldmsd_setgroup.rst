@@ -5,7 +5,6 @@ ldmsd_setgroup
 ==============
 
 :Date:   5 Jul 2018
-:Version:
 :Manual section: 7
 :Manual group: LDMSD
 

@@ -5,7 +5,6 @@ ldms_authentication
 ===================
 
 :Date:   28 Feb 2018
-:Version:
 :Manual section: 8
 :Manual group: LDMS
 
