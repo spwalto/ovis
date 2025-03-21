@@ -11,7 +11,7 @@ lustre2_client
 
 
 --------------------------------------------
-Man page for the LDMS lustre2_client plugin
+Man page for the LDMS lustre2_client plugin 
 --------------------------------------------
 
 SYNOPSIS

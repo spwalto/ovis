@@ -11,7 +11,7 @@ ldms_ls
 
 
 -------------------------------------
-Query an ldmsd for metric set values
+Query an ldmsd for metric set values 
 -------------------------------------
 
 SYNOPSIS

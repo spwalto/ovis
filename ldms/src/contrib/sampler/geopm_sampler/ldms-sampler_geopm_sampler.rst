@@ -11,7 +11,7 @@ geopm_sampler
 
 
 -----------------------------------
-Man page for the LDMS geopm plugin
+Man page for the LDMS geopm plugin 
 -----------------------------------
 
 SYNOPSIS

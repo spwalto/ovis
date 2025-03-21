@@ -11,7 +11,7 @@ store_kafka
 
 
 -----------------------------------------
-Man page for the LDMS store_kafka plugin
+Man page for the LDMS store_kafka plugin 
 -----------------------------------------
 
 SYNOPSIS

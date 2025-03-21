@@ -11,7 +11,7 @@ procstat
 
 
 --------------------------------------
-Man page for the LDMS procstat plugin
+Man page for the LDMS procstat plugin 
 --------------------------------------
 
 SYNOPSIS

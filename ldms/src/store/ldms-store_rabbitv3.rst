@@ -11,7 +11,7 @@ store_rabbitv3
 
 
 --------------------------------------------
-Man page for the LDMS store_rabbitv3 plugin
+Man page for the LDMS store_rabbitv3 plugin 
 --------------------------------------------
 
 SYNOPSIS

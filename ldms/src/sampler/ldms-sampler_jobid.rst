@@ -11,7 +11,7 @@ jobid
 
 
 -----------------------------------
-Man page for the LDMS jobid plugin
+Man page for the LDMS jobid plugin 
 -----------------------------------
 
 SYNOPSIS

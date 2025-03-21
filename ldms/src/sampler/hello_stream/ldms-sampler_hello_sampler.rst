@@ -11,7 +11,7 @@ hello_sampler
 
 
 -------------------------------------------
-Man page for the LDMS hello_sampler plugin
+Man page for the LDMS hello_sampler plugin 
 -------------------------------------------
 
 SYNOPSIS

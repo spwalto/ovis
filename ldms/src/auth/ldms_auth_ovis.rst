@@ -11,7 +11,7 @@ ldms_auth_ovis
 
 
 --------------------------------------------
-LDMS authentication using ovis_auth library
+LDMS authentication using ovis_auth library 
 --------------------------------------------
 
 SYNOPSIS

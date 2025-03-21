@@ -11,7 +11,7 @@ ldms-reverse-conf
 
 
 ----------------------------------------
-Generate a tear-down configuration file
+Generate a tear-down configuration file 
 ----------------------------------------
 
 SYNOPSIS

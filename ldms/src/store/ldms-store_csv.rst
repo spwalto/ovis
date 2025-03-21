@@ -11,7 +11,7 @@ store_csv
 
 
 ---------------------------------------
-Man page for the LDMS store_csv plugin
+Man page for the LDMS store_csv plugin 
 ---------------------------------------
 
 SYNOPSIS

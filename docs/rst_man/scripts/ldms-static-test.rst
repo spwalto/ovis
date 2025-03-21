@@ -5,14 +5,11 @@ ldms-static-test
 ================
 
 :Date:   4 Oct 2020
-:Version:
-:Manual section: 8
-:Manual group: LDMS scripts
 
+NAME
+====
 
----------------------------
-Run a canned test scenario
----------------------------
+ldms-static-test.sh - Run a canned test scenario
 
 SYNOPSIS
 ========

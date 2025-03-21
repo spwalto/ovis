@@ -11,7 +11,7 @@ ldms-run-static-tests
 
 
 --------------------
-Execute the program
+Execute the program 
 --------------------
 
 SYNOPSIS

@@ -11,7 +11,7 @@ ldms-pll-static-test
 
 
 ----------------------------------------
-Run a canned test scenario under slurm.
+Run a canned test scenario under slurm. 
 ----------------------------------------
 
 SYNOPSIS

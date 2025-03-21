@@ -11,7 +11,7 @@ tx2mon
 
 
 ------------------------------------
-Man page for the LDMS tx2mon plugin
+Man page for the LDMS tx2mon plugin 
 ------------------------------------
 
 SYNOPSIS

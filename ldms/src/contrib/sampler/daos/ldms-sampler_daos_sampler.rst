@@ -11,7 +11,7 @@ daos_sampler
 
 
 ------------------------------------------
-Man page for the LDMS DAOS sampler plugin
+Man page for the LDMS DAOS sampler plugin 
 ------------------------------------------
 
 SYNOPSIS

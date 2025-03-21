@@ -11,7 +11,7 @@ ldmsd_sampler_advertisement
 
 
 ---------------------------------------
-Manual for LDMSD Sampler Advertisement
+Manual for LDMSD Sampler Advertisement 
 ---------------------------------------
 
 SYNOPSIS

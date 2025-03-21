@@ -9,7 +9,7 @@ ldmsd
 
 
 ---------------------
-Start an ldms daemon
+Start an ldms daemon 
 ---------------------
 
 SYNOPSIS

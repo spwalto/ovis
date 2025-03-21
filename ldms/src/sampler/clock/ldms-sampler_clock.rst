@@ -11,7 +11,7 @@ clock
 
 
 -----------------------------------
-Man page for the LDMS clock plugin
+Man page for the LDMS clock plugin 
 -----------------------------------
 
 SYNOPSIS

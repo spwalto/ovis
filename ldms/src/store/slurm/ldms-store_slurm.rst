@@ -11,7 +11,7 @@ store_slurm
 
 
 ------------------------------------------
-Man page for the LDMSD store_slurm plugin
+Man page for the LDMSD store_slurm plugin 
 ------------------------------------------
 
 SYNOPSIS

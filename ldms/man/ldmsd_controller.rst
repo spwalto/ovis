@@ -11,7 +11,7 @@ ldmsd_controller
 
 
 ----------------------------------------------
-A python program to configure an ldms daemon.
+A python program to configure an ldms daemon. 
 ----------------------------------------------
 
 SYNOPSIS

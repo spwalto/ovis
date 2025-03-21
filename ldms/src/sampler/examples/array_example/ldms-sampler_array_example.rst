@@ -11,7 +11,7 @@ array_example
 
 
 -------------------------------------------
-Man page for the LDMS array_example plugin
+Man page for the LDMS array_example plugin 
 -------------------------------------------
 
 SYNOPSIS

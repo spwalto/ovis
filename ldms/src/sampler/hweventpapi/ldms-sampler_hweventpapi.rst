@@ -11,7 +11,7 @@ hweventpapi
 
 
 -----------------------------------------
-Man page for the LDMS hweventpapi plugin
+Man page for the LDMS hweventpapi plugin 
 -----------------------------------------
 
 SYNOPSIS

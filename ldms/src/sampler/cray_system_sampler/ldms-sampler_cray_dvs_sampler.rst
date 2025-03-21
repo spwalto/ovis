@@ -11,7 +11,7 @@ cray_dvs_sampler
 
 
 ----------------------------------------------
-Man page for the LDMS cray_dvs_sampler plugin
+Man page for the LDMS cray_dvs_sampler plugin 
 ----------------------------------------------
 
 SYNOPSIS

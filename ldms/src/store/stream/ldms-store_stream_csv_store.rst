@@ -11,7 +11,7 @@ stream_csv_store
 
 
 ----------------------------------------------
-Man page for the LDMS stream_csv_store plugin
+Man page for the LDMS stream_csv_store plugin 
 ----------------------------------------------
 
 SYNOPSIS

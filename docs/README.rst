@@ -27,10 +27,10 @@ For any code or plugin-specific documentation (e.g., manual pages), please use t
         Description of my-plugin
         ---------------------------------------------
 
-        :Date: YYYY-MM-DD
-        :Version: vX.X
-        :Manual section: X
-        :Manual group: LDMS/LDMSD <plugin-type>
+        :Date: YYYY-MM-DD  
+        :Version: vX.X  
+        :Manual section: X  
+        :Manual group: LDMS/LDMSD <plugin-type>  
 
 ## Using Readthedocs
 To visualize and test your documentation changes on the offical [OVIS LDMS Documentation page](https://ovis-hpc.readthedocs.io/projects/ldms/en/latest/) before submitting a PR, please follow the steps below.

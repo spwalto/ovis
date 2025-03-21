@@ -11,7 +11,7 @@ lustre_mdc
 
 
 ----------------------------------------
-Man page for the LDMS lustre_mdc plugin
+Man page for the LDMS lustre_mdc plugin 
 ----------------------------------------
 
 SYNOPSIS

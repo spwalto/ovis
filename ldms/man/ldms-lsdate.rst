@@ -11,7 +11,7 @@ lsdate
 
 
 --------------------------------------------------------------
-List directory contents with UTC timestamp suffix translation
+List directory contents with UTC timestamp suffix translation 
 --------------------------------------------------------------
 
 SYNOPSIS

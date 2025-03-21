@@ -11,7 +11,7 @@ ldms-csv-anonymize
 
 
 -------------------------------
-Anonymize columns of csv files
+Anonymize columns of csv files 
 -------------------------------
 
 SYNOPSIS

@@ -11,7 +11,7 @@ ldms_auth_none
 
 
 -----------------------------
-LDMS authentication disabled
+LDMS authentication disabled 
 -----------------------------
 
 SYNOPSIS

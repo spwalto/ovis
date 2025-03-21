@@ -11,7 +11,7 @@ lustre_ost
 
 
 ----------------------------------------
-Man page for the LDMS lustre_ost plugin
+Man page for the LDMS lustre_ost plugin 
 ----------------------------------------
 
 SYNOPSIS

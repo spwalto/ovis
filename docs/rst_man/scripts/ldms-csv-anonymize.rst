@@ -5,14 +5,11 @@ ldms-csv-anonymize
 ==================
 
 :Date:   18 Apr 2019
-:Version:
-:Manual section: 1
-:Manual group: LDMS scripts
 
+NAME
+====
 
--------------------------------
-Anonymize columns of csv files
--------------------------------
+ldms-csv-anonymize - anonymize columns of csv files
 
 SYNOPSIS
 ========

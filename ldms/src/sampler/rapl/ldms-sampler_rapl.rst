@@ -11,7 +11,7 @@ rapl
 
 
 ----------------------------------
-Man page for the LDMS rapl plugin
+Man page for the LDMS rapl plugin 
 ----------------------------------
 
 SYNOPSIS

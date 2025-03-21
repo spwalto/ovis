@@ -11,7 +11,7 @@ store_flatfile
 
 
 --------------------------------------------
-Man page for the LDMS store_flatfile plugin
+Man page for the LDMS store_flatfile plugin 
 --------------------------------------------
 
 SYNOPSIS

@@ -11,7 +11,7 @@ ldms_quickstart
 
 
 ---------------------------------
-Man page for Quick Start of LDMS
+Man page for Quick Start of LDMS 
 ---------------------------------
 
 INTRODUCTION

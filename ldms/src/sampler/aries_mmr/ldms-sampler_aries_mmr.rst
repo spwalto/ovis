@@ -11,7 +11,7 @@ aries_mmr
 
 
 -------------------------------------------------
-Man page for the aries_mmr sampler and variants.
+Man page for the aries_mmr sampler and variants. 
 -------------------------------------------------
 
 SYNOPSIS

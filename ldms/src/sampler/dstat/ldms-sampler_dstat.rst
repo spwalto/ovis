@@ -11,7 +11,7 @@ dstat
 
 
 -----------------------------------
-Man page for the LDMS dstat plugin
+Man page for the LDMS dstat plugin 
 -----------------------------------
 
 SYNOPSIS

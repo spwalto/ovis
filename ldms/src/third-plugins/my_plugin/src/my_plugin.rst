@@ -11,7 +11,7 @@ my_plugin
 
 
 ---------------------------------------
-Man page for the LDMS my_plugin plugin
+Man page for the LDMS my_plugin plugin 
 ---------------------------------------
 
 SYNOPSIS

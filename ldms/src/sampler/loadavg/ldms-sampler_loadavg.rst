@@ -11,7 +11,7 @@ loadavg
 
 
 -------------------------------------
-Man page for the LDMS loadavg plugin
+Man page for the LDMS loadavg plugin 
 -------------------------------------
 
 SYNOPSIS

@@ -11,7 +11,7 @@ ldmsctl
 
 
 ---------------------------------
-Issue control commands to ldmsd.
+Issue control commands to ldmsd. 
 ---------------------------------
 
 SYNOPSIS

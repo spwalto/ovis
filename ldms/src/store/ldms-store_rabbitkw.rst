@@ -11,7 +11,7 @@ store_rabbitkw
 
 
 --------------------------------------------
-Man page for the LDMS store_rabbitkw plugin
+Man page for the LDMS store_rabbitkw plugin 
 --------------------------------------------
 
 SYNOPSIS

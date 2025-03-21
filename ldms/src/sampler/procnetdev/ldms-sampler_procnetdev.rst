@@ -11,7 +11,7 @@ procnetdev
 
 
 ----------------------------------------
-Man page for the LDMS procnetdev plugin
+Man page for the LDMS procnetdev plugin 
 ----------------------------------------
 
 SYNOPSIS

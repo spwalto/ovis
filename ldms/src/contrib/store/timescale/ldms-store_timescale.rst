@@ -11,7 +11,7 @@ store_timescale
 
 
 ---------------------------------------------
-Man page for the LDMS store_timescale plugin
+Man page for the LDMS store_timescale plugin 
 ---------------------------------------------
 
 SYNOPSIS

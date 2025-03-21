@@ -11,7 +11,7 @@ meminfo
 
 
 -------------------------------------
-Man page for the LDMS meminfo plugin
+Man page for the LDMS meminfo plugin 
 -------------------------------------
 
 SYNOPSIS

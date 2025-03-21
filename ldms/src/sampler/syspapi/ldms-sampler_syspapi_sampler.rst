@@ -11,7 +11,7 @@ syspapi_sampler
 
 
 ----------------------------------------------
-Man page for the LDMSD syspapi_sampler plugin
+Man page for the LDMSD syspapi_sampler plugin 
 ----------------------------------------------
 
 SYNOPSIS
