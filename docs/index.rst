@@ -1,5 +1,3 @@
-.. include:: README.rst
-
 .. Copyright 2023 Sandia National Laboratories, LLC
    (c.f. AUTHORS, NOTICE.LLNS, COPYING)
 

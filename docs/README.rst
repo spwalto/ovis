@@ -1,4 +1,5 @@
-# Documentation
+Documentation
+=============
 
 Any new documentation will be formatted in ``.rst`` and added to this directory (with the exception of "man pages" explained below).
 
@@ -6,7 +7,8 @@ To enable RST linking, add the following directive at the top of the file:
    - ``.. _<file-name>``
    - Refer to any existing ``.rst`` files for formatting examples.
 
-## Man Page .RST File Formatting And Editing
+Man Page .RST File Formatting And Editing
+-----------------------------------------
 
 For any code or plugin-specific documentation (e.g., manual pages), please use the ``.rst`` format.
 
@@ -32,7 +34,9 @@ For any code or plugin-specific documentation (e.g., manual pages), please use t
         :Manual section: X
         :Manual group: LDMS/LDMSD <plugin-type>
 
-## Using Readthedocs
+Using Readthedocs
+---------------------
+
 To visualize and test your documentation changes on the offical [OVIS LDMS Documentation page](https://ovis-hpc.readthedocs.io/projects/ldms/en/latest/) before submitting a PR, please follow the steps below.
 
 1. **Fork the repository**: Fork the repository where the docs are located to your own GitHub account.
@@ -50,11 +54,13 @@ To visualize and test your documentation changes on the offical [OVIS LDMS Docum
 
 This will allow you to see your changes in real-time as you push updates to the branch.
 
-## Edits To Other Files
+Edits To Other Files
+--------------------
 
 If you are making changes to the project configurations (i.e. conf.py or requirements.txt), submit the PR and one of the admins will review the changes.
 
-### Using Local Machine
+Using Local Machine
+-----------------------
 
 The documentation can be built with `make html` or `make man` and the generated files will be found in the `_build` directory.
 If you instead want to test a build on your local machine, please install the following depencencies before running `make html`.
