@@ -8,9 +8,8 @@ ldmsctl
 :Manual section: 7
 :Manual group: LDMSD
 
-
 ---------------------------------
-Issue control commands to ldmsd. 
+Issue control commands to ldmsd.
 ---------------------------------
 
 SYNOPSIS
