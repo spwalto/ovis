@@ -10,7 +10,7 @@ filesingle
 
 
 ----------------------------------------
-Man page for the LDMS filesingle plugin 
+Man page for the LDMS filesingle plugin
 ----------------------------------------
 
 SYNOPSIS

@@ -10,7 +10,7 @@ zfs_leafvdevs
 
 
 -------------------------------------------
-Man page for the LDMS zfs_leafvdevs plugin 
+Man page for the LDMS zfs_leafvdevs plugin
 -------------------------------------------
 
 SYNOPSIS

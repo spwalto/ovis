@@ -10,7 +10,7 @@ ldms_authentication
 
 
 ----------------------------------
-Authentication in LDMS transports 
+Authentication in LDMS transports
 ----------------------------------
 
 DESCRIPTION

@@ -10,7 +10,7 @@ store_sos
 
 
 ---------------------------------------
-Man page for the LDMS store_sos plugin 
+Man page for the LDMS store_sos plugin
 ---------------------------------------
 
 SYNOPSIS

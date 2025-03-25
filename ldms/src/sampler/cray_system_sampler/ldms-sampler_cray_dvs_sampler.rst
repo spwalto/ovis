@@ -5,12 +5,12 @@ cray_dvs_sampler
 =======================
 
 :Date:   05 Feb 2018
-:Manual section:
+:Manual section: 7
 :Manual group: LDMS sampler
 
 
 ----------------------------------------------
-Man page for the LDMS cray_dvs_sampler plugin 
+Man page for the LDMS cray_dvs_sampler plugin
 ----------------------------------------------
 
 SYNOPSIS

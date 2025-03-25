@@ -10,7 +10,7 @@ slurm_notifier
 
 
 ---------------------------------------------
-Man page for the SPANK slurm_notifier plugin 
+Man page for the SPANK slurm_notifier plugin
 ---------------------------------------------
 
 SYNOPSIS

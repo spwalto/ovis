@@ -10,7 +10,7 @@ ldms-static-test
 
 
 ---------------------------
-Run a canned test scenario 
+Run a canned test scenario
 ---------------------------
 
 SYNOPSIS

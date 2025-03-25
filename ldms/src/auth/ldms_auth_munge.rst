@@ -10,7 +10,7 @@ ldms_auth_munge
 
 
 --------------------------------
-LDMS authentication using munge 
+LDMS authentication using munge
 --------------------------------
 
 SYNOPSIS

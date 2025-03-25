@@ -10,7 +10,7 @@ procnet
 
 
 -------------------------------------
-Man page for the LDMS procnet plugin 
+Man page for the LDMS procnet plugin
 -------------------------------------
 
 SYNOPSIS

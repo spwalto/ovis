@@ -10,7 +10,7 @@ variorum_sampler
 
 
 --------------------------------------
-Man page for the LDMS Variorum plugin 
+Man page for the LDMS Variorum plugin
 --------------------------------------
 
 SYNOPSIS

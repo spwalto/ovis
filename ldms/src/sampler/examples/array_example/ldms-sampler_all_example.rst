@@ -10,7 +10,7 @@ all_example
 
 
 -----------------------------------------
-Man page for the LDMS all_example plugin 
+Man page for the LDMS all_example plugin
 -----------------------------------------
 
 SYNOPSIS

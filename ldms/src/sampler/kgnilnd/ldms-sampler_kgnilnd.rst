@@ -10,7 +10,7 @@ kgnilnd
 
 
 -------------------------------------
-Man page for the LDMS kgnilnd plugin 
+Man page for the LDMS kgnilnd plugin
 -------------------------------------
 
 SYNOPSIS

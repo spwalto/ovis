@@ -14,7 +14,7 @@ STORE_LIBADD = $(top_builddir)/ldms/src/core/libldms.la \
 	       $(top_builddir)/lib/src/ovis_util/libovis_util.la
 
 ldmsstoreincludedir = $(includedir)/ldms
-ldmsstoreinclude_HEADERS = 
+ldmsstoreinclude_HEADERS =
 
 if ENABLE_TIMESCALE_STORE
 libstore_timescale_la_SOURCES = store_timescale.c

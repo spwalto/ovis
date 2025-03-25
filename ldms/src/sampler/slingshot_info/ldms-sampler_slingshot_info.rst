@@ -10,7 +10,7 @@ slingshot_info
 
 
 --------------------------------------------
-Man page for the LDMS slingshot_info plugin 
+Man page for the LDMS slingshot_info plugin
 --------------------------------------------
 
 SYNOPSIS

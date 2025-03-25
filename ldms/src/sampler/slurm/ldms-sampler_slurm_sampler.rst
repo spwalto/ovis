@@ -10,7 +10,7 @@ slurm_sampler
 
 
 --------------------------------------------
-Man page for the LDMSD slurm_sampler plugin 
+Man page for the LDMSD slurm_sampler plugin
 --------------------------------------------
 
 SYNOPSIS

@@ -10,7 +10,7 @@ lnet_stats
 
 
 ----------------------------------------
-Man page for the LDMS lnet_stats plugin 
+Man page for the LDMS lnet_stats plugin
 ----------------------------------------
 
 SYNOPSIS

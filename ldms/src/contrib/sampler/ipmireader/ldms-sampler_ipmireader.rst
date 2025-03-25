@@ -10,7 +10,7 @@ ipmireader
 
 
 ----------------------------------------
-Man page for the LDMS ipmireader plugin 
+Man page for the LDMS ipmireader plugin
 ----------------------------------------
 
 SYNOPSIS

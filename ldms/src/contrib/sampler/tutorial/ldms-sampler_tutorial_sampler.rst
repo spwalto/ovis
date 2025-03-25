@@ -10,7 +10,7 @@ tutorial_sampler
 
 
 ----------------------------------------------
-Man page for the LDMS tutorial_sampler plugin 
+Man page for the LDMS tutorial_sampler plugin
 ----------------------------------------------
 
 SYNOPSIS

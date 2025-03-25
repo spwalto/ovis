@@ -10,7 +10,7 @@ zfs_zpool
 
 
 ---------------------------------------
-Man page for the LDMS zfs_zpool plugin 
+Man page for the LDMS zfs_zpool plugin
 ---------------------------------------
 
 SYNOPSIS

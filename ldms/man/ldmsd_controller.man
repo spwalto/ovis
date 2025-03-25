@@ -2,7 +2,7 @@
 .
 .TH LDMSD_CONTROLLER  "19 Nov 2019" "" ""
 .SH NAME
-ldmsd_controller - a python program to configure an ldms daemon. - 
+ldmsd_controller - a python program to configure an ldms daemon. -
 .
 .
 -
@@ -124,7 +124,7 @@ The plugin name
 Plugin specific attr=value tuples
 .fi
 .sp
-.\" 
+.\"
 .
 \fBAttributes specific for sampler plugins (Some sampler plugins
 may have additional\fP attributes)

@@ -10,7 +10,7 @@ vmstat
 
 
 ------------------------------------
-Man page for the LDMS vmstat plugin 
+Man page for the LDMS vmstat plugin
 ------------------------------------
 
 SYNOPSIS

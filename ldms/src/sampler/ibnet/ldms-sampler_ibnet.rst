@@ -10,7 +10,7 @@ ibnet
 
 
 -----------------------------------
-Man page for the LDMS ibnet plugin 
+Man page for the LDMS ibnet plugin
 -----------------------------------
 
 SYNOPSIS

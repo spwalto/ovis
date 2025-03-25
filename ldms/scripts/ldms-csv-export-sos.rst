@@ -10,7 +10,7 @@ ldms-csv-export-sos
 
 
 -----------------------------------------------
-Generate helper files needed by sos-import-csv 
+Generate helper files needed by sos-import-csv
 -----------------------------------------------
 
 SYNOPSIS

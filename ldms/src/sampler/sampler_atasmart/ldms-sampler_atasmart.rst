@@ -10,7 +10,7 @@ sampler_atasmart
 
 
 ----------------------------------------------
-Man page for the LDMS sampler_atasmart plugin 
+Man page for the LDMS sampler_atasmart plugin
 ----------------------------------------------
 
 SYNOPSIS

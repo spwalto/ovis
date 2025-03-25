@@ -10,7 +10,7 @@ store_avro_kafka
 
 
 ------------------------------
-LDMSD store_avro_kafka plugin 
+LDMSD store_avro_kafka plugin
 ------------------------------
 
 SYNOPSIS

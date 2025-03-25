@@ -11,7 +11,7 @@ store_papi
 .SH NAME
 
 -----------------------------------------
-Man page for the LDMSD store_papi plugin 
+Man page for the LDMSD store_papi plugin
 -----------------------------------------
 
 .SH SYNOPSIS

@@ -10,7 +10,7 @@ ldms-plugins
 
 
 ------------------------------------------------
-Display information on installed LDMSD plugins. 
+Display information on installed LDMSD plugins.
 ------------------------------------------------
 
 SYNOPSIS

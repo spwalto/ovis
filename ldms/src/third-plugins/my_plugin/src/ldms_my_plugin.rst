@@ -5,12 +5,12 @@ my_plugin
 ================
 
 :Date:   26 Sep 2019
-:Manual section:
+:Manual section: 7
 :Manual group: LDMS
 
 
 ---------------------------------------
-Man page for the LDMS my_plugin plugin 
+Man page for the LDMS my_plugin plugin
 ---------------------------------------
 
 SYNOPSIS

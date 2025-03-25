@@ -10,7 +10,7 @@ perfevent
 
 
 ------------------------------------------------
-Man page for the LDMS perfevent sampler plugin. 
+Man page for the LDMS perfevent sampler plugin.
 ------------------------------------------------
 
 SYNOPSIS

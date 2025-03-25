@@ -10,7 +10,7 @@ sysclassib
 
 
 ----------------------------------------
-Man page for the LDMS sysclassib plugin 
+Man page for the LDMS sysclassib plugin
 ----------------------------------------
 
 SYNOPSIS

@@ -10,7 +10,7 @@ ipmisensors
 
 
 -----------------------------------------
-Man page for the LDMS ipmisensors plugin 
+Man page for the LDMS ipmisensors plugin
 -----------------------------------------
 
 SYNOPSIS

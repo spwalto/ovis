@@ -10,7 +10,7 @@ synthetic
 
 
 ---------------------------------------
-Man page for the LDMS synthetic plugin 
+Man page for the LDMS synthetic plugin
 ---------------------------------------
 
 SYNOPSIS

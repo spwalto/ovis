@@ -10,7 +10,7 @@ ldms_build_install
 
 
 ----------------------------------------------
-Instructions for building and installing ldms 
+Instructions for building and installing ldms
 ----------------------------------------------
 
 INTRODUCTION

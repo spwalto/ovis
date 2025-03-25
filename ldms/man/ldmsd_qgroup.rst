@@ -10,7 +10,7 @@ ldmsd_qgroup
 
 
 -----------------------------
-Quota Group Feature in LDMSD 
+Quota Group Feature in LDMSD
 -----------------------------
 
 SYNOPSIS

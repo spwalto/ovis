@@ -10,7 +10,7 @@ papi_sampler
 
 
 -------------------------------------------
-Man page for the LDMSD papi_sampler plugin 
+Man page for the LDMSD papi_sampler plugin
 -------------------------------------------
 
 SYNOPSIS

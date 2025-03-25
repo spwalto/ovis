@@ -10,7 +10,7 @@ opa2
 
 
 ---------------------------------------------------
-Man page for the LDMS opa2 OmniPath network plugin 
+Man page for the LDMS opa2 OmniPath network plugin
 ---------------------------------------------------
 
 SYNOPSIS

@@ -10,7 +10,7 @@ procnetdev2
 
 
 -----------------------------------------
-Man page for the LDMS procnetdev2 plugin 
+Man page for the LDMS procnetdev2 plugin
 -----------------------------------------
 
 SYNOPSIS

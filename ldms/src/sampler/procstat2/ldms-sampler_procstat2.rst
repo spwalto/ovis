@@ -8,7 +8,7 @@ procstat2
 
 
 ---------------------------------------
-Man page for the LDMS procstat2 plugin 
+Man page for the LDMS procstat2 plugin
 ---------------------------------------
 
 SYNOPSIS

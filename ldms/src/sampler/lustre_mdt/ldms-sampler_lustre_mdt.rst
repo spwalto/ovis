@@ -10,7 +10,7 @@ lustre_mdt
 
 
 ----------------------------------------
-Man page for the LDMS lustre_mdt plugin 
+Man page for the LDMS lustre_mdt plugin
 ----------------------------------------
 
 SYNOPSIS

@@ -10,7 +10,7 @@ darshan_stream_store
 
 
 ---------------------------------
-LDMS darshan_stream_store plugin 
+LDMS darshan_stream_store plugin
 ---------------------------------
 
 SYNOPSIS

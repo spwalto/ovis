@@ -10,7 +10,7 @@ dcgm_sampler
 
 
 ------------------------------------------
-Man page for the LDMS dcgm_sampler plugin 
+Man page for the LDMS dcgm_sampler plugin
 ------------------------------------------
 
 SYNOPSIS

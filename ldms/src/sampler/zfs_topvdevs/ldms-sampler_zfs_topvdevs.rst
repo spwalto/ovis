@@ -10,7 +10,7 @@ zfs_topvdevs
 
 
 ------------------------------------------
-Man page for the LDMS zfs_topvdevs plugin 
+Man page for the LDMS zfs_topvdevs plugin
 ------------------------------------------
 
 SYNOPSIS

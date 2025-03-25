@@ -10,7 +10,7 @@ ibmad_sampler
 
 
 -------------------------------------------
-Man page for the LDMS ibmad_sampler plugin 
+Man page for the LDMS ibmad_sampler plugin
 -------------------------------------------
 
 SYNOPSIS

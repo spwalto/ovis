@@ -10,7 +10,7 @@ app_sampler
 
 
 -------------------------
-LDMSD app_sampler plugin 
+LDMSD app_sampler plugin
 -------------------------
 
 SYNOPSIS

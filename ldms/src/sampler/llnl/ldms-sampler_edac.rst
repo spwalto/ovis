@@ -10,7 +10,7 @@ edac
 
 
 ----------------------------------
-Man page for the LDMS edac plugin 
+Man page for the LDMS edac plugin
 ----------------------------------
 
 SYNOPSIS

@@ -10,7 +10,7 @@ rdc_sampler
 
 
 -----------------------------------------
-Man page for the LDMS rdc_sampler plugin 
+Man page for the LDMS rdc_sampler plugin
 -----------------------------------------
 
 SYNOPSIS

@@ -10,7 +10,7 @@ variable
 
 
 --------------------------------------
-Man page for the LDMS variable plugin 
+Man page for the LDMS variable plugin
 --------------------------------------
 
 SYNOPSIS

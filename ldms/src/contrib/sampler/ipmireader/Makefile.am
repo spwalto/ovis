@@ -25,7 +25,7 @@ pkglib_LTLIBRARIES += libipmireader.la
 dist_man7_MANS += ldms-sampler_ipmireader.man
 
 libipmisensors_la_SOURCES = ipmisensors.c
-libipmisensors_la_LIBADD = $(COMMON_LIBADD) 
+libipmisensors_la_LIBADD = $(COMMON_LIBADD)
 pkglib_LTLIBRARIES += libipmisensors.la
 dist_man7_MANS += ldms-sampler_ipmisensors.man
 endif

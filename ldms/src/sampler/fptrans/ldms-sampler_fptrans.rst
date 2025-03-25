@@ -10,7 +10,7 @@ fptrans
 
 
 -------------------------------------
-Man page for the LDMS fptrans plugin 
+Man page for the LDMS fptrans plugin
 -------------------------------------
 
 SYNOPSIS

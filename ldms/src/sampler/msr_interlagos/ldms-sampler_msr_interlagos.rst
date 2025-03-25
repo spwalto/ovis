@@ -10,7 +10,7 @@ msr_interlagos
 
 
 --------------------------------------------
-Man page for the LDMS msr interlagos plugin 
+Man page for the LDMS msr interlagos plugin
 --------------------------------------------
 
 SYNOPSIS

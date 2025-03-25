@@ -10,7 +10,7 @@ procdiskstats
 
 
 -------------------------------------------
-Man page for the LDMS procdiskstats plugin 
+Man page for the LDMS procdiskstats plugin
 -------------------------------------------
 
 SYNOPSIS

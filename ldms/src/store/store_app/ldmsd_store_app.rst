@@ -10,7 +10,7 @@ ldmsd_store_app
 
 
 -------------------------------
-LDMSD store_app storage plugin 
+LDMSD store_app storage plugin
 -------------------------------
 
 SYNOPSIS TESTING34

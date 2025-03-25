@@ -10,7 +10,7 @@ procinterrupts
 
 
 ----------------------------------------
-Man page for the LDMS interrupts plugin 
+Man page for the LDMS interrupts plugin
 ----------------------------------------
 
 SYNOPSIS

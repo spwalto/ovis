@@ -10,7 +10,7 @@ procnfs
 
 
 -------------------------------------
-Man page for the LDMS procnfs plugin 
+Man page for the LDMS procnfs plugin
 -------------------------------------
 
 SYNOPSIS

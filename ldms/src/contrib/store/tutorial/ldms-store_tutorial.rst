@@ -10,7 +10,7 @@ store_tutorial
 
 
 --------------------------------------------
-Man page for the LDMS store_tutorial plugin 
+Man page for the LDMS store_tutorial plugin
 --------------------------------------------
 
 SYNOPSIS
