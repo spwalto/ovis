@@ -25,7 +25,7 @@ AX_PREFIX_CONFIG_H_G(ovis-ldms-config.h,,,[
 */
 #if (OVIS_LDMS_FLEXIBLE_ARRAY_MEMBER + 0)
 #define OVIS_FLEX 0
-#else TESTING
+#else
 #define OVIS_FLEX
 #endif
 /* A union of flexible array types is not allowed by gcc 4.
