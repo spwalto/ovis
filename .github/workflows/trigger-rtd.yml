@@ -2,13 +2,12 @@ name: Trigger RTD on Versioned Updates
 
 on:
   push:
-    branches:
-      - '*'
-    tags:
-      - 'v*'              # For versioned tags (e.g., v1.0.0)
-
     paths:
-      - '**/*.rst'
+      - '**/*.rst'           # Trigger for any .rst or doc related changes
+      - 'docs/**'
+  pull_request:
+    paths:
+      - '**/*.rst'           # Same triggers for pull requests
       - 'docs/**'
 
 jobs:
@@ -28,4 +27,4 @@ jobs:
                -H "Content-Type: application/json" \
                -H "X-Hub-Signature-256: sha256=$SIGNATURE" \
                -d "$PAYLOAD" \
-               https://readthedocs.org/api/v2/webhook/ldms-rtd/295614/
+               https://readthedocs.org/api/v2/webhook/sw-ldms-rtd/295839/
