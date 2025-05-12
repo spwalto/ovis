@@ -17,4 +17,4 @@ Systemd Service
 netlink-notifier - Transmit Linux kernel netlink process life messages to ldmsd streams.
 
 .. include:: ldms-sampler_netlink-notifier.rst
-   :start-after: .. _netlink-notifier-synopsis
+   :start-after: ".. _netlink-notifier-synopsis"
