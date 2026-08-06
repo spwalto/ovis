@@ -209,6 +209,7 @@ struct req_str_id attr_str_id_table[] = {
 	{  "exclusive_thread",  LDMSD_ATTR_XTHREAD  },
 	{  "flush",             LDMSD_ATTR_INTERVAL },
 	{  "gid",               LDMSD_ATTR_GID  },
+	{  "hist_recalibrate",  LDMSD_ATTR_HIST_RECAL  },
 	{  "host",              LDMSD_ATTR_HOST  },
 	{  "incr",              LDMSD_ATTR_INCREMENT  },
 	{  "instance",          LDMSD_ATTR_INSTANCE  },
@@ -544,6 +545,7 @@ const char *ldmsd_req_attr_id2str(uint32_t attr_id, int fuzzy)
 	case LDMSD_ATTR_TYPE:	return "type";
 	case LDMSD_ATTR_UDATA:	return "udata";
 	case LDMSD_ATTR_UID:	return "uid";
+	case LDMSD_ATTR_HIST_RECAL:	return "hist_recalibrate";
 	}
 	return "UNKNOWN_ATTR";
 }
@@ -638,9 +640,16 @@ void __get_attr_name_value(char *av, char **name, char **value)
 	char *delim;
 	delim = strchr(av, '=');
 	if (delim) {
-		*value = delim;
-		**value = '\0';
-		(*value)++;
+		*delim = '\0';	/* Terminate name */
+		delim ++;	/* Skip '=' */
+		if (*delim == '"') {
+			/* Strip enclosing quotes if present */
+			delim ++;
+			size_t cnt = strlen(delim) - 1;
+			if (cnt >= 0)
+				delim[cnt] = '\0';
+		}
+		*value = delim; /* Set the value */
 	} else {
 		*value = NULL;
 	}

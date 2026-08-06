@@ -211,15 +211,24 @@ static void updtr_task_set_reset(ldmsd_updtr_task_t task)
 	task->set_count = 0;
 }
 
+typedef struct prdset_update_ctxt {
+	ldmsd_prdcr_set_t prdset;
+	ldmsd_updtr_t updtr;
+} *prdset_update_ctxt_t;
+
 static void updtr_update_cb(ldms_t t, ldms_set_t set, int status, void *arg)
 {
 	uint64_t gn, push_it = 0;
-	ldmsd_prdcr_set_t prd_set = arg;
+	prdset_update_ctxt_t updt_ctxt = arg;
+	ldmsd_prdcr_set_t prd_set = updt_ctxt->prdset;
 	int errcode;
+	double update_time_us;
 
 	pthread_mutex_lock(&prd_set->lock);
 	clock_gettime(CLOCK_REALTIME, &prd_set->updt_stat.end);
 	ldmsd_stat_update(&prd_set->updt_stat, &prd_set->updt_stat.start, &prd_set->updt_stat.end);
+	update_time_us = ldmsd_ts_diff_usec(&prd_set->updt_stat.end, &prd_set->updt_stat.start);
+	ovis_histogram_update(&updt_ctxt->updtr->hist, update_time_us);
 
 	errcode = LDMS_UPD_ERROR(status);
 	ovis_log(updtr_log, OVIS_LDEBUG, "Update complete for Set %s with status %#x\n",
@@ -287,9 +296,16 @@ out:
 						prd_set->inst_name);
 		}
 	}
-	if (0 == (status & (LDMS_UPD_F_PUSH|LDMS_UPD_F_MORE)))
+	if (0 == (status & (LDMS_UPD_F_PUSH|LDMS_UPD_F_MORE))) {
 		/* Put reference taken before calling ldms_xprt_update. */
 		ldmsd_prdcr_set_ref_put(prd_set);
+
+		/* Cleanup prdcr_update_ctxt */
+		ldmsd_prdcr_set_ref_put(updt_ctxt->prdset);
+		ldmsd_updtr_put(updt_ctxt->updtr, "update_ctxt");
+		free(updt_ctxt);
+	}
+
 	return;
 }
 
@@ -385,7 +401,19 @@ static int schedule_set_updates(ldmsd_prdcr_set_t prd_set, ldmsd_updtr_task_t ta
 			 * do not update the setgroup.
 			 */
 		} else {
-			rc = ldms_xprt_update(prd_set->set, updtr_update_cb, prd_set);
+			prdset_update_ctxt_t upd_ctxt;
+			upd_ctxt = malloc(sizeof(*upd_ctxt));
+			if (!upd_ctxt) {
+				ovis_log(updtr_log, OVIS_LCRIT, "Out of memory.\n");
+				rc = ENOMEM;
+				goto out;
+			}
+			ldmsd_prdcr_set_ref_get(prd_set);
+			upd_ctxt->prdset = prd_set;
+			upd_ctxt->updtr = ldmsd_updtr_get(updtr, "update_ctxt");
+			rc = ldms_xprt_update(prd_set->set, updtr_update_cb, upd_ctxt);
+			if (rc)
+				free(upd_ctxt);
 		}
 	} else if (0 == (prd_set->push_flags & LDMSD_PRDCR_SET_F_PUSH_REG)) {
 		op_s = "Registering push for";
@@ -510,11 +538,15 @@ out:
 	return rc;
 }
 
+/* implementation in ldmsd_prdcr.c */
+void __prdcr_reset_set(ldmsd_prdcr_t prdcr, ldmsd_prdcr_set_t prd_set);
+
 void __ldmsd_prdset_lookup_cb(ldms_t xprt, enum ldms_lookup_status status,
 					int more, ldms_set_t set, void *arg)
 {
 	ldmsd_prdcr_set_t prd_set = arg;
 	int ready = 0;
+	int delete = 0;
 	int flags;
 	pthread_mutex_lock(&prd_set->lock);
 	if (status != LDMS_LOOKUP_OK) {
@@ -534,11 +566,17 @@ void __ldmsd_prdset_lookup_cb(ldms_t xprt, enum ldms_lookup_status status,
 				  "It is likely that there are multiple "
 				  "producers providing a set with the same instance name.\n",
 				  prd_set->prdcr->obj.name, prd_set->inst_name, set);
+		} else if (status == ENOENT) {
+			ovis_log(updtr_log, OVIS_LWARN,
+				  "prdcr %s: The set '%s' no longer exists on the server.\n",
+				  prd_set->prdcr->obj.name, prd_set->inst_name);
+			delete = 1;
 		} else {
 			ovis_log(updtr_log, OVIS_LERROR,
 				  "prdcr %s: Error %d in lookup callback of set '%s' (%p)\n",
 				  prd_set->prdcr->obj.name,
 				  status, prd_set->inst_name, set);
+			delete = 1;
 		}
 		prd_set->state = LDMSD_PRDCR_SET_STATE_START;
 		goto out;
@@ -568,12 +606,12 @@ out:
 	pthread_mutex_unlock(&prd_set->lock);
 	if (ready)
 		ldmsd_prd_set_updtr_task_update(prd_set);
+	if (delete)
+		__prdcr_reset_set(prd_set->prdcr, prd_set);
 	ldmsd_prdcr_set_ref_put(prd_set); /* The ref is taken before calling lookup */
 	return;
 }
 
-/* Implemented in ldmsd.c */
-extern double ts_diff_usec(struct timespec *a, struct timespec *b);
 static void schedule_prdset_updates(ldmsd_updtr_task_t task,
 				    ldmsd_prdcr_set_t prd_set,
 				    ldmsd_name_match_t match)
@@ -599,7 +637,7 @@ static void schedule_prdset_updates(ldmsd_updtr_task_t task,
 	switch (prd_set->state) {
 	case LDMSD_PRDCR_SET_STATE_READY:
 		clock_gettime(CLOCK_REALTIME, &ts);
-		if (ts_diff_usec(&ts, &prd_set->lookup_complete_ts) < 1000000) {
+		if (ldmsd_ts_diff_usec(&ts, &prd_set->lookup_complete_ts) < 1000000) {
 			return;
 		}
 		break;
@@ -962,6 +1000,7 @@ ldmsd_updtr_new_with_auth(const char *name, char *interval_str, char *offset_str
 	LIST_INIT(&updtr->match_list);
 	rbt_init(&updtr->task_tree, ldmsd_updtr_schedule_cmp);
 	updtr->push_flags = push_flags;
+	ovis_histogram_init(&updtr->hist, 0, 0, OVIS_HISTOGRAM_SCALE_LINEAR); /* Use the default number of warmup samples and number of bins */
 	ldmsd_cfgobj_unlock(&updtr->obj);
 #ifdef _CFG_REF_DUMP_
 	ref_dump(&updtr->obj.ref, updtr->obj.name, stderr);
@@ -1453,8 +1492,8 @@ int ldmsd_updtr_prdcr_add(const char *updtr_name, const char *prdcr_regex,
 
 	updtr = ldmsd_updtr_find(updtr_name);
 	if (!updtr) {
-		sprintf(rep_buf, "%dThe updater specified does not "
-						"exist\n", ENOENT);
+		sprintf(rep_buf, "The updater specified does not "
+						"exist\n");
 		return ENOENT;
 	}
 
@@ -1463,8 +1502,8 @@ int ldmsd_updtr_prdcr_add(const char *updtr_name, const char *prdcr_regex,
 	if (rc)
 		goto out_1;
 	if (updtr->state != LDMSD_UPDTR_STATE_STOPPED) {
-		sprintf(rep_buf, "%dConfiguration changes cannot be made "
-				"while the updater is running\n", EBUSY);
+		sprintf(rep_buf, "Configuration changes cannot be made "
+				"while the updater is running\n");
 		rc = EBUSY;
 		goto out_1;
 	}
@@ -1503,7 +1542,7 @@ int ldmsd_updtr_prdcr_add(const char *updtr_name, const char *prdcr_regex,
 		ref = prdcr_ref_new(prdcr);
 		if (!ref) {
 			rc = ENOMEM;
-			sprintf(rep_buf, "%dMemory allocation failure.\n", ENOMEM);
+			sprintf(rep_buf, "Memory allocation failure.\n");
 			ldmsd_prdcr_put(prdcr, "iter");
 			ldmsd_cfg_unlock(LDMSD_CFGOBJ_PRDCR);
 			goto out_1;
@@ -1511,7 +1550,6 @@ int ldmsd_updtr_prdcr_add(const char *updtr_name, const char *prdcr_regex,
 		rbt_ins(&updtr->prdcr_tree, &ref->rbn);
 	}
 	ldmsd_cfg_unlock(LDMSD_CFGOBJ_PRDCR);
-	sprintf(rep_buf, "0\n");
 out_1:
 unlock:
 	ldmsd_updtr_unlock(updtr);

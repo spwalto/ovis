@@ -1,6 +1,8 @@
 export plugname=rdc_sampler
 portbase=61060
-dschema=$(ldms_rdc_schema_name |grep -v ERR)
+export METRICS=RDC_FI_GPU_CLOCK,RDC_FI_MEM_CLOCK,RDC_FI_MEMORY_TEMP,RDC_FI_GPU_TEMP,RDC_FI_POWER_USAGE,RDC_FI_GPU_UTIL,RDC_FI_GPU_MEMORY_USAGE,RDC_FI_GPU_MEMORY_TOTAL
+
+dschema=$(ldms_rdc_schema_name metrics=$METRICS |grep -v ERR)
 export dschema
 DAEMONS $(seq 3)
 LDMSD 3
@@ -9,11 +11,10 @@ VGARGS="--leak-check=full --track-origins=yes --trace-children=yes --show-leak-k
 #vgon
 LDMSD 2
 vgoff
-SLEEP 6
-MESSAGE ldms_ls on host 2:
-LDMS_LS 2 -vl
 SLEEP 2
-KILL_LDMSD 2
+MESSAGE ldms_ls on host 2:
+LDMS_LS 2 -v
+SLEEP 2
 
 #vgon
 LDMSD 1
@@ -23,7 +24,7 @@ MESSAGE ldms_ls on host 1:
 LDMS_LS 1 -vl
 SLEEP 2
 KILL_LDMSD 1
-
+KILL_LDMSD 2
 KILL_LDMSD 3
 
 file_created $STOREDIR/node/$dschema

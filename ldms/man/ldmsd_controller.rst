@@ -58,6 +58,10 @@ LDMSD_CONTROLLER OPTIONS
    information, and consult the plugin manual page for plugin-specific
    options.
 
+**-f, --format** *OUTPUT_FORMAT*
+   The format type (**json**)
+   Returns output in JSON format
+
 **--source** *SOURCE*
    |
    | Path to the config file
@@ -1104,8 +1108,7 @@ The column descriptions for worker threads and xthreads are:
 * Linux Thread ID - pthread ID as hex string
 * Name - Thread name
 * Utilization - Thread utilization ratio (0.0-100.0%) over a recent time window.
-* Window (s) - Duration of the most recent time period used for utilization calculation (default 3 seconds)
-* Event Counts - Number of events processed
+* Event Counts - Number of events currently in the queue
 
 The column descriptions for IO threads are:
 
@@ -1113,7 +1116,6 @@ The column descriptions for IO threads are:
 * Linux Thread ID - pthread ID as hex string
 * Name - Thread name
 * Utilization - Thread utilization ratio (0.0-100.0%) over a recent time window
-* Window (s) - Duration of the most recent time period used for utilization calculation (default 3 seconds)
 * Send Queue Size - Number of pending send operations
 * Num of EPs - Number of endpoints handled by this thread
 
@@ -1138,6 +1140,26 @@ Display the transport operation statistics
       | If true, reset the statistics after returning the values. The
         default is false.
 
+   **[sq_depth** *true|false*\ **]**
+      |
+      | If true, report the send-queue depth of each endpoint. The
+        default is false.
+
+   **[histogram** *true|false*\ **]**
+      |
+      | If true, print the per-operation histograms. The default is
+        false.
+
+   **[hist_recalibrate** *true|false*\ **]**
+      |
+      | If true, discard the existing histogram bin boundaries after
+        returning the values, so the histograms re-enter their warmup
+        phase and recalibrate the bins and boundaries from the next
+        samples observed. Use this when the per-operation latency
+        distribution has shifted enough that the original calibration
+        no longer represents current behavior well. The default is
+        false.
+
 Display the statistics of updaters' update time per set
 -------------------------------------------------------
 
@@ -1154,6 +1176,10 @@ Display the statistics of updaters' update time per set
       | An updater name. Only the statistics of the given updater will
         be reported and reset if reset is true.
 
+   **[summary** *true|false*\ **]**
+      |
+      | If true, histogram will not be reported.
+
 Display the statistics of storage policy's store time per set
 -------------------------------------------------------------
 
@@ -1162,13 +1188,64 @@ Display the statistics of storage policy's store time per set
 
    **[reset** *true|false*\ **]**
       |
-      | If true, reset the store time statistics after returning the
-        values. The default is false.
+      | If true, reset the store time statistics and histogram bin counts after
+        returning the values. The histogram bin boundaries are left unchanged, so
+        the existing calibration continues to apply to subsequently collected
+        samples. The default is false.
+
+   **[hist_recalibrate** *true|false*\ **]**
+      |
+      | If true, reset the statistics and discard the existing histogram bin
+        boundaries after returning the values, so the histogram re-enters its
+        warmup phase and recalibrates the bins and boundaries from the next
+        samples observed. Use this when the store-time distribution has shifted
+        enough that the original calibration no longer represents current
+        behavior well. ``hist_recalibrate=true`` already includes everything
+        ``reset=true`` does; if both are given together, the result is the same
+        as giving ``hist_recalibrate=true`` alone. The default is false.
 
    **[name** *name*\ **]**
       |
-      | A storage policy name. Only the statistics of the given storage
-        policy will be reported and reset if reset is true.
+      | A storage policy name. The server restricts its response to only the
+        named storage policy's data; ldmsd_controller never sees the other
+        policies' sets at all. As a result every section of the output is
+        scoped to that one policy, including the operations-per-second
+        figure and the stage-time breakdown under ``rate_summary`` -- these
+        are not daemon-wide aggregates when ``name`` is given, they are
+        recomputed over just that policy's sets. ``reset`` and
+        ``hist_recalibrate``, if also given, likewise apply only to the
+        named policy. When ``name`` is given, the global "Statistics per Set
+        Schema" table is omitted from the output, since its per-schema
+        numbers would be identical to the per-schema rows already shown for
+        that one storage policy.
+
+   **[view** *value*\ **]**
+      |
+      | A comma-separated list of sections to display, letting the output be
+        narrowed to only what is needed. Valid section names are:
+      |
+      | ``schema_summary`` -- the global "Statistics per Set Schema" table,
+        aggregated across all storage policies. Not shown if ``name`` is
+        given (see above).
+      |
+      | ``strgp_detail`` -- the "Statistics per Storage Policies and Set
+        Schema" table, broken down per storage policy and, within each, per
+        set schema.
+      |
+      | ``histogram`` -- the store-time histogram for each storage policy.
+        This can be requested independently of ``strgp_detail``; doing so
+        prints just the histograms, one per storage policy, without the
+        accompanying min/max/avg table.
+      |
+      | ``rate_summary`` -- the aggregate operations-per-second figure and
+        the percentage/time breakdown by storage stage (queue wait,
+        decomposition, commit, etc.), both computed across all storage
+        policies combined.
+      |
+      | If ``view`` is omitted, all sections are shown, matching the output
+        produced before this attribute was introduced. An unrecognized
+        section name is rejected with an error listing the valid choices;
+        it is not silently ignored.
 
 QGROUP COMMAND SYNTAX
 =====================

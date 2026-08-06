@@ -74,7 +74,7 @@
  * cb_arg The cb_arg parameter to the ldsm_xprt_set_delete
  *        function
  */
-typedef void (*ldms_set_delete_cb_t)(ldms_t xprt, int status, ldms_set_t set, void *cb_arg);
+typedef void (*ldms_set_delete_cb_t)(ldms_t xprt, int status, void *cb_arg);
 
 /**
  * If set in the push_flags, the set changes will be automatically
@@ -381,6 +381,11 @@ typedef enum ldms_context_type {
 	LDMS_CONTEXT_SET_DELETE,
 } ldms_context_type_t;
 
+struct ldms_set_del_key {
+	uint64_t time;	/* Unix timestamp when set was deleted */
+	uint64_t gn;    /* __del_gn when set was deleted */
+};
+
 struct ldms_context {
 	sem_t sem;
 	sem_t *sem_p;
@@ -419,10 +424,10 @@ struct ldms_context {
 			void *cb_arg;
 		} req_notify;
 		struct {
-			ldms_set_t s;
 			ldms_set_delete_cb_t cb;
 			void *cb_arg;
 			int lookup;
+			struct ldms_set_del_key del_key;
 		} set_delete;
 	};
 	struct timespec start;
@@ -564,6 +569,7 @@ struct ldms_xprt {
 	ldms_app_ctxt_free_fn app_ctxt_free_fn;
 
 	LIST_ENTRY(ldms_xprt) xprt_link;
+	LIST_ENTRY(ldms_xprt) xprt_rdir_ent; /* in xprt_rdir_list */
 };
 
 void __ldms_xprt_term(struct ldms_xprt *x);

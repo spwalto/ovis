@@ -74,6 +74,7 @@
 #include <libgen.h>
 #include <float.h>
 #include <time.h>
+#include <math.h>
 #include <coll/rbt.h>
 #include <coll/str_map.h>
 #include "ovis_ev/ev.h"
@@ -1245,7 +1246,7 @@ out:
 }
 
 /* a - b */
-double ts_diff_usec(struct timespec *a, struct timespec *b)
+double ldmsd_ts_diff_usec(struct timespec *a, struct timespec *b)
 {
 	double aa = a->tv_sec*1e9 + a->tv_nsec;
 	double bb = b->tv_sec*1e9 + b->tv_nsec;
@@ -1262,7 +1263,7 @@ void ldmsd_stat_update(struct ldmsd_stat *stat, struct timespec *start, struct t
 		return;
 	}
 
-	double dur = ts_diff_usec(end, start);
+	double dur = ldmsd_ts_diff_usec(end, start);
 	stat->count++;
 	if (1 == stat->count) {
 		stat->avg = stat->min = stat->max = dur;

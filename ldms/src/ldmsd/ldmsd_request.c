@@ -117,7 +117,7 @@ static int stream_enabled = 0;
 static int cleanup_requested = 0;
 
 static char * __thread_stats_as_json(size_t *json_sz);
-static char * __xprt_stats_as_json(size_t *json_sz, int reset, int level);
+static char *__xprt_stats_as_json(size_t *json_sz, int reset, int level, int reset_hist);
 extern const char *prdcr_state_str(enum ldmsd_prdcr_state state);
 
 extern int ldmsd_quota; /* defined in ldmsd.c */
@@ -6787,6 +6787,11 @@ static int dump_cfg_handler(ldmsd_req_ctxt_t reqc)
 	}
 	fprintf(fp, "\n");
 
+	if (ldms_msg_is_enabled())
+		fprintf(fp, "msg_enable\n");
+	if (stream_enabled)
+		fprintf(fp, "stream_enable\n");
+
 	/* Daemon name */
 	const char *_name = ldmsd_myname_get();
 	if (_name[0] != '\0') {
@@ -7208,11 +7213,10 @@ struct op_summary {
 	uint64_t op_total_us;
 	uint64_t op_min_us;
 	struct ldms_xprt_stats_s *op_min_ep;
-	// struct ldms_xprt *op_min_xprt;
 	uint64_t op_max_us;
 	struct ldms_xprt_stats_s *op_max_ep;
-	// struct ldms_xprt *op_max_xprt;
 	uint64_t op_mean_us;
+	struct ovis_histogram hist; /* Aggregate histogram across all endpoints */
 };
 
 #define __APPEND_SZ 4096
@@ -7290,7 +7294,7 @@ struct op_summary {
  *      }
  */
 
-static char *__xprt_stats_as_json(size_t *json_sz, int reset, int level)
+static char *__xprt_stats_as_json(size_t *json_sz, int reset, int level, int recal_hist)
 {
 	char *buff;
 	char *s;
@@ -7310,6 +7314,7 @@ static char *__xprt_stats_as_json(size_t *json_sz, int reset, int level)
 	int rc, first_rail = 1, first_ep;
 	struct ldms_xprt_stats_result *res = NULL;
 	struct ldms_xprt_stats_s *rent, *ep_res;
+	ldms_xprt_op_histogram_t op_hist = NULL;
 	int i;
 
 
@@ -7317,14 +7322,22 @@ static char *__xprt_stats_as_json(size_t *json_sz, int reset, int level)
 
 	(void)clock_gettime(CLOCK_REALTIME, &start);
 
-	buff = malloc(sz);
-	if (!buff)
+	op_hist = ldms_xprt_histogram_get();
+	if (!op_hist)
 		return NULL;
+
+	buff = malloc(sz);
+	if (!buff) {
+		ldms_xprt_histogram_free(op_hist);
+		return NULL;
+	}
 	s = buff;
 
 	memset(op_sum, 0, sizeof(op_sum));
-	for (op_e = 0; op_e < LDMS_XPRT_OP_COUNT; op_e++)
+	for (op_e = 0; op_e < LDMS_XPRT_OP_COUNT; op_e++) {
 		op_sum[op_e].op_min_us = LLONG_MAX;
+		ovis_histogram_init(&op_sum[op_e].hist, 0, 0, 0);
+	}
 
 	__APPEND("{");
 	__APPEND(" \"level\" : %d,", level);
@@ -7445,7 +7458,6 @@ static char *__xprt_stats_as_json(size_t *json_sz, int reset, int level)
 
 		strncpy(ip_str, "0.0.0.0:0", sizeof(ip_str));
 		strncpy(xprt_type, "????", sizeof(xprt_type));
-
 		if (op->op_max_ep) {
 			sin = (struct sockaddr_in *)&op->op_max_ep->ep.ss_remote;
 			memccpy(xprt_type, op->op_max_ep->name, 0, sizeof(xprt_type)-1);
@@ -7456,7 +7468,28 @@ static char *__xprt_stats_as_json(size_t *json_sz, int reset, int level)
 		}
 
 		__APPEND("    \"max_peer_type\": \"%s\",\n", xprt_type);
-		__APPEND("    \"mean_us\": %ld\n", op->op_mean_us);
+		__APPEND("    \"mean_us\": %ld,\n", op->op_mean_us);
+
+		json_doc_t jdoc = json_doc_new();
+		if (jdoc && op_hist) {
+			json_entity_t hist_dict = ovis_histogram2dict(jdoc, &op_hist[op_e].hist);
+			if (hist_dict) {
+				jbuf_t jbuf = json_entity_dump(NULL, hist_dict);
+				json_doc_free(jdoc);
+				if (jbuf) {
+					__APPEND("    \"hist\": %s\n", jbuf->buf);
+					jbuf_free(jbuf);
+				} else {
+					__APPEND("    \"hist\": null\n");
+				}
+			} else {
+				json_doc_free(jdoc);
+				__APPEND("    \"hist\": null\n");
+			}
+		} else {
+			__APPEND("    \"hist\": null\n");
+		}
+
 		if (op_e < LDMS_XPRT_OP_COUNT - 1)
 			__APPEND(" },\n");
 		else
@@ -7464,12 +7497,20 @@ static char *__xprt_stats_as_json(size_t *json_sz, int reset, int level)
 	}
 	__APPEND(" }\n"); /* op_stats */
 	__APPEND("}");
+
+	if (reset || recal_hist) {
+		ldms_xprt_histogram_reset(recal_hist);
+	}
+
 	*json_sz = s - buff + 1;
 	ldms_xprt_stats_result_free(res);
+	ldms_xprt_histogram_free(op_hist);
 	return buff;
 __APPEND_ERR:
 	if (res)
 		ldms_xprt_stats_result_free(res);
+	if (op_hist)
+		ldms_xprt_histogram_free(op_hist);
 	return NULL;
 }
 
@@ -7478,6 +7519,7 @@ static int xprt_stats_handler(ldmsd_req_ctxt_t req)
 	char *s, *json_s;
 	size_t json_sz;
 	int reset = 0;
+	int recal_hist = 0;
 	int level = 0;
 	struct ldmsd_req_attr_s attr;
 
@@ -7489,13 +7531,22 @@ static int xprt_stats_handler(ldmsd_req_ctxt_t req)
 		free(s);
 	}
 
+	s = ldmsd_req_attr_str_value_get_by_id(req, LDMSD_ATTR_HIST_RECAL);
+	if (s) {
+		if (0 != strcasecmp(s, "false")) {
+			recal_hist = 1;
+			reset = 1; /* hist_recalibrate is a superset of reset */
+		}
+		free(s);
+	}
+
 	s = ldmsd_req_attr_str_value_get_by_id(req, LDMSD_ATTR_LEVEL);
 	if (s) {
 		level = atoi(s);
 		free(s);
 	}
 
-	json_s = __xprt_stats_as_json(&json_sz, reset, level);
+	json_s = __xprt_stats_as_json(&json_sz, reset, level, recal_hist);
 	if (!json_s)
 		goto err;
 
@@ -7794,47 +7845,47 @@ int __store_time_thread_cmp(void *tree_key, const void *key)
 	return a - b;
 }
 
-static int __store_time_thread_tree(struct rbt *tree)
-{
-	ldmsd_prdcr_t prdcr;
-	struct rbn *prdset_rbn, *rbn;
-	ldmsd_prdcr_set_t prdset;
-	struct store_time_thread *ent;
-	ldmsd_strgp_ref_t strgp_ref;
-	pid_t tid;
-	struct ldmsd_stat *store_io_thr_stat; /* Statistics of time duration used on IO thread int he storing process */
-	int rc = 0;
+// static int __store_time_thread_tree(struct rbt *tree)
+// {
+// 	ldmsd_prdcr_t prdcr;
+// 	struct rbn *prdset_rbn, *rbn;
+// 	ldmsd_prdcr_set_t prdset;
+// 	struct store_time_thread *ent;
+// 	ldmsd_strgp_ref_t strgp_ref;
+// 	pid_t tid;
+// 	struct ldmsd_stat *store_io_thr_stat; /* Statistics of time duration used on IO thread int he storing process */
+// 	int rc = 0;
 
-	for (prdcr = ldmsd_prdcr_first(); prdcr; prdcr = ldmsd_prdcr_next(prdcr)) {
-		RBT_FOREACH(prdset_rbn, &prdcr->set_tree) {
-			prdset = container_of(prdset_rbn, struct ldmsd_prdcr_set, rbn);
-			if (!prdset->set)
-				continue;
-			tid = ldms_set_thread_id_get(prdset->set);
-			rbn = rbt_find(tree, (void*)(uint64_t)tid);
-			if (!rbn) {
-				ent = calloc(1, sizeof(*ent));
-				if (!ent) {
-					ovis_log(config_log, OVIS_LCRITICAL,
-							"Memory Allocation Failure.");
-					rc = ENOMEM;
-					goto out;
-				}
-				rbn_init(&ent->rbn, (void*)(uint64_t)tid);
-				rbt_ins(tree, &ent->rbn);
-			} else {
-				ent = container_of(rbn, struct store_time_thread, rbn);
-			}
+// 	for (prdcr = ldmsd_prdcr_first(); prdcr; prdcr = ldmsd_prdcr_next(prdcr)) {
+// 		RBT_FOREACH(prdset_rbn, &prdcr->set_tree) {
+// 			prdset = container_of(prdset_rbn, struct ldmsd_prdcr_set, rbn);
+// 			if (!prdset->set)
+// 				continue;
+// 			tid = ldms_set_thread_id_get(prdset->set);
+// 			rbn = rbt_find(tree, (void*)(uint64_t)tid);
+// 			if (!rbn) {
+// 				ent = calloc(1, sizeof(*ent));
+// 				if (!ent) {
+// 					ovis_log(config_log, OVIS_LCRITICAL,
+// 							"Memory Allocation Failure.");
+// 					rc = ENOMEM;
+// 					goto out;
+// 				}
+// 				rbn_init(&ent->rbn, (void*)(uint64_t)tid);
+// 				rbt_ins(tree, &ent->rbn);
+// 			} else {
+// 				ent = container_of(rbn, struct store_time_thread, rbn);
+// 			}
 
-			LIST_FOREACH(strgp_ref, &prdset->strgp_list, entry) {
-				store_io_thr_stat = &strgp_ref->store_stages_stat.io_thread_stat;
-				ent->store_time += (uint64_t)(store_io_thr_stat->avg * store_io_thr_stat->count);
-			}
-		}
-	}
-out:
-	return rc;
-}
+// 			LIST_FOREACH(strgp_ref, &prdset->strgp_list, entry) {
+// 				store_io_thr_stat = &strgp_ref->store_stages_stat.io_thread_stat;
+// 				ent->store_time += (uint64_t)(store_io_thr_stat->avg * store_io_thr_stat->count);
+// 			}
+// 		}
+// 	}
+// out:
+// 	return rc;
+// }
 
 void ldmsd_prdcr_set_stats_reset(ldmsd_prdcr_set_t prdset, struct timespec *now, int flags);
 static void __prdset_stats_reset(struct timespec *now, int reset_flags)
@@ -7964,7 +8015,7 @@ static char * __thread_stats_as_json(size_t *json_sz)
 	char *buff, *s;
 	size_t sz = __APPEND_SZ;
 	int i, j;
-	int rc;
+	// int rc;
 	struct timespec start, end;
 	struct ldms_thrstat_result *lres = NULL;
 	struct zap_thrstat_result_entry *zthr;
@@ -7973,9 +8024,6 @@ static char * __thread_stats_as_json(size_t *json_sz)
 	 * each IO thread for the storing process, e.g., decomposition and
 	 * waiting for a storage worker
 	 */
-	struct rbt store_time_tree;
-	struct rbn *rbn;
-	struct store_time_thread *stime_ent;
 	struct ldmsd_worker_thrstat_result *wres = NULL;
 	struct ldmsd_worker_thrstat_result *xres = NULL;
 	struct ldmsd_worker_thrstat_result *sres = NULL; /* storage workers */
@@ -7993,12 +8041,6 @@ static char * __thread_stats_as_json(size_t *json_sz)
 	s = buff = NULL;
 
 	(void)clock_gettime(CLOCK_REALTIME, &start);
-
-	rbt_init(&store_time_tree, __store_time_thread_cmp);
-	rc = __store_time_thread_tree(&store_time_tree);
-	if (rc) {
-		goto __APPEND_ERR;
-	}
 
 	lres = ldms_thrstat_result_get(interval_s);
 	if (!lres)
@@ -8051,24 +8093,8 @@ static char * __thread_stats_as_json(size_t *json_sz)
 		for (j = 0; j < LDMS_THRSTAT_OP_COUNT; j++) {
 			if (j > 0)
 				__APPEND(",\n");
-			if (j == LDMS_THRSTAT_OP_UPDATE_REPLY) {
-				/* Substract the store_time from the total update time */
-				rbn = rbt_find(&store_time_tree, (void*)(uint64_t)res->tid);
-				if (rbn) {
-					stime_ent = container_of(rbn, struct store_time_thread, rbn);
-					__APPEND("     \"%s\": %ld,\n", ldms_thrstat_op_str(j),
-								lres->entries[i].ops[j] - stime_ent->store_time);
-					__APPEND("     \"Store Prep\": %ld",
-							stime_ent->store_time);
-				} else {
-					__APPEND("     \"%s\": %ld,\n", ldms_thrstat_op_str(j),
-								lres->entries[i].ops[j]);
-					__APPEND("     \"Store Prep\": 0");
-				}
-			} else {
-				__APPEND("     \"%s\": %ld", ldms_thrstat_op_str(j),
-							lres->entries[i].ops[j]);
-			}
+			__APPEND("     \"%s\": %ld", ldms_thrstat_op_str(j),
+						lres->entries[i].ops[j]);
 		}
 		__APPEND("      }");
 		__APPEND("   ");
@@ -8164,11 +8190,11 @@ static char * __thread_stats_as_json(size_t *json_sz)
 	ldms_thrstat_result_free(lres);
 	ldmsd_worker_thrstat_free(wres);
 	ldmsd_worker_thrstat_free(sres);
-	while ((rbn = rbt_min(&store_time_tree))) {
-		rbt_del(&store_time_tree, rbn);
-		stime_ent = container_of(rbn, struct store_time_thread, rbn);
-		free(stime_ent);
-	}
+	// while ((rbn = rbt_min(&store_time_tree))) {
+	// 	rbt_del(&store_time_tree, rbn);
+	// 	stime_ent = container_of(rbn, struct store_time_thread, rbn);
+	// 	free(stime_ent);
+	// }
 	return buff;
 __APPEND_ERR:
 	ldms_thrstat_result_free(lres);
@@ -8176,11 +8202,11 @@ __APPEND_ERR:
 	ldmsd_worker_thrstat_free(sres);
 	if (xres)
 		ldmsd_worker_thrstat_free(xres);
-	while ((rbn = rbt_min(&store_time_tree))) {
-		rbt_del(&store_time_tree, rbn);
-		stime_ent = container_of(rbn, struct store_time_thread, rbn);
-		free(stime_ent);
-	}
+	// while ((rbn = rbt_min(&store_time_tree))) {
+	// 	rbt_del(&store_time_tree, rbn);
+	// 	stime_ent = container_of(rbn, struct store_time_thread, rbn);
+	// 	free(stime_ent);
+	// }
 	free(buff);
 	return NULL;
 }
@@ -9496,11 +9522,45 @@ unlock:
 	return rc;
 }
 
+/*
+ * The JSON object returned by update_time_stats_handler() is:
+ *
+ * {
+ *   "<updtr_name>": {
+ *     "histogram": {
+ *       "n_bins"     : <int>,
+ *       "boundaries" : [ <float>, ... ],   // n_bins + 1 values
+ *       "underflow"  : <int>,
+ *       "bins"       : [ <int>, ... ],     // n_bins counts
+ *       "overflow"   : <int>
+ *     },
+ *     "<prdcr_name>": {
+ *       "<prdset_name>": {
+ *         "min"             : <float>,     // usec
+ *         "max"             : <float>,     // usec
+ *         "avg"             : <float>,     // usec
+ *         "count"           : <int>,
+ *         "skipped_cnt"     : <int>,
+ *         "oversampled_cnt" : <int>
+ *       },
+ *       ...
+ *     },
+ *     ...
+ *   },
+ *   ...
+ * }
+ *
+ * Notes:
+ * - "histogram" is omitted if the updtr histogram is still in warmup.
+ * - Multiple updaters appear as sibling keys at the top level.
+ * - Multiple producers appear as sibling keys under each updater.
+ * - Multiple producer sets appear as sibling keys under each producer.
+ */
 extern ldmsd_prdcr_ref_t updtr_prdcr_ref_first(ldmsd_updtr_t updtr);
 extern ldmsd_prdcr_ref_t updtr_prdcr_ref_next(ldmsd_prdcr_ref_t ref);
 static int
 __upd_time_stats_json_obj(ldmsd_req_ctxt_t reqc, ldmsd_updtr_t updtr,
-			int reset, struct timespec *now)
+			int reset, struct timespec *now, int summary)
 {
 	int rc;
 	ldmsd_name_match_t match;
@@ -9509,6 +9569,26 @@ __upd_time_stats_json_obj(ldmsd_req_ctxt_t reqc, ldmsd_updtr_t updtr,
 	rc = linebuf_printf(reqc, "\"%s\":{", updtr->obj.name);
 	if (rc)
 		return rc;
+
+	if (!summary) {
+		/* Histogram -- only emit if warmup is complete */
+		json_doc_t jdoc = json_doc_new();
+		if (!jdoc)
+			return ENOMEM;
+		json_entity_t hist_dict = ovis_histogram2dict(jdoc, &updtr->hist);
+		if (hist_dict) {
+			jbuf_t jbuf = json_entity_dump(NULL, hist_dict);
+			json_doc_free(jdoc);
+			if (!jbuf)
+				return ENOMEM;
+			rc = linebuf_printf(reqc, "\"histogram\":%s,", jbuf->buf);
+			jbuf_free(jbuf);
+			if (rc)
+				return rc;
+		} else {
+			json_doc_free(jdoc);
+		}
+	}
 
 	if (!LIST_EMPTY(&updtr->match_list)) {
 		LIST_FOREACH(match, &updtr->match_list, entry) {
@@ -9535,7 +9615,14 @@ __upd_time_stats_json_obj(ldmsd_req_ctxt_t reqc, ldmsd_updtr_t updtr,
 				cnt++;
 		}
 	}
+
+	if (reset) {
+		/* Reset the histogram data */
+		ovis_histogram_reset(&updtr->hist);
+	}
+
 	rc = linebuf_printf(reqc, "}");
+
 out:
 	return rc;
 }
@@ -9546,8 +9633,10 @@ static int update_time_stats_handler(ldmsd_req_ctxt_t reqc)
 	ldmsd_updtr_t updtr;
 	char *name = NULL;
 	char *reset_s = NULL;
+	char *summary_s = NULL;
 	int cnt = 0;
 	int reset = 0;
+	int summary = 0;
 	struct timespec now;
 
 	clock_gettime(CLOCK_REALTIME, &now);
@@ -9555,9 +9644,11 @@ static int update_time_stats_handler(ldmsd_req_ctxt_t reqc)
 	if (reset_s) {
 		if (0 != strcasecmp(reset_s, "false"))
 			reset = 1;
-		free(reset_s);
 	}
 
+	summary_s = ldmsd_req_attr_str_value_get_by_id(reqc, LDMSD_ATTR_SUMMARY);
+	if (summary_s && (0 != strcasecmp(summary_s, "false")))
+		summary = 1;
 
 	rc = linebuf_printf(reqc, "{");
 	if (rc)
@@ -9574,7 +9665,7 @@ static int update_time_stats_handler(ldmsd_req_ctxt_t reqc)
 			ldmsd_send_req_response(reqc, reqc->line_buf);
 			goto out;
 		}
-		rc = __upd_time_stats_json_obj(reqc, updtr, reset, &now);
+		rc = __upd_time_stats_json_obj(reqc, updtr, reset, &now, summary);
 	} else {
 		ldmsd_cfg_lock(LDMSD_CFGOBJ_UPDTR);
 		for (updtr = ldmsd_updtr_first(); updtr;
@@ -9586,7 +9677,7 @@ static int update_time_stats_handler(ldmsd_req_ctxt_t reqc)
 					goto err;
 				}
 			}
-			rc = __upd_time_stats_json_obj(reqc, updtr, reset, &now);
+			rc = __upd_time_stats_json_obj(reqc, updtr, reset, &now, summary);
 			if (rc) {
 				ldmsd_cfg_unlock(LDMSD_CFGOBJ_UPDTR);
 				goto err;
@@ -9606,6 +9697,8 @@ err:
 	ldmsd_send_req_response(reqc, reqc->line_buf);
 out:
 	free(name);
+	free(reset_s);
+	free(summary_s);
 	return rc;
 }
 
@@ -9633,10 +9726,10 @@ out:
  */
 static json_entity_t ldmsd_stat2dict(json_doc_t jdoc, struct ldmsd_stat *stat)
 {
-	double start_ts = stat->start.tv_sec + stat->start.tv_nsec/1000000.0;
-	double end_ts = stat->end.tv_sec + stat->end.tv_nsec/1000000.0;
-	double min_ts = stat->min_ts.tv_sec + stat->min_ts.tv_nsec/1000000.0;
-	double max_ts = stat->max_ts.tv_sec + stat->max_ts.tv_nsec/1000000.0;
+	double start_ts = stat->start.tv_sec + stat->start.tv_nsec/1.0e9;
+	double end_ts = stat->end.tv_sec + stat->end.tv_nsec/1.0e9;
+	double min_ts = stat->min_ts.tv_sec + stat->min_ts.tv_nsec/1.0e9;
+	double max_ts = stat->max_ts.tv_sec + stat->max_ts.tv_nsec/1.0e9;
 	json_entity_t d = json_dict_build(jdoc,
 				"min",     JSON_FLOAT_VALUE, stat->min,
 				"min_ts",  JSON_FLOAT_VALUE, min_ts,
@@ -9664,13 +9757,14 @@ static json_entity_t __prdset_store_time_json_get(json_doc_t jdoc, struct store_
 
 void ldmsd_prdcr_set_store_stats_init(ldmsd_prdcr_set_t prdset, struct timespec *ts);
 static int
-__store_time_stats_prdset(json_entity_t strgp_dict, ldmsd_strgp_t strgp, ldmsd_prdcr_set_t prdset, int reset)
+__store_time_stats_prdset(json_entity_t strgp_dict, ldmsd_strgp_t strgp, ldmsd_prdcr_set_t prdset, int reset, int recal_hist)
 {
 	int rc = 0;
 	ldmsd_strgp_ref_t strgp_ref;
 	json_entity_t producers, threads, schemas, sets;
 	json_entity_t prdcr_json, thr_json, sch_json, set_json;
 	json_entity_t strgp_stats, set_stats, stage_stats;
+	json_entity_t hist;
 	json_doc_t jdoc = json_entity_doc(strgp_dict);
 	pid_t tid;
 	char tid_s[128];
@@ -9698,13 +9792,39 @@ __store_time_stats_prdset(json_entity_t strgp_dict, ldmsd_strgp_t strgp, ldmsd_p
 				rc = ENOMEM;
 				goto out;
 			}
+			/* histogram */
+			hist = ovis_histogram2dict(json_entity_doc(strgp_stats),
+						    &strgp_ref->strgp->hist_store_time);
+			if (!hist) {
+				if (errno != 0) {
+					ovis_log(config_log, OVIS_LERROR,
+						"Failed to get a store_time histogram of strgp '%s'\n",
+						strgp_ref->strgp->obj.name);
+					rc = errno;
+					goto out;
+				}
+			} else {
+				rc = json_attr_add(strgp_stats, "hist_store_time", hist);
+				if (rc) {
+					ovis_log(config_log, OVIS_LERROR,
+							"Error creating the JSON response "
+							"of a store_time request. Error %d\n", rc);
+					goto out;
+				}
+			}
+
 			rc = json_attr_add(strgp_dict, strgp_ref->strgp->obj.name, strgp_stats);
 			if (rc) {
-				json_entity_free(strgp_stats);
 				ovis_log(config_log, OVIS_LERROR,
 						"Error creating the JSON response "
 						"of a store_time request. Error %d\n", rc);
 				goto out;
+			}
+			if (recal_hist) {
+				/* Recalibrate also resets the histogram data, no need to call reset again. */
+				ovis_histogram_recalibrate(&strgp_ref->strgp->hist_store_time, 0, 0, 0);
+			} else if (reset) {
+				ovis_histogram_reset(&strgp_ref->strgp->hist_store_time);
 			}
 		}
 
@@ -9848,22 +9968,32 @@ __store_time_stats_prdset(json_entity_t strgp_dict, ldmsd_strgp_t strgp, ldmsd_p
 static int store_time_stats_handler(ldmsd_req_ctxt_t reqc)
 {
 	int rc = 0;
-	char *name, *reset_s;
-	name = reset_s = NULL;
+	char *name, *reset_s, *recal_hist_s;
+	name = reset_s = recal_hist_s = NULL;
 	ldmsd_strgp_t strgp;
 	int reset = 0;
+	int recal_hist = 0;
 	json_entity_t strgp_dict;
 	jbuf_t jbuf = NULL;
 
 	ldmsd_prdcr_t prdcr;
 	ldmsd_prdcr_set_t prdset;
 
-
 	reset_s = ldmsd_req_attr_str_value_get_by_id(reqc, LDMSD_ATTR_RESET);
 	if (reset_s) {
 		if (0 != strcasecmp(reset_s, "false"))
 			reset = 1;
 		free(reset_s);
+	}
+
+	/*
+	 * If hist_recalibrate is true, all statistics data and the histogram bins and boundaries will be reset and re-calibrated.
+	 * This is to ensure that the shown data is consistent throughout (min, max, average, and the histogram).
+	 */
+	recal_hist_s = ldmsd_req_attr_str_value_get_by_id(reqc, LDMSD_ATTR_HIST_RECAL);
+	if (recal_hist_s && (0 != strcasecmp(recal_hist_s, "false"))) {
+		recal_hist = 1;
+		reset = 1;
 	}
 
 	name = ldmsd_req_attr_str_value_get_by_id(reqc, LDMSD_ATTR_NAME);
@@ -9898,7 +10028,7 @@ static int store_time_stats_handler(ldmsd_req_ctxt_t reqc)
 		ldmsd_prdcr_lock(prdcr);
 		for (prdset = ldmsd_prdcr_set_first(prdcr); prdset; prdset = ldmsd_prdcr_set_next(prdset)) {
 			pthread_mutex_lock(&prdset->lock);
-			rc = __store_time_stats_prdset(strgp_dict, strgp, prdset, reset);
+			rc = __store_time_stats_prdset(strgp_dict, strgp, prdset, reset, recal_hist);
 			pthread_mutex_unlock(&prdset->lock);
 			if (rc) {
 				ldmsd_prdcr_unlock(prdcr);
@@ -9922,9 +10052,19 @@ err:
 	ldmsd_send_req_response(reqc, reqc->line_buf);
 out:
 	free(name);
+	free(recal_hist_s);
 	json_doc_free(jdoc);
 	jbuf_free(jbuf);
 	return rc;
+}
+
+static void __updtr_stats_reset()
+{
+	ldmsd_updtr_t updtr;
+	for (updtr = ldmsd_updtr_first(); updtr;
+		updtr = ldmsd_updtr_next(updtr)) {
+		ovis_histogram_reset(&updtr->hist);
+	}
 }
 
 static int stats_reset_handler(ldmsd_req_ctxt_t reqc)
@@ -9972,16 +10112,19 @@ static int stats_reset_handler(ldmsd_req_ctxt_t reqc)
 		zap_thrstat_reset_all(&now);
 		ldmsd_worker_thrstats_reset(&now);
 		ldmsd_xthrstat_reset(&now);
-		__prdset_stats_reset(&now, prdset_reset_flags);
 	}
 
 	if (is_xprt) {
 		ldms_xprt_rate_data(NULL, 1);
-		__prdset_stats_reset(&now, prdset_reset_flags);
 	}
 
 	if (is_stream)
 		ldms_msg_stats_reset();
+
+	if (is_update)
+		__updtr_stats_reset();
+
+	__prdset_stats_reset(&now, prdset_reset_flags);
 
 	free(s);
 	ldmsd_send_req_response(reqc, reqc->line_buf);
@@ -11526,7 +11669,7 @@ static int qgroup_config_handler(ldmsd_req_ctxt_t reqc)
 						LDMSD_ATTR_ASK_MARK);
 	int rc = 0;
 	uint64_t u64;
-	int64_t s64;
+	long s64;
 
 	if (quota) {
 		u64 = ovis_get_mem_size(quota);

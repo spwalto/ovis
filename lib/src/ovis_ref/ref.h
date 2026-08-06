@@ -116,7 +116,6 @@ static inline int _ref_put(ref_t r, const char *name, const char *func, int line
 	int count;
 #ifdef _REF_TRACK_
 	ref_inst_t inst;
-	assert(r->ref_count);
 	pthread_mutex_lock(&r->lock);
 	LIST_FOREACH(inst, &r->head, entry) {
 		if (0 == strcmp(inst->name, name)) {
@@ -224,7 +223,7 @@ static void ref_dump_no_lock(ref_t r, const char *name, FILE *f)
 	fprintf(f,
 		"%-24s %-8s %-32s %-32s\n", "Name", "Count",
 		"Get Line:Func", "Put Line:Func");
-	fprintf(stderr,
+	fprintf(f,
 		"------------------------ -------- --------------------------------- "
 		"---------------------------------\n");
 	LIST_FOREACH(inst, &r->head, entry) {

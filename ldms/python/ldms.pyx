@@ -43,6 +43,8 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+# cython: show_performance_hints=False
+
 from __future__ import print_function
 from cpython cimport PyObject, Py_INCREF, Py_DECREF, PyGILState_Ensure, \
                      PyGILState_Release, PyGILState_STATE, \
@@ -51,6 +53,7 @@ from cpython cimport PyObject, Py_INCREF, Py_DECREF, PyGILState_Ensure, \
 
 from libc.stdint cimport *
 from libc.stdlib cimport calloc, malloc, free, realloc
+from libc.stdio cimport *
 from posix.unistd cimport geteuid, getegid
 from collections import namedtuple
 import datetime as dt
@@ -514,20 +517,20 @@ def _msg_publish(Ptr x_ptr, name, data, msg_type=None,
     if msg_type is None:
         if _t is dict:
             # JSON
-            msg_type = ldms.LDMS_MSG_JSON
+            msg_type = LDMS_MSG_JSON
         elif _t in (str, bytes):
-            msg_type = ldms.LDMS_MSG_STRING
+            msg_type = LDMS_MSG_STRING
         else:
             raise TypeError(f"Cannot infer msg_type from the type of data ({type(data)})")
     # Avro/Serdes
-    if msg_type == ldms.LDMS_MSG_AVRO_SER:
+    if msg_type == LDMS_MSG_AVRO_SER:
         if not sr_client:
             raise ValueError(f"LDMS_MSG_AVRO_SER requires `sr_client`")
         if not schema_def:
             raise ValueError(f"LDMS_MSG_AVRO_SER requires `schema_def`")
         data = __avro_msg_data(sr_client, schema_def, data)
     # Json
-    if msg_type == ldms.LDMS_MSG_JSON and _t is dict:
+    if msg_type == LDMS_MSG_JSON and _t is dict:
         data = json.dumps(data)
 
     # uid
@@ -1540,12 +1543,12 @@ cdef class XprtEvent(object):
     def __cinit__(self, Ptr ptr):
         cdef ldms_xprt_event_t e = <ldms_xprt_event_t>ptr.c_ptr
         cdef ldms_set_t cset
-        self.type = ldms_xprt_event_type(e.type)
-        if self.type == ldms.LDMS_XPRT_EVENT_SEND_QUOTA_DEPOSITED:
+        self.type = e.type
+        if self.type == LDMS_XPRT_EVENT_SEND_QUOTA_DEPOSITED:
             self.quota = QuotaEventData(e.quota.quota, e.quota.ep_idx, e.quota.rc)
-        elif self.type == ldms.LDMS_XPRT_EVENT_SET_DELETE:
+        elif self.type == LDMS_XPRT_EVENT_SET_DELETE:
             cset = <ldms_set_t>e.set_delete.set
-            lset = Set(None, None, set_ptr=PTR(cset)) if cset else None
+            lset = set_coll.get( ldms_set_id(cset), None )
             self.set_delete = SetDeleteEventData(lset, STR(e.set_delete.name))
         else:
             self.data = e.data[:e.data_len]
@@ -1783,13 +1786,13 @@ cdef void dir_cb(ldms_t _x, int status, ldms_dir_t d, void *arg) with gil:
 cdef void lookup_cb(ldms_t _x, ldms_lookup_status status, int more,
                     ldms_set_t s, void *arg) with gil:
     (px, cb, cb_arg, slist) = <tuple>arg
+    if not more:
+        Py_DECREF(<tuple>arg)
     x = <Xprt>px
-    lset = Set(None, None, set_ptr=PTR(s)) if s else None
+    lset = Set._from_lookup(PTR(s), x) if s else None
     if cb:
         # Call the callback
         cb(x, status, more, lset, cb_arg)
-        if not more:
-            Py_DECREF(<tuple>arg)
         return
     if status:
         x._lookup_rc = status
@@ -1805,11 +1808,11 @@ cdef void lookup_cb(ldms_t _x, ldms_lookup_status status, int more,
 cdef void update_cb(ldms_t _t, ldms_set_t _s, int flags, void *arg) with gil:
     cdef int rc = LDMS_UPD_ERROR(flags)
     (ps, cb, cb_arg) = <tuple>arg
+    if 0 == (flags & LDMS_UPD_F_MORE):
+        Py_DECREF(<tuple>arg)
     s = <Set>ps
     if cb:
         cb(s, flags, cb_arg)
-        if 0 == (flags & LDMS_UPD_F_MORE):
-            Py_DECREF(<tuple>arg)
         return
     s._update_rc = rc
     if 0 == (flags & LDMS_UPD_F_MORE):
@@ -2926,6 +2929,11 @@ cdef class RecordType(MVal):
             return [ self.get_metric_info(k) for k in key ]
         raise TypeError("Unsupported `key` type; {}".format(type(key)))
 
+set_coll = dict() # [ _set_id ] -> Set()
+                  #
+                  # Global set collection for ease of access and maintenance
+                  # This conveniently maps Set <--> ldms_set. No more multiple
+                  # Set objects referring to one ldms_set.
 
 cdef class Set(object):
     """The metric set
@@ -2947,6 +2955,8 @@ cdef class Set(object):
 
     To delete the set, simply:
     >>> s.delete()
+
+    The application *must* call `s.delete()` to delete the set.
 
     To obtain a set from a remote peer:
     >>> s = x.lookup("my_set") # x is the Xprt object
@@ -2980,6 +2990,7 @@ cdef class Set(object):
     cdef Schema schema
     cdef object _push_cb
     cdef object _push_cb_arg
+    cdef Xprt _xprt
 
     def __cinit__(self, *args, **kwargs):
         self.rbd = NULL
@@ -2987,12 +2998,14 @@ cdef class Set(object):
 
     def __init__(self, str name, Schema schema,
                        int uid=0, int gid=0,
-                       int perm=0o777, Ptr set_ptr=None):
+                       int perm=0o777, Ptr set_ptr=None, Xprt xprt=None):
         self._getter = list()
         self._setter = list()
         self.schema = schema
         if set_ptr:
             self.rbd = <ldms_set_t>set_ptr.c_ptr
+            Py_INCREF(xprt)
+            self._xprt = xprt
         elif schema:
             if not name:
                 raise AttributeError("Missing `name` parameter")
@@ -3003,6 +3016,8 @@ cdef class Set(object):
             if not self.rbd:
                 raise RuntimeError("Set creation error: {}"\
                                    .format(ERRNO_SYM(errno)))
+            # put into set_coll
+            set_coll[ self._id() ] = self
         else:
             raise AttributeError("Requires `name` and `schema`")
         cdef ldms_value_type t
@@ -3016,9 +3031,22 @@ cdef class Set(object):
                 self._getter.append(METRIC_GETTER_TBL[t])
                 self._setter.append(METRIC_SETTER_TBL[t])
 
-    def __del__(self):
+    @classmethod
+    def _from_lookup(cls, Ptr set_ptr, Xprt x):
+        s = Set(None, None, set_ptr=set_ptr, xprt=x)
+        set_coll[ s._id() ] = s
+        return s
+
+    def _id(self):
+        if not self.rbd:
+            raise ValueError("Set is invalid")
+        return ldms_set_id(self.rbd)
+
+    def __dealloc__(self):
         if self.rbd:
-            ldms_set_put(self.rbd)
+            ldms_set_delete(self.rbd)
+        if self._xprt:
+            Py_DECREF(self._xprt)
 
     def __iter__(self):
         """iter(self) - iterates over keys (metric names) of the set"""
@@ -3040,7 +3068,11 @@ cdef class Set(object):
 
     def delete(self):
         """S.delete() - delete the set"""
-        ldms_set_delete(self.rbd)
+        cdef ldms_set_t s = self.rbd
+        self.rbd = NULL
+        if s:
+            set_coll.pop( ldms_set_id(s), None )
+            ldms_set_delete(s)
 
     def transaction_begin(self):
         """S.transaction_begin() - begin data transaction
@@ -3121,6 +3153,8 @@ cdef class Set(object):
         - `arg` is the `cb_arg` supplied to `update()`.
         """
         cdef int rc
+        if not cb:
+            self._xprt._check_blocked_cb()
         tpl = (self, cb, cb_arg)
         Py_INCREF(tpl)
         rc = ldms_xprt_update(self.rbd, update_cb, <void*>tpl)
@@ -3459,6 +3493,11 @@ cdef class Set(object):
         if rc: # synchronous error
             raise RuntimeError(f"ldms_xprt_cancel_push() error: {rc}")
 
+    def ref_dump(self):
+        b = BYTES(self.name)
+        cdef char *name = b
+        ldms_set_ref_dump(self.rbd, name, stdout)
+
 cdef void __xprt_free_cb(void* p) with gil:
     cdef Xprt x = <Xprt>p
     x._xprt_free_cb(x)
@@ -3535,9 +3574,11 @@ cdef class Xprt(object):
 
     cdef int rail_eps
 
+    cdef list _threads # cached threads associated to xprt
+
     def __init__(self, name="sock", auth="none", auth_opts=None,
-                       rail_eps = 1, rail_recv_quota = ldms.RAIL_UNLIMITED,
-                       rail_rate_limit = ldms.RAIL_UNLIMITED,
+                       rail_eps = 1, rail_recv_quota = RAIL_UNLIMITED,
+                       rail_rate_limit = RAIL_UNLIMITED,
                        Ptr xprt_ptr=None,
                        rail_recv_limit = None # alias of rail_recv_quota
                        ):
@@ -3550,6 +3591,7 @@ cdef class Xprt(object):
         self.ctxt = None
         if rail_recv_limit: # alias
             rail_recv_quota = rail_recv_limit
+        self._threads = None
         # conn
         sem_init(&self._conn_sem, 0, 0)
         self._conn_rc = ENOTCONN
@@ -3657,14 +3699,14 @@ cdef class Xprt(object):
             rc = self._conn_rc
             raise ConnectionError(rc, "Connect error: {}".format(ERRNO_SYM(rc)))
 
-    def listen(self, host="*", port=411, cb=None, cb_arg=None):
-        """X.listen(host="*", port=411, cb=None, cb_arg=None)
+    def listen(self, host=None, port=411, cb=None, cb_arg=None):
+        """X.listen(host=None, port=411, cb=None, cb_arg=None)
 
         Listen on `host:port` for LDMS connections
 
         Arguments:
         - host (str): The hostname (or IP address in string) to listen to.
-                      "*" (default) means no specific address.
+                      `None` (default) means no specific address.
         - port (int): The listening port number.
         - cb (callable): The callback function.
         - cb_arg (object): The application argument to `cb()`.
@@ -3683,9 +3725,17 @@ cdef class Xprt(object):
         - arg (object): The `cb_arg` supplied to the `listen()` function.
         """
         cdef int rc
+        cdef const char *h = NULL
+        cdef const char *p = NULL
+        host = BYTES(host)
+        port = BYTES(port)
+        if host:
+            h = host
+        if port:
+            p = port
         self._conn_cb = cb
         self._conn_cb_arg = cb_arg
-        rc = ldms_xprt_listen_by_name(self.xprt, BYTES(host), BYTES(port),
+        rc = ldms_xprt_listen_by_name(self.xprt, h, p,
                                       passive_xprt_cb, <void*>self)
         if rc:
             # synchronously failed, self.xprt is no good. Need to "put" it down.
@@ -3751,12 +3801,13 @@ cdef class Xprt(object):
         DIR_UPD) will also be delivered to `cb()`.
         """
         cdef int rc
+        if not cb:
+            flags = 0
+            self._check_blocked_cb()
         self._dir_rc = EPIPE
         self._dir_cb = cb
         self._dir_cb_arg = cb_arg
         self._dir_list = list()
-        if not cb:
-            flags = 0
         rc = ldms_xprt_dir(self.xprt, dir_cb, <void*>self, flags)
         if rc:
             raise ConnectionError(rc, "ldms_xprt_dir() error: {}" \
@@ -3812,6 +3863,8 @@ cdef class Xprt(object):
                         application.
         """
         cdef int rc
+        if not cb:
+            self._check_blocked_cb()
         slist = list()
         tpl = (self, cb, cb_arg, slist)
         Py_INCREF(tpl)
@@ -3819,6 +3872,7 @@ cdef class Xprt(object):
                               lookup_cb, <void*>tpl)
         if rc:
             # synchronous error
+            Py_DECREF(tpl)
             raise ConnectionError(rc, "ldms_xprt_lookup() error: {}" \
                                       .format(ERRNO_SYM(rc)))
         if cb:
@@ -3882,6 +3936,8 @@ cdef class Xprt(object):
 
     def get_threads(self):
         """Get the threads associated to the endpoint"""
+        if self._threads:
+            return self._threads
         cdef pthread_t *out
         cdef int n, rc
         assert(self.rail_eps > 0)
@@ -3893,10 +3949,16 @@ cdef class Xprt(object):
         if rc < 0:
             free(out)
             raise RuntimeError(f"ldms_xprt_get_threads() error: {rc}")
+        do_cache = True
         lst = list()
         for i in range(0, n):
-            lst.append(int(out[i]))
+            tid = int(out[i])
+            lst.append(tid)
+            if not tid:
+                do_cache = False
         free(out)
+        if do_cache:
+            self._threads = lst
         return lst
 
     def set_xprt_free_cb(self, cb = None):
@@ -3955,8 +4017,8 @@ cdef class Xprt(object):
         cdef int64_t q
         q = ldms_xprt_rail_recv_quota_get(self.xprt)
         if q < 0:
-            if q == ldms.LDMS_UNLIMITED:
-                return ldms.LDMS_UNLIMITED
+            if q == LDMS_UNLIMITED:
+                return LDMS_UNLIMITED
             else:
                 err = -q
                 raise RuntimeError(f"ldms_xprt_rail_recv_quota_set() error: {-err}")
@@ -3978,8 +4040,8 @@ cdef class Xprt(object):
 
     def get_send_rate_limit(self):
         cdef int64_t rate = ldms_xprt_rail_send_rate_limit_get(self.xprt)
-        if rate == ldms.LDMS_UNLIMITED:
-            return ldms.LDMS_UNLIMITED
+        if rate == LDMS_UNLIMITED:
+            return LDMS_UNLIMITED
         if rate < 0:
             raise RuntimeError(f"ldms_xprt_rail_send_rate_limit_get() error: {-rate}")
         return rate
@@ -3990,8 +4052,8 @@ cdef class Xprt(object):
 
     def get_recv_rate_limit(self):
         cdef int64_t rate = ldms_xprt_rail_recv_rate_limit_get(self.xprt)
-        if rate == ldms.LDMS_UNLIMITED:
-            return ldms.LDMS_UNLIMITED
+        if rate == LDMS_UNLIMITED:
+            return LDMS_UNLIMITED
         if rate < 0:
             raise RuntimeError(f"ldms_xprt_rail_recv_rate_limit_get() error: {-rate}")
         return rate
@@ -4101,6 +4163,10 @@ cdef class Xprt(object):
         None; This method does not return any value.
 
         """
+
+        if not cb:
+            self._check_blocked_cb()
+
         cdef int rc
         cdef sem_t sem
         cdef ldms_msg_event_cb_t _cb
@@ -4135,10 +4201,15 @@ cdef class Xprt(object):
                 rc = ldms_msg_remote_subscribe(self.xprt, c_match, c_is_regex,
                         __msg_wrap_cb, <void*>ctxt, c_rx_rate)
             if rc:
+                Py_DECREF(ctxt) # synchronous error
                 raise MsgSubscribeError(f"ldms_msg_remote_subscribe() error, rc: {rc}")
 
     def msg_unsubscribe(self, match, is_regex, cb=None, cb_arg=None):
         """Send an unsubscription request to the remote peer"""
+
+        if not cb:
+            self._check_blocked_cb()
+
         cdef int rc
         cdef sem_t sem
         cdef ldms_msg_event_cb_t _cb
@@ -4170,6 +4241,7 @@ cdef class Xprt(object):
                         __msg_wrap_cb, <void*>ctxt)
                 if rc:
                     with gil:
+                        Py_DECREF(ctxt) # synchronous error
                         raise MsgSubscribeError(f"ldms_msg_remote_unsubscribe() error, rc: {rc}")
 
     def get_addr(self):
@@ -4200,6 +4272,15 @@ cdef class Xprt(object):
     @property
     def peer_msg_is_enabled(self):
         return ldms_xprt_peer_msg_is_enabled(self.xprt)
+
+    def _check_blocked_cb(self):
+        """(Internal) Check if this would block the callback"""
+        _tid = threading.get_ident()
+        _threads = self.get_threads()
+        # NOTE: _threads is a list of pthread ID (not Linux TID), hence we need
+        #       to use `threading.get_ident()`, not `threading.get_native_id()`
+        if _tid in _threads:
+            raise RuntimeError("Calling a method in a blocking mode in callback function would block the thread indefinitely.")
 
 
 cdef class _MsgSubCtxt(object):
@@ -4425,7 +4506,7 @@ cdef class MsgData(object):
             tid = threading.get_ident()
         obj = MsgData(name, src, tid, uid, gid, perm, is_json, data,
                          raw_data,
-                         ldms.ldms_msg_type_e(ev.recv.type))
+                         ldms_msg_type_e(ev.recv.type))
         return obj
 
 cdef int __msg_client_cb(ldms_msg_event_t ev, void *arg) with gil:
@@ -5124,3 +5205,7 @@ def msg_enable():
 def msg_is_enabled():
     """Return True if the LDMS Message Service is enabled"""
     return ldms_msg_is_enabled()
+
+def set_deleting_dump():
+    """(DEBUG) Dump sets in the set deleting list to stdout"""
+    ldms_set_deleting_dump(stdout)

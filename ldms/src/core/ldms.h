@@ -70,6 +70,7 @@
 #include "ovis_log/ovis_log.h"
 #include "ovis_ref/ref.h"
 #include "ovis_json/ovis_json.h"
+#include "ovis_histogram/ovis_histogram.h"
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -586,6 +587,8 @@ typedef void (*ldms_lookup_cb_t)(ldms_t t, enum ldms_lookup_status status,
 #define LDMS_SET_F_REMOTE	0x0008
 #define LDMS_SET_F_PUSH_CHANGE	0x0010
 #define LDMS_SET_F_DATA_COPY	0x0020 /* set array data copy on transaction begin */
+#define LDMS_SET_F_IO		0x0040 /* 'on' when there is an outstanding IO: lookup, update */
+#define LDMS_SET_F_PDEL		0x0080 /* 'on' when producer has deleted the set */
 #define LDMS_SET_F_SNAPSHOT	0x10000 /* A read-only light copy of a set, which must not be published or shared with remote clients. */
 #define LDMS_SET_F_PUBLISHED	0x100000 /* Set is in the set tree. */
 #define LDMS_SET_ID_DATA	0x1000000
@@ -2481,6 +2484,28 @@ extern struct ldms_xprt_stats_result *ldms_xprt_stats_result_get(int mask, int r
  */
 extern void ldms_xprt_stats_result_free(struct ldms_xprt_stats_result *result);
 
+typedef struct ldms_xprt_op_histogram {
+	struct ovis_histogram hist;
+} *ldms_xprt_op_histogram_t;
+
+/**
+ * \brief Get the histogram of LDMS transport operations
+ *
+ */
+extern ldms_xprt_op_histogram_t ldms_xprt_histogram_get();
+
+/**
+ * \brief Reset the operation histograms
+ *
+ * \param recal   Recalibrate the operation histograms beside resetting them
+ */
+extern void ldms_xprt_histogram_reset(int recal);
+
+/**
+ * \brief Free ldms_xprt_op_histogram object returned by \c ldms_xprt_histogram_get()
+ */
+extern void ldms_xprt_histogram_free(ldms_xprt_op_histogram_t hist);
+
 /*
  * Metric template for:
  * - ldms_schema_from_template()
@@ -4113,14 +4138,14 @@ struct ldms_timestamp ldms_mval_as_timestamp(ldms_mval_t mv, enum ldms_value_typ
  * \brief Append a new value to a list
  *
  * Append a new value entry to a list metric. The list handle \c lh must be
- * - the metric handle obtained by calling \c ldms_metric_get(s, i) where the ith
+ * - the metric handle obtained by calling \c ldms_metric_get(s, i) where the i-th
  *   metric is a list, or
  * - the metric handle returned by \c ldms_list_append_item(s, some_lh, LDMS_V_LIST, 1) or
  * - the metric handle returned by \c ldms_list_first(s, some_lh, &otyp, &c)
  *   where the returned \c otyp must be \c LDMS_V_LIST, or
  * - the metric handle returned by \c ldms_list_next(s, some_lh, &otyp, &c) where
  *   the returned \c otyp must be \c LDMS_V_LIST.
- * Basically, please make sure that \c lh is the metric handle to the type
+ * Basically, please make certain that \c lh is the metric handle to the type
  * \c LDMS_V_LIST. If \c lh is not a list, the function call will corrupt the
  * memory.
  *
@@ -4128,8 +4153,12 @@ struct ldms_timestamp ldms_mval_as_timestamp(ldms_mval_t mv, enum ldms_value_typ
  * ignored and the handle to the new list inside the list \c lh is returned.
  *
  * If the requested element type \c typ is an array type, the \c count is
- * the array length (number of elements). Otherwise, if \c typ is a regular
- * type, \c count is also ignored.
+ * the array length (number of elements). If \c typ is a primitive
+ * type, \c count is ignored.
+ *
+ * If the list already contains at least one element, then the \c typ
+ * parameter must be the same as the first element type. All list elements must
+ * have the same type.
  *
  * \param s	The set handle.
  * \param lh	The metric handle of the list.
@@ -4713,6 +4742,13 @@ static inline double ldms_timespec_diff_s(struct timespec *start, struct timespe
 {
 	return (double)ldms_timespec_diff_us(start, end) / (double)1000000.0;
 }
+
+/* for debugging */
+#include <netdb.h>
+void dump_addrinfo_list(struct addrinfo *ai_list, const char *fn_name, int line);
+
+void ldms_set_ref_dump(ldms_set_t set, const char *name, FILE *f);
+void ldms_set_deleting_dump(FILE *f);
 
 #ifdef __cplusplus
 }

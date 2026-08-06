@@ -68,7 +68,9 @@
 #include <stdarg.h>
 #include <mmalloc/mmalloc.h>
 #include <ovis_json/ovis_json.h>
+#include <arpa/inet.h>
 #include "ovis_util/os_util.h"
+#include "ovis_histogram/ovis_histogram.h"
 #include "ldms.h"
 #include "ldms_xprt.h"
 #include "ldms_private.h"
@@ -82,6 +84,8 @@ extern ovis_log_t xlog;
 #define XPRT_LOG(x, level, fmt, ...) do { \
 	ovis_log(xlog, level, fmt, ## __VA_ARGS__); \
 } while (0);
+
+static struct ldms_xprt_op_histogram xprt_op_hist[LDMS_XPRT_OP_COUNT];
 
 /* The definition is in ldms_xprt.c. */
 extern int __enable_profiling[LDMS_XPRT_OP_COUNT];
@@ -109,6 +113,8 @@ static struct {
 	zap_t zap;
 } ldms_zap_tbl[16] = {{0}};
 static int ldms_zap_tbl_n = 0;
+
+static int ipv6_enabled;
 
 static char *xprt_event_type_names[] = {
 	[LDMS_XPRT_EVENT_CONNECTED] = "CONNECTED",
@@ -154,6 +160,38 @@ static int __ldms_xprt_is_connected(struct ldms_xprt *x)
 int ldms_xprt_connected(struct ldms_xprt *x)
 {
 	return x->ops.is_connected(x);
+}
+
+
+LIST_HEAD(, ldms_xprt) xprt_rdir_list;
+pthread_mutex_t xprt_rdir_list_mutex = PTHREAD_MUTEX_INITIALIZER;
+
+static inline void xprt_rdir_list_lock()
+{
+	pthread_mutex_lock(&xprt_rdir_list_mutex);
+}
+
+static inline void xprt_rdir_list_unlock()
+{
+	pthread_mutex_unlock(&xprt_rdir_list_mutex);
+}
+
+static inline void xprt_rdir_list_add(struct ldms_xprt *x)
+{
+	assert(0 == x->remote_dir_xid);
+	ldms_xprt_get(x, "xprt_rdir_list");
+	xprt_rdir_list_lock();
+	LIST_INSERT_HEAD(&xprt_rdir_list, x, xprt_rdir_ent);
+	xprt_rdir_list_unlock();
+}
+
+static inline void xprt_rdir_list_rm(struct ldms_xprt *x)
+{
+	assert(x->remote_dir_xid);
+	xprt_rdir_list_lock();
+	LIST_REMOVE(x, xprt_rdir_ent);
+	xprt_rdir_list_unlock();
+	ldms_xprt_put(x, "xprt_rdir_list");
 }
 
 LIST_HEAD(xprt_list, ldms_xprt) xprt_list;
@@ -360,6 +398,18 @@ void __ldms_op_ctxt_dequeue(struct ldms_op_ctxt_list *list, struct ldms_op_ctxt 
 	ref_put(&op_ctxt->ref, "enqueue");
 }
 
+void __xprt_stats_update(ldms_stats_entry_t e, double dur_us)
+{
+	if (e->min_us > dur_us)
+		e->min_us = dur_us;
+	if (e->max_us < dur_us)
+		e->max_us = dur_us;
+	e->total_us += dur_us;
+	e->mean_us = (e->count * e->mean_us) + dur_us;
+	e->count += 1;
+	e->mean_us /= e->count;
+}
+
 /* Must be called with the xprt lock held.
  * Keeps, rather than copies, string and other pointers in varargs. */
 struct ldms_context *__ldms_alloc_ctxt(struct ldms_xprt *x, size_t sz,
@@ -417,8 +467,7 @@ struct ldms_context *__ldms_alloc_ctxt(struct ldms_xprt *x, size_t sz,
 		ctxt->dir.cb_arg = va_arg(ap, void *);
 		break;
 	case LDMS_CONTEXT_SET_DELETE:
-		ctxt->set_delete.s = va_arg(ap, ldms_set_t);
-		ref_get(&ctxt->set_delete.s->ref, "__ldms_alloc_ctxt");
+		/* ctxt->set_delete.del_key will be set later by caller */
 		ctxt->set_delete.cb = va_arg(ap, ldms_set_delete_cb_t);
 		ctxt->set_delete.cb_arg = ctxt;
 		break;
@@ -437,6 +486,7 @@ void __ldms_free_ctxt(struct ldms_xprt *x, struct ldms_context *ctxt)
 	int64_t dur_us;
 	struct timespec end;
 	ldms_stats_entry_t e = NULL;
+	enum ldms_xprt_ops_e op_e;
 
 	(void)clock_gettime(CLOCK_REALTIME, &end);
 	dur_us = ldms_timespec_diff_us(&ctxt->start, &end);
@@ -448,12 +498,14 @@ void __ldms_free_ctxt(struct ldms_xprt *x, struct ldms_context *ctxt)
 		break;
 	case LDMS_CONTEXT_LOOKUP_READ:
 		e = &x->stats.ops[LDMS_XPRT_OP_LOOKUP];
+		op_e = LDMS_XPRT_OP_LOOKUP;
 		if (ctxt->lu_read.s)
 			ref_put(&ctxt->lu_read.s->ref, "__ldms_alloc_ctxt");
 		break;
 	case LDMS_CONTEXT_UPDATE:
 	case LDMS_CONTEXT_UPDATE_META:
 		e = &x->stats.ops[LDMS_XPRT_OP_UPDATE];
+		op_e = LDMS_XPRT_OP_UPDATE;
 		if (ctxt->update.s)
 			ref_put(&ctxt->update.s->ref, "__ldms_alloc_ctxt");
 		break;
@@ -463,13 +515,13 @@ void __ldms_free_ctxt(struct ldms_xprt *x, struct ldms_context *ctxt)
 		break;
 	case LDMS_CONTEXT_SET_DELETE:
 		e = &x->stats.ops[LDMS_XPRT_OP_SET_DELETE];
-		if (ctxt->set_delete.s)
-			ref_put(&ctxt->set_delete.s->ref, "__ldms_alloc_ctxt");
+		op_e = LDMS_XPRT_OP_SET_DELETE;
 		break;
 	case LDMS_CONTEXT_DIR:
 		break;
 	case LDMS_CONTEXT_SEND:
 		e = &x->stats.ops[LDMS_XPRT_OP_SEND];
+		op_e = LDMS_XPRT_OP_SEND;
 		break;
 	case LDMS_CONTEXT_PUSH:
 	case LDMS_CONTEXT_DIR_CANCEL:
@@ -477,14 +529,8 @@ void __ldms_free_ctxt(struct ldms_xprt *x, struct ldms_context *ctxt)
 	}
 	(void)clock_gettime(CLOCK_REALTIME, &x->stats.last_op);
 	if (e) {
-		if (e->min_us > dur_us)
-			e->min_us = dur_us;
-		if (e->max_us < dur_us)
-			e->max_us = dur_us;
-		e->total_us += dur_us;
-		e->mean_us = (e->count * e->mean_us) + dur_us;
-		e->count += 1;
-		e->mean_us /= e->count;
+		__xprt_stats_update(e, dur_us);
+		ovis_histogram_update(&xprt_op_hist[op_e].hist, dur_us);
 	}
 	ldms_xprt_put(ctxt->x, "alloc_ctxt");
 	if (ctxt->op_ctxt) {
@@ -618,24 +664,23 @@ static void dir_update(struct ldms_set *set, enum ldms_dir_type t)
 	size_t json_cnt;
 	struct ldms_xprt *x;
 
-	pthread_mutex_lock(&xprt_list_lock);
-	LIST_FOREACH(x, &xprt_list, xprt_link) {
-		if (x->remote_dir_xid) {
+	xprt_rdir_list_lock();
+	LIST_FOREACH(x, &xprt_rdir_list, xprt_rdir_ent) {
+		assert(x->remote_dir_xid);
+		if (!json_buf) {
+			/* Only build the JSON resonse if there is a
+			 * transport that has registered for updates */
+			json_buf = __ldms_format_set_for_dir(set, &json_cnt);
 			if (!json_buf) {
-				/* Only build the JSON resonse if there is a
-				 * transport that has registered for updates */
-				json_buf = __ldms_format_set_for_dir(set, &json_cnt);
-				if (!json_buf) {
-					XPRT_LOG(x, OVIS_LCRIT, "%s: memory allocation error\n", __func__);
-					goto out;
-				}
+				XPRT_LOG(x, OVIS_LCRIT, "%s: memory allocation error\n", __func__);
+				goto out;
 			}
-			send_dir_update(x, t, json_buf, json_cnt);
 		}
+		send_dir_update(x, t, json_buf, json_cnt);
 	}
 	free(json_buf);
 out:
-	pthread_mutex_unlock(&xprt_list_lock);
+	xprt_rdir_list_unlock();
 }
 
 void __ldms_dir_add_set(struct ldms_set *set)
@@ -643,12 +688,26 @@ void __ldms_dir_add_set(struct ldms_set *set)
 	dir_update(set, LDMS_DIR_ADD);
 }
 
-static void __set_delete_cb(ldms_t xprt, int status, ldms_set_t rbd, void *cb_arg)
+static void __set_delete_cb(ldms_t xprt, int status, void *cb_arg)
 {
 	struct ldms_context *ctxt = cb_arg;
-	struct ldms_set *set = ctxt->set_delete.s;
+	struct ldms_set *set;
 	struct rbn *rbn;
 	struct ldms_lookup_peer *lp;
+	__del_tree_ent_t del_ent;
+
+	SETDEBUG("peer reply, del_ent: (%lu, %lu)\n", ctxt->set_delete.del_key.time, ctxt->set_delete.del_key.gn);
+	if (0 == ctxt->set_delete.lookup) {
+		SETDEBUG("lookup is 0\n");
+		return;
+	}
+
+	del_ent = __del_tree_ent_rm(&ctxt->set_delete.del_key);
+	if (!del_ent) {
+		/* DEL TIMEOUT occur before we get this reply */
+		return;
+	}
+	set = del_ent->set;
 
 	pthread_mutex_lock(&set->lock);
 	rbn = rbt_find(&set->lookup_coll, xprt);
@@ -665,19 +724,14 @@ static void __set_delete_cb(ldms_t xprt, int status, ldms_set_t rbd, void *cb_ar
 		pthread_mutex_unlock(&set->lock);
 	}
 
-	/* If the set was successfully looked up, it will be be put into
-	 * `x->set_coll` and a reference taken. So, we have to put back the
-	 * reference only in this case. If the set was not in the `x->set_coll`,
-	 * the `ctxt->set_delete.lookup` will be 0 and we must not put the
-	 * reference we have not taken. */
-	if (ctxt->set_delete.lookup) {
-		ref_put(&set->ref, "xprt_set_coll");
-	}
+	SETDEBUG("freeing del_ent: (%lu, %lu)\n", del_ent->del.time, del_ent->del.gn);
+	__del_tree_ent_free(del_ent);
 }
 
 /* implementation in ldms_rail.c */
-void __rail_on_set_delete(ldms_t _r, struct ldms_set *s,
-			      ldms_set_delete_cb_t cb_fn);
+void __xrail_on_set_delete(ldms_t x, struct ldms_set *s, ldms_set_delete_cb_t cb_fn);
+
+size_t format_set_delete_req(struct ldms_request *req, uint64_t xid, const char *inst_name);
 
 void __ldms_dir_del_set(struct ldms_set *set)
 {
@@ -693,20 +747,39 @@ void __ldms_dir_del_set(struct ldms_set *set)
 	 *
 	 * dir_update(set, LDMS_DIR_DEL);
 	 */
-	struct ldms_xprt *x;
-	ldms_t r;
-	pthread_mutex_lock(&xprt_list_lock);
-	LIST_FOREACH(x, &xprt_list, xprt_link) {
-		if (x->remote_dir_xid) {
-			/* NOTE:
-			 * There will be only one `x` in `r` that has
-			 * `x->remote_dir_xid != 0`.
-			 */
-			r = __ldms_xprt_to_rail(x);
-			__rail_on_set_delete(r, set, __set_delete_cb);
-		}
+	struct rbn *rbn;
+	struct ldms_lookup_peer *np;
+	ldms_t *xs;
+	int i, n;
+
+	pthread_mutex_lock(&set->lock);
+	if (rbt_empty(&set->lookup_coll)) {
+		pthread_mutex_unlock(&set->lock);
+		return;
 	}
-	pthread_mutex_unlock(&xprt_list_lock);
+	/*
+	 * Copy-out to avoid set->lock, xprt->lock sequence. This should be
+	 * inexpensive as the size of lookup collection is small.
+	 */
+	xs = malloc(rbt_card(&set->lookup_coll) * sizeof(*xs));
+	if (!xs) {
+		pthread_mutex_unlock(&set->lock);
+		return;
+	}
+	n = 0;
+	RBT_FOREACH(rbn, &set->lookup_coll) {
+		np = container_of(rbn, struct ldms_lookup_peer, rbn);
+		xs[n++] = np->xprt;
+		ldms_xprt_get(np->xprt, "__ldms_dir_del_set:xs");
+	}
+	pthread_mutex_unlock(&set->lock);
+
+	for (i = 0; i < n; i++) {
+		/* NOTE xs[i] is a part of rail, not rail itself */
+		__xrail_on_set_delete(xs[i], set, __set_delete_cb);
+		ldms_xprt_put(np->xprt, "__ldms_dir_del_set:xs");
+	}
+	free(xs);
 }
 
 void __ldms_dir_upd_set(struct ldms_set *set)
@@ -813,6 +886,7 @@ static void process_set_delete_request(struct ldms_xprt *x, struct ldms_request 
 	struct ldms_reply reply;
 	struct ldms_set *set;
 	size_t len;
+	int set_io = 0;
 
 	/*
 	 * Always notify the application about peer set delete. If we happened
@@ -822,12 +896,19 @@ static void process_set_delete_request(struct ldms_xprt *x, struct ldms_request 
 	set = __ldms_find_local_set(req->set_delete.inst_name);
 	__ldms_set_tree_unlock();
 	if (set) {
+		pthread_mutex_lock(&set->lock);
+		set->flags |= LDMS_SET_F_PDEL;
+		set_io = set->flags & LDMS_SET_F_IO;
+		pthread_mutex_unlock(&set->lock);
 		if (set->xprt != x) {
 			assert(set->xprt != x);
 			goto reply_1;
 		}
 	}
-	if (x->event_cb) {
+	if (x->event_cb && 0 == set_io) {
+		/*
+		 * Deliver SET_DELETE event if there is no outstanding IO.
+		 */
 		struct ldms_xprt_event event;
 		event.type = LDMS_XPRT_EVENT_SET_DELETE;
 		event.set_delete.set = set;
@@ -864,7 +945,7 @@ void process_set_delete_reply(struct ldms_xprt *x, struct ldms_reply *reply,
 		timespec_ntoh(&reply->set_del.recv_ts);
 		memcpy(&ctxt->op_ctxt->set_del_profile.recv_ts, &reply->set_del.recv_ts, sizeof(struct timespec));
 	}
-	ctxt->set_delete.cb(x, reply->hdr.rc, ctxt->set_delete.s, ctxt->set_delete.cb_arg);
+	ctxt->set_delete.cb(x, reply->hdr.rc, ctxt->set_delete.cb_arg);
 	pthread_mutex_lock(&x->lock);
 	__ldms_free_ctxt(x, ctxt);
 	pthread_mutex_unlock(&x->lock);
@@ -894,12 +975,21 @@ static void process_dir_request(struct ldms_xprt *x, struct ldms_request *req)
 
 	(void)clock_gettime(CLOCK_REALTIME, &start);
 
-	if (req->dir.flags)
+	if (req->dir.flags) {
+		if (!x->remote_dir_xid) {
+			/* not in the xprt_rdir_list yet */
+			xprt_rdir_list_add(x);
+		}
 		/* Register for directory updates */
 		x->remote_dir_xid = req->hdr.xid;
-	else
+	} else {
+		if (x->remote_dir_xid) {
+			/* in the xprt_rdir_list; remove it */
+			xprt_rdir_list_rm(x);
+		}
 		/* Cancel any previous dir update */
 		x->remote_dir_xid = 0;
+	}
 
 	hdrlen = sizeof(struct ldms_reply_hdr)
 		+ sizeof(struct ldms_dir_reply);
@@ -1038,14 +1128,8 @@ static void process_dir_request(struct ldms_xprt *x, struct ldms_request *req)
 	__ldms_empty_name_list(&name_list);
 	(void)clock_gettime(CLOCK_REALTIME, &end);
 	dur_us = ldms_timespec_diff_us(&start, &end);
-	if (e->min_us > dur_us)
-		e->min_us = dur_us;
-	if (e->max_us < dur_us)
-		e->max_us = dur_us;
-	e->total_us += dur_us;
-	e->mean_us = (e->count * e->mean_us) + dur_us;
-	e->count += 1;
-	e->mean_us /= e->count;
+	__xprt_stats_update(e, dur_us);
+	ovis_histogram_update(&xprt_op_hist[LDMS_XPRT_OP_DIR_REP].hist, dur_us);
 	return;
 out:
 	if (reply)
@@ -2180,14 +2264,8 @@ out:
 		ldms_xprt_dir_free(x, dir);
 	(void)clock_gettime(CLOCK_REALTIME, &end);
 	dur_us = ldms_timespec_diff_us(&start, &end);
-	if (e->min_us > dur_us)
-		e->min_us = dur_us;
-	if (e->max_us < dur_us)
-		e->max_us = dur_us;
-	e->total_us += dur_us;
-	e->mean_us = (e->count * e->mean_us) + dur_us;
-	e->count += 1;
-	e->mean_us /= e->count;
+	__xprt_stats_update(e, dur_us);
+	ovis_histogram_update(&xprt_op_hist[LDMS_XPRT_OP_DIR_REQ].hist, dur_us);
 }
 
 static
@@ -2378,14 +2456,8 @@ static int recv_cb(struct ldms_xprt *x, void *r)
 	(void)clock_gettime(CLOCK_REALTIME, &end);
 	dur_us = ldms_timespec_diff_us(&start, &end);
 	(void)clock_gettime(CLOCK_REALTIME, &x->stats.last_op);
-	if (e->min_us > dur_us)
-		e->min_us = dur_us;
-	if (e->max_us < dur_us)
-		e->max_us = dur_us;
-	e->total_us += dur_us;
-	e->mean_us = (e->count * e->mean_us) + dur_us;
-	e->count += 1;
-	e->mean_us /= e->count;
+	__xprt_stats_update(e, dur_us);
+	ovis_histogram_update(&xprt_op_hist[LDMS_XPRT_OP_RECV].hist, dur_us);
 	return rc;
 }
 
@@ -2563,9 +2635,30 @@ static void __handle_update_data(ldms_t x, struct ldms_context *ctxt,
 	struct ldms_data_hdr *data, *prev_data;
 	int flags = 0, upd_curr_idx;
 	void *base;
+	int pdel;
+
+	if (set) {
+		ldms_set_ref_get(set, "__handle_update_data");
+		pthread_mutex_lock(&set->lock);
+		pdel = set->flags & LDMS_SET_F_PDEL;
+		pthread_mutex_unlock(&set->lock);
+	}
 
 	assert(x == ctxt->x);
 	assert(ctxt->update.cb);
+	if (pdel) {
+		/* Deliver update error then deliver SET_DELETE */
+		rc = ENOENT;
+		ctxt->update.cb(x, set, rc, ctxt->update.cb_arg);
+
+		struct ldms_xprt_event event;
+		event.type = LDMS_XPRT_EVENT_SET_DELETE;
+		event.set_delete.set = set;
+		event.set_delete.name = ldms_set_instance_name_get(set);
+		event.data_len = sizeof(ldms_set_t);
+		x->event_cb(x, &event, x->event_cb_arg);
+		goto cleanup;
+	}
 	rc = LDMS_UPD_ERROR(ev->status);
 	if (rc || (set == NULL)) {
 		x->zerrno = rc;
@@ -2573,6 +2666,9 @@ static void __handle_update_data(ldms_t x, struct ldms_context *ctxt,
 		/* READ ERROR */
 		if (!rc)
 			rc = ENOENT;
+		pthread_mutex_lock(&set->lock);
+		set->flags &= ~LDMS_SET_F_IO;
+		pthread_mutex_unlock(&set->lock);
 		ctxt->update.cb(x, set, rc, ctxt->update.cb_arg);
 		goto cleanup;
 	}
@@ -2584,6 +2680,9 @@ static void __handle_update_data(ldms_t x, struct ldms_context *ctxt,
 	if (data != prev_data &&
 			__ldms_data_ts_cmp(prev_data, data) >= 0) {
 		/* special case, no new data */
+		pthread_mutex_lock(&set->lock);
+		set->flags &= ~LDMS_SET_F_IO;
+		pthread_mutex_unlock(&set->lock);
 		ctxt->update.cb(x, set, flags, ctxt->update.cb_arg);
 		goto cleanup;
 	}
@@ -2609,6 +2708,9 @@ static void __handle_update_data(ldms_t x, struct ldms_context *ctxt,
 				&& i == __le32_to_cpu(data->curr_idx)) {
 			/* our update is current. */
 			flags = 0;
+			pthread_mutex_lock(&set->lock);
+			set->flags &= ~LDMS_SET_F_IO;
+			pthread_mutex_unlock(&set->lock);
 		} else {
 			flags = LDMS_UPD_F_MORE;
 		}
@@ -2629,10 +2731,18 @@ static void __handle_update_data(ldms_t x, struct ldms_context *ctxt,
 	/* the updated set is not current */
 	rc = __ldms_remote_update(x, set, ctxt->update.cb,
 			ctxt->update.cb_arg);
-	if (rc)
+	if (rc) {
+		pthread_mutex_lock(&set->lock);
+		set->flags &= ~LDMS_SET_F_IO;
+		pthread_mutex_unlock(&set->lock);
 		ctxt->update.cb(x, set, LDMS_UPD_ERROR(rc), ctxt->update.cb_arg);
+	}
 
 cleanup:
+	if (set) {
+		ldms_set_ref_put(set, "__handle_update_data");
+	}
+
 	zap_put_ep(x->zap_ep, "ldms_xprt:set_update", __func__, __LINE__); /* from __ldms_remote_update() */
 	pthread_mutex_lock(&x->lock);
 	__ldms_free_ctxt(x, ctxt);
@@ -2661,9 +2771,19 @@ static void __handle_lookup(ldms_t x, struct ldms_context *ctxt,
 			    zap_event_t ev)
 {
 	int status = 0;
-	if (!ctxt->lu_read.cb)
-		goto ctxt_cleanup;
-	if (ev->status != ZAP_ERR_OK) {
+	int pdel = 0;
+	ldms_set_t set = ctxt->lu_read.s;
+
+	pthread_mutex_lock(&set->lock);
+	set->flags &= ~LDMS_SET_F_IO;
+	pdel = set->flags & LDMS_SET_F_PDEL;
+	pthread_mutex_unlock(&set->lock);
+
+	assert(ctxt->lu_read.cb);
+
+	if (pdel) {
+		status = ENOENT;
+	} else if (ev->status != ZAP_ERR_OK) {
 		status = EREMOTEIO;
 #ifdef DEBUG
 		XPRT_LOG(x, OVIS_LALWAYS, "%s: lookup read error: zap error %d. "
@@ -2671,18 +2791,20 @@ static void __handle_lookup(ldms_t x, struct ldms_context *ctxt,
 			ldms_set_instance_name_get(ctxt->lu_read.s),
 			ev->status, status);
 #endif /* DEBUG */
+	}
+
+	if (status) {
 		/*
 		 * Destroy the set, the ctxt still has a reference on
 		 * it, but that will be dropped when the ctxt is
 		 * freed.
 		 */
-		__ldms_set_delete(ctxt->lu_read.s, 0);
+		__ldms_set_delete(set, 0);
+		set = NULL;
 	} else {
-		ldms_set_publish(ctxt->lu_read.s);
+		ldms_set_publish(set);
 	}
-	ctxt->lu_read.cb((ldms_t)x, status, ctxt->lu_read.more,
-			 ev->status ? NULL : ctxt->lu_read.s,
-			 ctxt->lu_read.cb_arg);
+	ctxt->lu_read.cb((ldms_t)x, status, ctxt->lu_read.more, set, ctxt->lu_read.cb_arg);
 	if (!ctxt->lu_read.more) {
 #ifdef DEBUG
 		assert(x->active_lookup > 0);
@@ -2692,7 +2814,6 @@ static void __handle_lookup(ldms_t x, struct ldms_context *ctxt,
 #endif /* DEBUG */
 	}
 
-ctxt_cleanup:
 	/* each `read` for lookup has its own context */
 	pthread_mutex_lock(&x->lock);
 	__ldms_free_ctxt(x, ctxt);
@@ -2893,7 +3014,7 @@ static void handle_rendezvous_lookup(zap_ep_t zep, zap_event_t ev,
 	lset = __ldms_create_set(inst_name->name, schema_name->name,
 				 ntohl(lu->meta_len), ntohl(lu->data_len),
 				 ntohl(lu->card), ntohl(lu->array_card),
-				 LDMS_SET_F_REMOTE);
+				 LDMS_SET_F_REMOTE|LDMS_SET_F_IO);
 	if (!lset) {
 		rc = errno;
 		goto callback;
@@ -3259,10 +3380,9 @@ static void ldms_zap_cb(zap_ep_t zep, zap_event_t ev)
 			zap_reject(zep, rej_msg, strlen(rej_msg)+1);
 			break;
 		}
-		struct ldms_conn_msg2 *m = (void*)ev->data;
 		if (x->event_cb == __rail_cb &&
-				ev->data_len >= sizeof(struct ldms_conn_msg2) &&
-				m->conn_type == htonl(LDMS_CONN_TYPE_RAIL)) { /* rail ep */
+				ev->data_len >= sizeof(struct ldms_conn_msg2)) {
+			/* rail ep */
 			__rail_zap_handle_conn_req(zep, ev);
 		} else {
 			ldms_zap_handle_conn_req(zep);
@@ -3301,6 +3421,10 @@ static void ldms_zap_cb(zap_ep_t zep, zap_event_t ev)
 		thrstat->last_op = LDMS_THRSTAT_OP_DISCONNECTED;
 		(void)clock_gettime(CLOCK_REALTIME, &x->stats.disconnected);
 		event.type = LDMS_XPRT_EVENT_ERROR;
+		if (x->remote_dir_xid) {
+			xprt_rdir_list_rm(x);
+			x->remote_dir_xid = 0;
+		}
 		if (x->event_cb)
 			x->event_cb(x, &event, x->event_cb_arg);
 		__ldms_xprt_resource_free(x);
@@ -3330,6 +3454,10 @@ static void ldms_zap_cb(zap_ep_t zep, zap_event_t ev)
 			break;
 		}
 		__sync_fetch_and_or(&x->term, 1);
+		if (x->remote_dir_xid) {
+			xprt_rdir_list_rm(x);
+			x->remote_dir_xid = 0;
+		}
 		pthread_mutex_lock(&x->lock);
 		struct ldms_context *dir_ctxt = NULL;
 		if (x->local_dir_xid) {
@@ -4614,47 +4742,152 @@ int ldms_xprt_listen(ldms_t x, struct sockaddr *sa, socklen_t sa_len,
 	return x->ops.listen(x, sa, sa_len, cb, cb_arg);
 }
 
+/* DEBUG */
+void dump_addrinfo(struct addrinfo *ai, const char *fn_name, int line)
+{
+	char buff[4096];
+	const char *s;
+	struct sockaddr_in *sin;
+	struct sockaddr_in6 *sin6;
+	switch (ai->ai_family) {
+	case AF_INET:
+		sin = (void*)ai->ai_addr;
+		s = inet_ntop(ai->ai_family, &sin->sin_addr, buff, sizeof(buff));
+		break;
+	case AF_INET6:
+		sin6 = (void*)ai->ai_addr;
+		s = inet_ntop(ai->ai_family, &sin6->sin6_addr, buff, sizeof(buff));
+		break;
+	default:
+		ovis_log(NULL, OVIS_LALWAYS, "Unsupported family: %d\n", ai->ai_family);
+		return;
+	}
+	if (!s) {
+		ovis_log(NULL, OVIS_LALWAYS, "inet_ntop() error: %d\n", errno);
+		return;
+	}
+	ovis_log(NULL, OVIS_LALWAYS, "addr: %s\n", buff);
+	ovis_log(NULL, OVIS_LALWAYS, "  family: %d\n", ai->ai_family);
+	ovis_log(NULL, OVIS_LALWAYS, "  protocol: %d\n", ai->ai_protocol);
+	ovis_log(NULL, OVIS_LALWAYS, "  socktype: %d\n", ai->ai_socktype);
+	ovis_log(NULL, OVIS_LALWAYS, "  canonname: %s\n", ai->ai_canonname);
+}
+
+void dump_addrinfo_list(struct addrinfo *ai_list, const char *fn_name, int line)
+{
+	struct addrinfo *ai;
+	ovis_log(NULL, OVIS_LALWAYS,
+			"==== dump_addrinfo_list, %s():%d BEGIN ====\n",
+			fn_name, line);
+	for (ai = ai_list; ai; ai = ai->ai_next) {
+		dump_addrinfo(ai, fn_name, line);
+	}
+	ovis_log(NULL, OVIS_LALWAYS,
+			"==== dump_addrinfo_list, %s():%d END ====\n",
+			fn_name, line);
+}
+
+int by_name_ai_flags()
+{
+	static int once = 0;
+	static int ai_flags = 0;
+	const char *ai_addrconfig;
+	const char *ai_v4mapped;
+
+	if (once)
+		goto out;
+
+	/* These ENV vars are not meant for controlling the behavior of
+	 * ldms_xprt_listen_by_name() and ldms_xprt_connect_by_name() in each of
+	 * their multiple calls. They are for testing purposes; set it once
+	 * and don't expect them to change in the lifetime of the program.
+	 */
+
+	ai_addrconfig = getenv("LDMS_AI_ADDRCONFIG");
+	ai_v4mapped = getenv("LDMS_AI_V4MAPPED");
+
+	/* AI_V4MAPPED on by default; user can set it to 0 */
+	if (ai_v4mapped) {
+		if (atoi(ai_v4mapped))
+			ai_flags |= AI_V4MAPPED;
+	} else {
+		ai_flags |= AI_V4MAPPED;
+	}
+
+	/* AI_ADDRCONFIG off by default */
+	if (ai_addrconfig) {
+		if (atoi(ai_addrconfig))
+			ai_flags |= AI_ADDRCONFIG;
+	} /* else do nothing */
+
+	once = 1;
+ out:
+	return ai_flags;
+}
+
 int ldms_xprt_listen_by_name(ldms_t x, const char *host, const char *port_no,
 		ldms_event_cb_t cb, void *cb_arg)
 {
 	int rc;
 	struct addrinfo *ai_list;
-	struct addrinfo *ai;
-	struct addrinfo *aitr;
+	struct addrinfo *ai, *_ai;
 	struct addrinfo hints = {0};
 
 	hints.ai_socktype = SOCK_STREAM;
-	if (host != NULL) {
-		/* AI_V4MAPPED | AI_ADDRCONFIG are the Linux default flags */
-		hints.ai_flags = AI_PASSIVE | AI_V4MAPPED | AI_ADDRCONFIG;
-	} else {
-		/* When host is NULL, we allow binding to the
-		   IPv6 wildcard address IN6ADDR_ANY_INIT, even if there are
-		   no non-loopback devices with IPv6 networking configured.
-		   In this case the IPv6 wildcard address would also allow IPv4
-		   wildcard traffic. If we set AI_ADDRCONFIG, this would force
-		   IPv4 wildcard address usage when no non-loopback devices have
-		   IPv6 networking enabled. */
-		hints.ai_flags = AI_PASSIVE;
-	}
+	hints.ai_flags = AI_PASSIVE | by_name_ai_flags();
+
+	/*
+	 * NOTE
+	 *
+	 * - AI_PASSIVE|AI_ADDRCONFIG, with or without AI_V4MAPPED, cannot
+	 *   resolve "::1". It returns -9 (EAI_ADDRFAMILY). In addition, on
+	 *   IPv6-enabled host "ip6-loopback", which is "::1", in /etc/hosts is
+	 *   resolved to "127.0.0.1" (IPv4 loopback). `getaddrinfo(3)` mentioned
+	 *   that the "loopback" is not considered in `AI_ADDRCONFIG`
+	 *   explanation.
+	 *
+	 * - `getaddrinfo()` preference looks fine when `host` is not ANY. For
+	 *   example, on the host with disabled IPv6, "localhost" results are
+	 *   "127.0.0.1" (first) and "::1" (second), while the result list is
+	 *   "::1" (first) then "127.0.0.1" (second) on the host with IPv6
+	 *   enabled.
+	 *
+	 * - The "ANY" address is an odd one that `getaddrinfo()` always prefer
+	 *   "0.0.0.0" (IPv4) before "::" (IPv6).
+	 */
 
 	rc = getaddrinfo(host, port_no, &hints, &ai_list);
-	if (rc)
+	if (rc) {
+		/* If `host` is IPv6 (e.g. "::1") */
 		return EHOSTUNREACH;
-	ai = NULL;
-	/* FIXME - We should not prefer IPv6 unless explicitly configured by
-	   the user. We should just let the caller set the ai_family.
-	   We should really also try each address returned by getaddrinfo()
-	   until we get one that works, not only try the first one. */
-	/* Prefer the first IPv6 address */
-	for (aitr = ai_list; aitr; aitr = aitr->ai_next) {
-		if (aitr->ai_family == AF_INET6) {
-			ai = aitr;
-			break;
+	}
+#if DUMP_ADDRINFO
+	dump_addrinfo_list(ai_list, __func__, __LINE__);
+#endif
+	ai = ai_list;
+	if (ai->ai_family == AF_INET) {
+		struct sockaddr_in *sin = (void*)ai->ai_addr;
+		if (sin->sin_addr.s_addr == INADDR_ANY && ipv6_enabled) {
+			/*
+			 * Special ANY address case. `getaddrinfo()` returned
+			 * IPv4 before IPv6. We prefer IP6 for ANY address as it
+			 * serves both IP4 and IP6. If user specifies "0.0.0.0",
+			 * the only ANY for IP4 is returned from
+			 * `getaddrinfo()`.
+			 */
+			_ai = ai; /* save it */
+			for(; ai; ai = ai->ai_next) {
+				if (ai->ai_family == AF_INET6)
+					break;
+			}
+			if (!ai)
+				ai = _ai;
 		}
 	}
-	if (!ai)
-		ai = ai_list;
+#if DUMP_ADDRINFO
+	ovis_log(NULL, OVIS_LALWAYS, "Listening on:\n");
+	dump_addrinfo(ai, __func__, __LINE__);
+#endif
 	rc = ldms_xprt_listen(x, ai->ai_addr, ai->ai_addrlen, cb, cb_arg);
 	freeaddrinfo(ai_list);
 	return rc;
@@ -4798,6 +5031,7 @@ enum ldms_thrstat_op_e req2thrstat_op_tbl[] = {
 	[LDMS_CMD_AUTH_CHALLENGE_REPLY] = LDMS_THRSTAT_OP_AUTH,
 	[LDMS_CMD_AUTH_APPROVAL_REPLY]  = LDMS_THRSTAT_OP_AUTH,
 	[LDMS_CMD_AUTH_REPLY]           = LDMS_THRSTAT_OP_AUTH,
+	[LDMS_CMD_PUSH_REPLY]           = LDMS_THRSTAT_OP_PUSH_REPLY,
 	[LDMS_CMD_LAST]			= LDMS_THRSTAT_OP_OTHER
 };
 
@@ -4881,11 +5115,62 @@ void ldms_thrstat_result_free(struct ldms_thrstat_result *res)
 	free(res);
 }
 
+ldms_xprt_op_histogram_t ldms_xprt_histogram_get()
+{
+	ldms_xprt_op_histogram_t hres;
+	int i;
+
+	errno = 0;
+	hres = malloc(LDMS_XPRT_OP_COUNT * sizeof(struct ldms_xprt_op_histogram));
+	if (!hres) {
+		errno = ENOMEM;
+		return NULL;
+	}
+	for (i = 0; i < LDMS_XPRT_OP_COUNT; i++) {
+		memcpy(&hres[i].hist, &xprt_op_hist[i], sizeof(struct ovis_histogram));
+	}
+	return hres;
+}
+
+void ldms_xprt_histogram_reset(int recal)
+{
+	int op_e;
+
+	for (op_e = 0; op_e < LDMS_XPRT_OP_COUNT; op_e++) {
+		if (recal) {
+			ovis_histogram_recalibrate(&xprt_op_hist[op_e].hist, 0, 0, 0);
+		} else {
+			ovis_histogram_reset(&xprt_op_hist[op_e].hist);
+		}
+	}
+}
+
+void ldms_xprt_histogram_free(ldms_xprt_op_histogram_t op_hist)
+{
+	free(op_hist);
+}
+
 static void __attribute__ ((constructor)) cs_init(void)
 {
+	enum ldms_xprt_ops_e op_e;
 	pthread_mutex_init(&xprt_list_lock, 0);
 	pthread_mutex_init(&ldms_zap_list_lock, 0);
 	(void)clock_gettime(CLOCK_REALTIME, &xprt_start);
+
+	/* check if IPv6 is supported */
+	int sd;
+	sd = socket(AF_INET6, SOCK_STREAM, 0);
+	if (sd >= 0) {
+		close(sd);
+		ipv6_enabled = 1;
+	} else {
+		ipv6_enabled = 0;
+	}
+
+	for (op_e = 0; op_e < LDMS_XPRT_OP_COUNT; op_e++) {
+		ovis_histogram_init(&xprt_op_hist[op_e].hist, 0, 0,
+					OVIS_HISTOGRAM_SCALE_LINEAR);
+	}
 }
 
 static void __attribute__ ((destructor)) cs_term(void)

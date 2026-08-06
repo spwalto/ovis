@@ -99,6 +99,7 @@ OPTION_INCLUDE_FLAGS([OVIS],[ \
 	lib/src/ovis_json \
 	lib/src/ovis_log \
 	lib/src/ovis_thrstats \
+	lib/src/ovis_histogram \
 	lib/src/zap \
 	lib/src/mmalloc \
 	ldms/src \
@@ -121,6 +122,7 @@ OPTION_LIB_FLAGS([OVIS],[ \
 	lib/src/ovis_json \
 	lib/src/ovis_log \
 	lib/src/ovis_thrstats \
+	lib/src/ovis_histogram \
 	lib/src/zap \
 	lib/src/mmalloc \
 	ldms/src/core \
@@ -327,6 +329,7 @@ OPTION_DEFAULT_ENABLE([lnet_stats], [ENABLE_LNET_STATS])
 OPTION_DEFAULT_ENABLE([meminfo], [ENABLE_MEMINFO])
 OPTION_DEFAULT_ENABLE([file_importer], [ENABLE_FILE_IMPORTER])
 OPTION_DEFAULT_ENABLE([cxi_sampler], [ENABLE_CXI_SAMPLER])
+OPTION_DEFAULT_ENABLE([curated_metrics], [ENABLE_CURATED_METRICS])
 OPTION_DEFAULT_ENABLE([coretemp], [ENABLE_CORETEMP])
 OPTION_DEFAULT_ENABLE([filesingle], [ENABLE_FILESINGLE])
 OPTION_DEFAULT_DISABLE([msr_interlagos], [ENABLE_MSR_INTERLAGOS])
@@ -770,14 +773,29 @@ dnl We make the assumption that if AM_PATH_PYTHON succeeds, that AX_PYTHON_DEVEL
 dnl is very likely to succeed as well.
 python_found=false
 cython_found=false
+required_cython_version=0.25
+
 AS_IF([test "x$want_python" != xno], [
 	AM_PATH_PYTHON([3.6],
 		[AX_PYTHON_DEVEL([>='3.6'])
-		 pkgpythondir="${pythondir}/ovis_ldms"
-		 pkgpyexecdir="${pkgpythondir}"
-		 python_found=true
-		 CYTHON_CHECK([0.25], [$PYTHON_VERSION],
-		 	[cython_found=true], [cython_found=false])],
+			dnl Cython < 3 expects Python's imp module, which is absent on
+			dnl newer interpreters. If importing imp fails, require Cython >= 3.0.
+			AC_MSG_CHECKING([what minimum Cython version is required])
+			AS_IF([$PYTHON -c 'import warnings
+warnings.filterwarnings("ignore", category=DeprecationWarning)
+try:
+    import imp
+except ImportError:
+    raise SystemExit(0)
+raise SystemExit(1)'],
+				[required_cython_version=3.0],
+				[required_cython_version=0.25])
+			AC_MSG_RESULT([$required_cython_version])
+			pkgpythondir="${pythondir}/ovis_ldms"
+			pkgpyexecdir="${pkgpythondir}"
+			python_found=true
+			CYTHON_CHECK([$required_cython_version], [$PYTHON_VERSION],
+				[cython_found=true], [cython_found=false])],
 		[python_found=false
 		 cython_found=false])
 
@@ -787,8 +805,8 @@ AS_IF([test "x$want_python" != xno], [
 			[AC_MSG_WARN([python not found])])])
 	AS_IF([test "$cython_found" = false],
 		[AS_IF([test "x$want_python" = xyes],
-			[AC_MSG_ERROR([cython not found])],
-			[AC_MSG_WARN([cython not found])])])
+			[AC_MSG_ERROR([cython >= $required_cython_version not found])],
+			[AC_MSG_WARN([cython >= $required_cython_version not found])])])
 ])
 AM_CONDITIONAL([ENABLE_PYTHON], [test "$python_found" = true -a "$cython_found" = true])
 
@@ -1018,6 +1036,7 @@ lib/src/ovis_auth/Makefile
 lib/src/ovis_ref/Makefile
 lib/src/ovis_log/Makefile
 lib/src/ovis_thrstats/Makefile
+lib/src/ovis_histogram/Makefile
 lib/src/zap/Makefile
 lib/src/zap/rdma/Makefile
 lib/src/zap/fabric/Makefile
@@ -1102,6 +1121,7 @@ ldms/src/sampler/msr_interlagos/Makefile
 ldms/src/sampler/meminfo/Makefile
 ldms/src/sampler/file_importer/Makefile
 ldms/src/sampler/cxi_sampler/Makefile
+ldms/src/sampler/curated_metrics/Makefile
 ldms/src/sampler/procinterrupts/Makefile
 ldms/src/sampler/procnetdev2/Makefile
 ldms/src/sampler/variable/Makefile

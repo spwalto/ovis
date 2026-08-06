@@ -220,7 +220,7 @@ void prdcr_hint_tree_update(ldmsd_prdcr_t prdcr, ldmsd_prdcr_set_t prd_set,
 	}
 }
 
-static void prdcr_reset_set(ldmsd_prdcr_t prdcr, ldmsd_prdcr_set_t prd_set)
+void __prdcr_reset_set(ldmsd_prdcr_t prdcr, ldmsd_prdcr_set_t prd_set)
 {
 	prdcr_hint_tree_update(prdcr, prd_set,
 			       &prd_set->updt_hint, UPDT_HINT_TREE_REMOVE);
@@ -238,7 +238,7 @@ static void prdcr_reset_sets(ldmsd_prdcr_t prdcr)
 	struct rbn *rbn;
 	while ((rbn = rbt_min(&prdcr->set_tree))) {
 		prd_set = container_of(rbn, struct ldmsd_prdcr_set, rbn);
-		prdcr_reset_set(prdcr, prd_set);
+		__prdcr_reset_set(prdcr, prd_set);
 	}
 }
 
@@ -421,7 +421,7 @@ static void prdcr_dir_cb_del(ldms_t xprt, ldms_dir_t dir, ldmsd_prdcr_t prdcr)
 			continue;
 		set = container_of(rbn, struct ldmsd_prdcr_set, rbn);
 		assert(set->ref_count);
-		prdcr_reset_set(prdcr, set);
+		__prdcr_reset_set(prdcr, set);
 	}
 }
 
@@ -551,7 +551,7 @@ static void __prdcr_remote_set_delete(ldmsd_prdcr_t prdcr, const char *name)
 			"Deleting %s in the %s state\n",
 			prdcr_set->inst_name, state_str);
 	pthread_mutex_unlock(&prdcr_set->lock);
-	prdcr_reset_set(prdcr, prdcr_set);
+	__prdcr_reset_set(prdcr, prdcr_set);
 }
 
 const char *_conn_state_str[] = {
@@ -1904,9 +1904,12 @@ void ldmsd_prdcr_set_stats_reset(ldmsd_prdcr_set_t prdset, struct timespec *now,
 	if (flags & LDMSD_PRDSET_STATS_F_STORE) {
 		LIST_FOREACH(strgp_ref, &prdset->strgp_list, entry) {
 			ldmsd_stat_reset(&strgp_ref->store_stat, now);
-			/* TODO: why don't we reset the store_stages_stat???
-			 * If we should do this, call ldmsd_strgp_ref_stats_init().
-			 */
+			/* Reset each store stage statistics */
+			ldmsd_stat_reset(&strgp_ref->store_stages_stat.commit_stat, now);
+			ldmsd_stat_reset(&strgp_ref->store_stages_stat.decomp_stat, now);
+			ldmsd_stat_reset(&strgp_ref->store_stages_stat.io_thread_stat, now);
+			ldmsd_stat_reset(&strgp_ref->store_stages_stat.queue_stat, now);
+			ldmsd_stat_reset(&strgp_ref->store_stages_stat.worker_wait_stat, now);
 		}
 	}
 
@@ -1914,22 +1917,4 @@ void ldmsd_prdcr_set_stats_reset(ldmsd_prdcr_set_t prdset, struct timespec *now,
 		ldmsd_stat_reset(&prdset->updt_stat, now);
 		prdset->oversampled_cnt = prdset->skipped_upd_cnt = 0;
 	}
-}
-
-void ldmsd_strgp_ref_stats_init(ldmsd_strgp_ref_t strgp_ref, struct timespec *ts)
-{
-	struct timespec start;
-
-	if (ts == NULL) {
-		clock_gettime(CLOCK_REALTIME, &start);
-	} else {
-		start = *ts;
-	}
-	strgp_ref->store_stat.start = start;
-
-	strgp_ref->store_stages_stat.io_thread_stat.start = start;
-	strgp_ref->store_stages_stat.decomp_stat.start = start;
-	strgp_ref->store_stages_stat.worker_wait_stat.start = start;
-	strgp_ref->store_stages_stat.queue_stat.start = start;
-	strgp_ref->store_stages_stat.commit_stat.start = start;
 }

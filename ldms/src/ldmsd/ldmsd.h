@@ -68,6 +68,7 @@
 #include "ovis_log/ovis_log.h"
 #include "ovis_ref/ref.h"
 #include "ovis_json/ovis_json.h"
+#include "ovis_histogram/ovis_histogram.h"
 #include "ldms.h"
 #include "ldmsd_plug_api.h"
 
@@ -365,6 +366,8 @@ struct ldmsd_stat {
 	int count;
 };
 
+
+
 struct store_stages_stats {
 	struct ldmsd_stat io_thread_stat; /* Time spent on Zap IO Thread */
 	struct ldmsd_stat decomp_stat; /* Time spent to decompose the set, spent Zap IO thread time */
@@ -577,6 +580,11 @@ typedef struct ldmsd_updtr {
 	 */
 	struct rbt prdcr_tree;
 	LIST_HEAD(updtr_match_list, ldmsd_name_match) match_list;
+
+	/*
+	 * Update time histogram
+	 */
+	struct ovis_histogram hist;
 } *ldmsd_updtr_t;
 
 typedef struct ldmsd_name_match {
@@ -720,6 +728,9 @@ struct ldmsd_strgp {
 
 	int row_cache_init;
 	ldmsd_row_cache_t row_cache;
+
+	/** Histogram of store_time */
+	struct ovis_histogram hist_store_time;
 };
 
 
@@ -1786,6 +1797,8 @@ size_t Snprintf(char **dst, size_t *len, char *fmt, ...);
 /* \return 0 or errno value when there is a problem */
 __attribute__((format(printf, 2, 3)))
 int linebuf_printf(struct ldmsd_req_ctxt *reqc, char *fmt, ...);
+
+double ldmsd_ts_diff_usec(struct timespec *end, struct timespec *start);
 
 /* All duration statistics are in micro-seconds */
 void ldmsd_stat_update(struct ldmsd_stat *stat, struct timespec *start, struct timespec *end);

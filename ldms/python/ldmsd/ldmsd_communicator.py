@@ -125,7 +125,7 @@ LDMSD_CTRL_CMD_MAP = {'usage': {'req_attr': [], 'opt_attr': ['name']},
                       'updtr_stop': {'req_attr': ['name']},
                       'updtr_status': {'req_attr': [], 'opt_attr': ['name', 'summary', 'reset']},
                       'updtr_task': {'req_attr': ['name'], 'opt_attr': []},
-                      'update_time_stats' : {'req_attr': [], 'opt_attr' : ['name', 'reset']},
+                      'update_time_stats' : {'req_attr': [], 'opt_attr' : ['name', 'reset', 'summary']},
                       ##### Storage Policy #####
                       'strgp_add': {'req_attr': ['name', 'plugin', 'container'],
                                     'opt_attr' : ['schema', 'regex', 'flush', 'decomposition', 'perm' ] },
@@ -137,7 +137,7 @@ LDMSD_CTRL_CMD_MAP = {'usage': {'req_attr': [], 'opt_attr': ['name']},
                       'strgp_start': {'req_attr': ['name']},
                       'strgp_stop': {'req_attr': ['name']},
                       'strgp_status': {'req_attr': [], 'opt_attr': ['name']},
-                      'store_time_stats': {'req_attr': [], 'opt_attr':['name', 'reset']},
+                      'store_time_stats': {'req_attr': [], 'opt_attr':['name', 'reset', 'hist_recalibrate', 'view']}, # 'view' is for display-only mode, not sending to ldmsd
 		      'strgp_pi_stats': {'req_attr': ['name'], 'opt_attr':[]},
                       ##### Plugin #####
                       'plugn_sets': {'req_attr': [], 'opt_attr': ['name']},
@@ -160,7 +160,7 @@ LDMSD_CTRL_CMD_MAP = {'usage': {'req_attr': [], 'opt_attr': ['name']},
                       'example': {'req_attr': [], 'opt_attr': []},
                       'dump_cfg': {'req_attr':['path'], 'opt_attr': []},
                       'set_info': {'req_attr': ['instance'], 'opt_attr': []},
-                      'xprt_stats': {'req_attr':[], 'opt_attr': ['reset', 'sq_depth']},
+                      'xprt_stats': {'req_attr':[], 'opt_attr': ['reset', 'sq_depth', 'histogram', 'hist_recalibrate']},
                       'thread_stats': {'req_attr':[], 'opt_attr': ['reset']},
                       'prdcr_stats': {'req_attr':[], 'opt_attr': []},
                       'set_stats': {'req_attr':[], 'opt_attr': ['summary']},
@@ -365,7 +365,8 @@ class LDMSD_Req_Attr(object):
     XTHREAD = 48
     MSG_TAG = 49
     STATE = 50
-    LAST = 51
+    HIST_RECAL = 51
+    LAST = 52
 
     NAME_ID_MAP = {'name': NAME,
                    'interval': INTERVAL,
@@ -425,6 +426,7 @@ class LDMSD_Req_Attr(object):
                    'exclusive_thread': XTHREAD,
                    'message_tag': MSG_TAG,
                    'state' : STATE,
+                   'hist_recalibrate' : HIST_RECAL,
                    'TERMINATING': LAST
         }
 
@@ -477,6 +479,7 @@ class LDMSD_Req_Attr(object):
                    XTHREAD : 'exclusive_thread',
                    MSG_TAG : 'message_tag',
                    STATE : 'state',
+                   HIST_RECAL : 'hist_recalibrate',
                    LAST : 'TERMINATING'
         }
 
@@ -1880,7 +1883,7 @@ class Communicator(object):
         except Exception as r:
             return errno.ENOTCONN, str(e)
 
-    def store_time_stats(self, name=None, reset=False):
+    def store_time_stats(self, name=None, reset=False, hist_recalibrate=False):
         """
         Return the time statistics of a LDMSD storage policy.
 
@@ -1890,6 +1893,8 @@ class Communicator(object):
         [name]  - The storage policy name
         [reset] - Boolean that indicates whether to reset statistics after returning values.
                   The default to False
+        [hist_recalibrate] - Boolean that indicates whether to recalibrate the bins and boundaries of histogram.
+                             The default to False
 
         Returns:
         A tuple of status, data
@@ -1897,7 +1902,9 @@ class Communicator(object):
         - data is a string in json format of storage policy statistics, or an error message
         """
         attr_list = [LDMSD_Req_Attr(attr_id = LDMSD_Req_Attr.RESET,
-                                    value = str(reset))]
+                                    value = str(reset)),
+                     LDMSD_Req_Attr(attr_id = LDMSD_Req_Attr.HIST_RECAL,
+                                    value = str(hist_recalibrate))]
         if name:
             attr_list.append(LDMSD_Req_Attr(attr_id = LDMSD_Req_Attr.NAME, value=name))
         req = LDMSD_Request(command_id=LDMSD_Request.STORE_TIME_STATS,
@@ -2130,7 +2137,7 @@ class Communicator(object):
             self.close()
             return errno.ENOTCONN, str(e)
 
-    def update_time_stats(self, name=None, reset = False):
+    def update_time_stats(self, name=None, reset = False, summary = False):
         """
         Get the update time statistics of updaters
 
@@ -2144,11 +2151,14 @@ class Communicator(object):
         - Max(usec) is the maximum time the updater spent to update a set.
         - Average(usec) is the average time the updater spent to update a set.
         - Count is the number of samples used to calculate the minimum, maximum, and average values.
+        - Histogram of update times of each updater
 
         Keyword Parameters:
         [name] - updater name
         [reset] - If 'true' reset the statistics after returning the values.
                   Default is false
+        [summary] = If 'true', histogram is excluded from the output
+
         Returns:
         A tuple of status, data
         - status is an errno from the errno module
@@ -2158,7 +2168,10 @@ class Communicator(object):
         attr_list = None
         if reset is None:
             reset = False
-        attr_list = [ LDMSD_Req_Attr(attr_id = LDMSD_Req_Attr.RESET, value = str(reset))]
+        if summary is None:
+            summary = False
+        attr_list = [ LDMSD_Req_Attr(attr_id = LDMSD_Req_Attr.RESET, value = str(reset)),
+                      LDMSD_Req_Attr(attr_id = LDMSD_Req_Attr.SUMMARY, value = str(summary))]
         if name:
             attr_list.append(LDMSD_Req_Attr(attr_id=LDMSD_Req_Attr.NAME, value=name))
         req = LDMSD_Request(command_id=LDMSD_Request.UPDATE_TIME_STATS,
@@ -3870,7 +3883,7 @@ class Communicator(object):
             self.close()
             return errno.ENOTCONN, str(e)
 
-    def xprt_stats(self, reset=False, level=0):
+    def xprt_stats(self, reset=False, level=0, hist_recal=False):
         """
         Query the daemon's telemetry data
 
@@ -3881,6 +3894,8 @@ class Communicator(object):
         [level] - [True/False]
                   If True, the send-queue depth of each endpoint will be reported.
                   Default is False.
+        [hist_recal] - [True/False]
+                       If true, recalibrate the histogram bin boundaries.
 
         Returns:
         A tuple of status, data
@@ -3896,7 +3911,9 @@ class Communicator(object):
                     LDMSD_Req_Attr(attr_id=LDMSD_Req_Attr.RESET,
                                    value=str(reset)),
                     LDMSD_Req_Attr(attr_id=LDMSD_Req_Attr.LEVEL,
-                                   value=str(level))
+                                   value=str(level)),
+                    LDMSD_Req_Attr(attr_id=LDMSD_Req_Attr.HIST_RECAL,
+                                   value=str(hist_recal))
                 ])
         try:
             req.send(self)

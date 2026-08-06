@@ -163,7 +163,10 @@ static void smplrp_del_cb(ldmsd_cfgobj_t obj)
 static inline
 int jdict_get_cstr(json_entity_t dict, const char *key, const char **out)
 {
-	json_entity_t val = json_value_find(dict, key);
+	json_entity_t val;
+	if (json_entity_type(dict) != JSON_DICT_VALUE)
+		return EINVAL;
+	val = json_value_find(dict, key);
 	if (!val)
 		return ENOENT;
 	*out = json_value_cstr(val);
@@ -194,7 +197,7 @@ int jdict_get_int64(json_entity_t dict, const char *key, int64_t *out)
 
 static char *
 tmp_expand(ldmsd_smplrp_t p, ldmsd_smplrp_action_t _a, const char *job_id,
-	   const char *tmp)
+	   json_entity_t job_msg, const char *tmp)
 {
 	int rc;
 	char *ret;
@@ -202,16 +205,17 @@ tmp_expand(ldmsd_smplrp_t p, ldmsd_smplrp_action_t _a, const char *job_id,
 	int len;
 	const char *_p;
 	char c;
+	const char *workflow_id;
+	json_entity_t job_data;
 	struct ovis_buff_s obuf;
 
 	ovis_buff_init(&obuf, BUFSIZ);
 
 	/*
 	 * Pattern Exapnsion:
-	 * - "%T" - job tag <-- XXX from where?
+	 * - "%W" - WORKFLOW_ID
 	 * - "%J" - Job ID
 	 * - "%C" - Component ID
-	 * - "%R" - Resource ID <-- XXX 'nodeid' in job_init?
 	 * - "%N" - Sampler Policy Name
 	 * - "%P" - Producer
 	 * - "%L" - Plugin
@@ -255,6 +259,14 @@ tmp_expand(ldmsd_smplrp_t p, ldmsd_smplrp_action_t _a, const char *job_id,
 			} else {
 				rc = ovis_buff_appendf(&obuf, "(null)");
 			}
+			break;
+		case 'W': case 'w': /* workflow_id */
+			job_data = json_value_find(job_msg, "data");
+			rc = jdict_get_cstr(job_data, "workflow_id", &workflow_id);
+			if (rc == 0) {
+				rc = ovis_buff_appendf(&obuf, "%s", workflow_id);
+			}
+			rc = 0;
 			break;
 		case '%': /* literal % */
 			rc = ovis_buff_appendf(&obuf, "%%");
@@ -352,7 +364,7 @@ static int p_attr_time_assign(ldmsd_smplrp_t p,
 		SMPLRP_ERROR("%s: attribute '%s' must be a string or a number\n", p->obj.name, name);
 		return EINVAL;
 	}
-	rc = ovis_time_str2us(json_value_cstr(jval), out);
+	{ long _tmp_us; rc = ovis_time_str2us(json_value_cstr(jval), &_tmp_us); *out = _tmp_us; }
 	if (rc) {
 		SMPLRP_ERROR("%s: attribute '%s' has bad time format.\n", p->obj.name, name);
 		return rc;
@@ -521,13 +533,13 @@ void action_lt_on_job_init(ldmsd_smplrp_action_t _a, const char *job_id, json_en
 	ovis_buff_init(&obuf, BUFSIZ);
 
 	/* Prep parameters for all operations */
-	cfg_name = tmp_expand(p, _a, job_id, a->name_tmp);
+	cfg_name = tmp_expand(p, _a, job_id, job_msg, a->name_tmp);
 	if (!cfg_name) /* error already logged */
 		goto cleanup;
-	cfg_prdcr = tmp_expand(p, _a, job_id, a->producer);
+	cfg_prdcr = tmp_expand(p, _a, job_id, job_msg, a->producer);
 	if (!cfg_prdcr)
 		goto cleanup;
-	cfg_inst = tmp_expand(p, _a, job_id, a->inst_tmp);
+	cfg_inst = tmp_expand(p, _a, job_id, job_msg, a->inst_tmp);
 	if (!cfg_inst)
 		goto cleanup;
 
@@ -657,7 +669,7 @@ void action_lt_on_job_exit(ldmsd_smplrp_action_t _a, const char *job_id, json_en
 	ldmsd_smplrp_t p = _a->smplrp;
 	action_lt_t a = container_of(_a, struct action_lt_s, action);
 
-	cfg_name = tmp_expand(p, _a, job_id, a->name_tmp);
+	cfg_name = tmp_expand(p, _a, job_id, job_msg, a->name_tmp);
 
 	/* Stop sampling */
 	rc = ldmsd_sampler_stop(cfg_name);
@@ -907,7 +919,7 @@ action_imod_on_job_init(ldmsd_smplrp_action_t _a, const char *job_id, json_entit
 	ldmsd_smplrp_t p = _a->smplrp;
 	action_imod_t a = container_of(_a, struct action_imod_s, action);
 	char *cfg_name;
-	cfg_name = tmp_expand(p, _a, job_id, a->plug_inst_name);
+	cfg_name = tmp_expand(p, _a, job_id, job_msg, a->plug_inst_name);
 	if (!cfg_name) /* error already logged */
 		return;
 
@@ -925,7 +937,7 @@ action_imod_on_job_exit(ldmsd_smplrp_action_t _a, const char *job_id, json_entit
 	action_imod_t a = container_of(_a, struct action_imod_s, action);
 
 	char *cfg_name;
-	cfg_name = tmp_expand(p, _a, job_id, a->plug_inst_name);
+	cfg_name = tmp_expand(p, _a, job_id, job_msg, a->plug_inst_name);
 	if (!cfg_name) /* error already logged */
 		return;
 	pthread_mutex_lock(&a->mutex);

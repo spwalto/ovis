@@ -230,10 +230,35 @@ static struct rbt __id_tree = {
 
 static pthread_mutex_t __set_tree_lock = PTHREAD_MUTEX_INITIALIZER;
 
+static int del_comparator(void *a, const void *b)
+{
+	const struct ldms_set_del_key *_a = a;
+	const struct ldms_set_del_key *_b = b;
+
+	if (_a->time > _b->time)
+		return 1;
+	if (_a->time < _b->time)
+		return -1;
+	if (_a->gn > _b->gn)
+		return 1;
+	if (_a->gn < _b->gn)
+		return -1;
+	return 0;
+}
+
+static uint64_t __del_gn = 0;
+
 static struct rbt __del_tree = {
 	.root = NULL,
-	.comparator = id_comparator
-};
+	.comparator = del_comparator
+}; /* protected by __del_tree_lock*/
+
+static int del_set_count = 0;
+
+/* Also protected by __del_tree_lock */
+#ifdef LDMS_SET_DEBUG
+static LIST_HEAD(, ldms_set) del_set_list = LIST_HEAD_INITIALIZER(&del_set_list);
+#endif
 
 int ldms_set_count()
 {
@@ -242,10 +267,10 @@ int ldms_set_count()
 
 int ldms_set_deleting_count()
 {
-	return __del_tree.card;
+	return del_set_count;
 }
 
-static pthread_mutex_t __del_tree_lock = PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t __del_tree_lock = PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP;
 
 void __ldms_gn_inc(struct ldms_set *set, ldms_mdesc_t desc)
 {
@@ -376,7 +401,7 @@ uint64_t ldms_set_heap_gn_get(ldms_set_t s)
 	return s->heap->data->gn;
 }
 
-size_t ldms_set_heap_size_get(ldms_set_t s)
+uint64_t ldms_set_heap_size_get(ldms_set_t s)
 {
 	return s->data->heap.size;
 }
@@ -830,6 +855,18 @@ int __ldms_xprt_update(ldms_t x, struct ldms_set *set, ldms_update_cb_t cb,
 	if (!xprt)
 		return EINVAL;
 
+	pthread_mutex_lock(&set->lock);
+	if (set->flags & LDMS_SET_F_IO) {
+		pthread_mutex_unlock(&set->lock);
+		return EBUSY;
+	}
+	if (set->flags & LDMS_SET_F_PDEL) {
+		pthread_mutex_unlock(&set->lock);
+		return ENOENT;
+	}
+	set->flags |= LDMS_SET_F_IO;
+	pthread_mutex_unlock(&set->lock);
+
 	pthread_mutex_lock(&xprt->lock);
 	if (!cb) {
 		rc = __ldms_remote_update(xprt, set, sync_update_cb, arg);
@@ -927,6 +964,20 @@ static void __destroy_set_no_lock(void *v)
 	struct ldms_set *set = v;
 	struct ldms_xprt *x = set->xprt;
 	struct ldms_context *ctxt;
+	struct ldms_lookup_peer *lp;
+	struct ldms_push_peer *pp;
+	struct rbn *rbn;
+
+	SETDEBUG("set: %p\n", set);
+
+	__sync_fetch_and_add(&del_set_count, -1, __ATOMIC_SEQ_CST);
+
+#ifdef LDMS_SET_DEBUG
+	pthread_mutex_lock(&__del_tree_lock);
+	LIST_REMOVE(set, del_entry);
+	pthread_mutex_unlock(&__del_tree_lock);
+#endif
+
 	if (x) {
 		/*
 		 * Check if there any transports referencing this set
@@ -949,8 +1000,6 @@ static void __destroy_set_no_lock(void *v)
 					ctxt->req_notify.s = NULL;
 				break;
 			case LDMS_CONTEXT_SET_DELETE:
-				if (ctxt->set_delete.s == set)
-					ctxt->set_delete.s = NULL;
 				break;
 			default:
 				break;
@@ -959,7 +1008,70 @@ static void __destroy_set_no_lock(void *v)
 		pthread_mutex_unlock(&x->lock);
 	}
 
-	rbt_del(&__del_tree, &set->del_node);
+	/* no need to lock the set; no one has a reference to us */
+	while ((rbn = rbt_min(&set->push_coll))) {
+		pp = container_of(rbn, struct ldms_push_peer, rbn);
+		if (!pp->xprt)
+			goto free_pp;
+		x = pp->xprt;
+		pthread_mutex_lock(&x->lock);
+		TAILQ_FOREACH(ctxt, &x->ctxt_list, link) {
+			switch (ctxt->type) {
+				case LDMS_CONTEXT_LOOKUP_READ:
+					if (ctxt->lu_read.s == set)
+						ctxt->lu_read.s = NULL;
+					break;
+				case LDMS_CONTEXT_UPDATE:
+				case LDMS_CONTEXT_UPDATE_META:
+					if (ctxt->update.s == set)
+						ctxt->update.s = NULL;
+					break;
+				case LDMS_CONTEXT_REQ_NOTIFY:
+					if (ctxt->req_notify.s == set)
+						ctxt->req_notify.s = NULL;
+					break;
+				default:
+					break;
+			}
+		}
+		pthread_mutex_unlock(&x->lock);
+		ldms_xprt_put(x, "push_peer");
+	free_pp:
+		free(pp);
+	}
+
+	while ((rbn = rbt_min(&set->lookup_coll))) {
+		rbt_del(&set->lookup_coll, rbn);
+		lp = container_of(rbn, struct ldms_lookup_peer, rbn);
+		if (!lp->xprt)
+			goto free_lp;
+		x = lp->xprt;
+		pthread_mutex_lock(&x->lock);
+		TAILQ_FOREACH(ctxt, &x->ctxt_list, link) {
+			switch (ctxt->type) {
+				case LDMS_CONTEXT_LOOKUP_READ:
+					if (ctxt->lu_read.s == set)
+						ctxt->lu_read.s = NULL;
+					break;
+				case LDMS_CONTEXT_UPDATE:
+				case LDMS_CONTEXT_UPDATE_META:
+					if (ctxt->update.s == set)
+						ctxt->update.s = NULL;
+					break;
+				case LDMS_CONTEXT_REQ_NOTIFY:
+					if (ctxt->req_notify.s == set)
+						ctxt->req_notify.s = NULL;
+					break;
+				default:
+					break;
+			}
+		}
+		pthread_mutex_unlock(&x->lock);
+		ldms_xprt_put(x, "lookup_peer");
+	free_lp:
+		free(lp);
+	}
+
 	mm_free(set->meta);
 	__ldms_set_info_delete(&set->local_info);
 	__ldms_set_info_delete(&set->remote_info);
@@ -971,15 +1083,16 @@ static void __destroy_set_no_lock(void *v)
 
 static void __destroy_set(void *v)
 {
-	pthread_mutex_lock(&__del_tree_lock);
+	SETDEBUG("set: %p\n", v);
 	__destroy_set_no_lock(v);
-	pthread_mutex_unlock(&__del_tree_lock);
 }
 
 void __ldms_set_delete(ldms_set_t s, int notify)
 {
 	ldms_t x;
 	struct ldms_set *__set;
+
+	SETDEBUG("set: %p\n", s);
 
 	__ldms_set_tree_lock();
 	__set = __ldms_set_by_id(s->set_id);
@@ -995,15 +1108,16 @@ void __ldms_set_delete(ldms_set_t s, int notify)
 	rbt_del(&__id_tree, &s->id_node);
 	__ldms_set_tree_unlock();
 
-	/* NOTE: We will clean up the push and lookup collections
-	 *       when we destroy the set. While we wait for the
-	 *       SET_DELETE replies from the peers, we iterate
-	 *       through the collections to check if there are any peers
-	 *       that are connected or not.
-	 *
-	 *       If no peers are connected, the set will be destroyed
-	 *       regardless of its reference count. See delete_proc().
-	 */
+	SETDEBUG("set: %p proceed ...\n", s);
+
+	__sync_add_and_fetch(&del_set_count, 1, __ATOMIC_SEQ_CST);
+
+#ifdef LDMS_SET_DEBUG
+	pthread_mutex_lock(&__del_tree_lock);
+	LIST_INSERT_HEAD(&del_set_list, s, del_entry);
+	pthread_mutex_unlock(&__del_tree_lock);
+#endif
+
 	pthread_mutex_lock(&s->lock);
 	x = s->xprt;
 	s->xprt = NULL;
@@ -1011,15 +1125,16 @@ void __ldms_set_delete(ldms_set_t s, int notify)
 	if (x)
 		ldms_xprt_put(x, "lu_set");
 
-	/* Add the set to the delete tree with the current timestamp */
 	s->del_time = time(NULL);
-	rbn_init(&s->del_node, &s->del_time);
-	pthread_mutex_lock(&__del_tree_lock);
-	rbt_ins(&__del_tree, &s->del_node);
-	pthread_mutex_unlock(&__del_tree_lock);
 
 	if (notify) {
-		/* Notify downstream transports about the set deletion. */
+		/* Notify downstream transports about the set deletion.
+		 * Each SET_DELETE notification has __del_tree_ent associated
+		 * with it. Think of __del_tree_ent as TIMED SET REF -- a set
+		 * reference that will be dropped on either delete timeout (see
+		 * ldms.c:delete_proc()) or when peer acknowledge SET_DELETE
+		 * (see ldms_xprt.c:__set_delete_cb()).
+		 */
 		__ldms_dir_del_set(s);
 	}
 
@@ -1331,13 +1446,9 @@ int ldms_schema_fprint(ldms_schema_t schema, FILE *fp)
 	return 0;
 }
 
-void ldms_record_delete(ldms_record_t rec_def)
+static void __ldms_record_delete(ldms_record_t rec_def)
 {
 	ldms_mdef_t m;
-	if (!rec_def)
-		return;
-	if (rec_def->metric_id >= 0)
-		return; /* This already belonged to a schema */
 	while ((m = STAILQ_FIRST(&rec_def->rec_metric_list))) {
 		STAILQ_REMOVE_HEAD(&rec_def->rec_metric_list, entry);
 		free(m->name);
@@ -1347,6 +1458,18 @@ void ldms_record_delete(ldms_record_t rec_def)
 	free(rec_def->mdef.name);
 	free(rec_def->mdef.unit);
 	free(rec_def);
+}
+
+void ldms_record_delete(ldms_record_t rec_def)
+{
+	if (!rec_def)
+		return;
+	if (rec_def->metric_id >= 0) {
+		ovis_log(xlog, OVIS_LERROR,
+			"Ignoring record deletion %s\n", rec_def->mdef.name);
+		return; /* This already belonged to a schema */
+	}
+	__ldms_record_delete(rec_def);
 }
 
 void ldms_schema_delete(ldms_schema_t schema)
@@ -1360,7 +1483,7 @@ void ldms_schema_delete(ldms_schema_t schema)
 		m = STAILQ_FIRST(&schema->metric_list);
 		STAILQ_REMOVE_HEAD(&schema->metric_list, entry);
 		if (m->type == LDMS_V_RECORD_TYPE) {
-			ldms_record_delete((ldms_record_t)m);
+			__ldms_record_delete((ldms_record_t)m);
 			continue;
 		}
 		free(m->name);
@@ -1821,7 +1944,6 @@ ldms_set_t ldms_set_create(const char *instance_name,
 	/* value_off is the offset from the beginning of data header */
 	value_off = roundup(sizeof(*data_base), 8);
 	metric_idx = 0;
-	size_t vd_size = 0;
 	STAILQ_FOREACH(md, &schema->metric_list, entry) {
 		/* Add descriptor to dictionary */
 		meta->dict[metric_idx] = __cpu_to_le32(ldms_off_(meta, vd));
@@ -1835,7 +1957,6 @@ ldms_set_t ldms_set_create(const char *instance_name,
 		/* Advance to next descriptor */
 		metric_idx++;
 		vd = (struct ldms_value_desc *)((char *)vd + md->meta_sz);
-		vd_size += md->meta_sz;
 	}
 
 	/*
@@ -1899,6 +2020,8 @@ ldms_set_t ldms_set_create(const char *instance_name,
 				&((uint8_t *)set->data)[schema->data_sz]);
 	}
 	__init_rec_array(set, schema);
+	SETDEBUG("set: %p\n", set);
+	SETDEBUG("set->ref.free_fn: %p\n", set->ref.free_fn);
 	return set;
 }
 
@@ -3646,6 +3769,19 @@ ldms_mval_t ldms_list_append_item(ldms_set_t s, ldms_mval_t lh,
 {
 	ldms_mval_t le;
 	size_t value_sz = __ldms_value_size_get(typ, count);
+	enum ldms_value_type typ_;
+	size_t count_;
+
+	ldms_mval_t mval = ldms_list_first(s, lh, &typ_, &count_);
+	if (mval) {
+		/* Make certain the type of the first element matches the typ
+		 * parameter */
+		if (typ != typ_) {
+			errno = EINVAL;
+			return NULL;
+		}
+	}
+
 	if (!ldms_type_is_array(typ))
 		count = 1;
 	le = ldms_heap_alloc(s->heap, value_sz + sizeof(struct ldms_list_entry));
@@ -4120,19 +4256,79 @@ int ldms_mval_parse_scalar(ldms_mval_t v, enum ldms_value_type vt, const char *s
 	return 0;
 }
 
+__del_tree_ent_t __del_tree_ent_alloc(ldms_set_t set, uint64_t del_time)
+{
+	__del_tree_ent_t ent;
+	ent = malloc(sizeof(*ent));
+	if (!ent)
+		return NULL;
+	ref_get(&set->ref, "__del_tree_ent");
+	ent->set = set;
+	ent->del.time = del_time;
+	ent->del.gn = __atomic_fetch_add(&__del_gn, 1, __ATOMIC_SEQ_CST);
+	rbn_init(&ent->rbn, &ent->del);
+	ent->in_tree = 0; /* for debugging */
+	SETDEBUG("del_ent alloc: (%lu, %lu)\n", ent->del.time, ent->del.gn);
+	return ent;
+}
+
+void __del_tree_ent_free(__del_tree_ent_t ent)
+{
+	SETDEBUG("del_ent free: (%lu, %lu)\n", ent->del.time, ent->del.gn);
+	assert(0 == ent->in_tree);
+	ref_put(&ent->set->ref, "__del_tree_ent");
+	free(ent);
+}
+
+void __del_tree_ent_ins(__del_tree_ent_t ent)
+{
+	SETDEBUG("del_ent ins: (%lu, %lu)\n", ent->del.time, ent->del.gn);
+	assert(0 == ent->in_tree);
+	pthread_mutex_lock(&__del_tree_lock);
+	ent->in_tree = 1;
+	rbt_ins(&__del_tree, &ent->rbn);
+	pthread_mutex_unlock(&__del_tree_lock);
+}
+
+void __del_tree_ent_del_nolock(__del_tree_ent_t ent)
+{
+	SETDEBUG("del_ent del: (%lu, %lu)\n", ent->del.time, ent->del.gn);
+	assert(1 == ent->in_tree);
+	ent->in_tree = 0;
+	rbt_del(&__del_tree, &ent->rbn);
+}
+
+__del_tree_ent_t __del_tree_ent_rm(struct ldms_set_del_key *key)
+{
+	__del_tree_ent_t ent;
+	struct rbn *rbn;
+	pthread_mutex_lock(&__del_tree_lock);
+	rbn = rbt_find(&__del_tree, key);
+	if (!rbn) {
+		errno = ENOENT;
+		ent = NULL;
+	} else {
+		ent = container_of(rbn, struct __del_tree_ent_s, rbn);
+		__del_tree_ent_del_nolock(ent);
+	}
+	pthread_mutex_unlock(&__del_tree_lock);
+	return ent;
+}
+
+#ifndef LDMS_SET_DEBUG
 #define DELETE_TIMEOUT	(60)	/* 1 minute */
 #define DELETE_CHECK	(15)
+#else
+#define DELETE_TIMEOUT	(5)	/* 5 sec; make it quick for debugging */
+#define DELETE_CHECK	(5)
+#endif
 
 extern int ldms_xprt_connected(struct ldms_xprt *x);
 static void *delete_proc(void *arg)
 {
-	struct rbn *rbn, *prev_rbn, *xrbn;
-	struct ldms_set *set;
-	struct ldms_lookup_peer *lp;
-	struct ldms_push_peer *pp;
+	struct rbn *rbn;
 	time_t dur;
-	ldms_t x;
-	struct ldms_context *ctxt;
+	__del_tree_ent_t del_ent;
 	char *to = getenv("LDMS_DELETE_TIMEOUT");
 	int timeout = (to ? atoi(to) : DELETE_TIMEOUT);
 	if (timeout <= DELETE_CHECK)
@@ -4141,139 +4337,18 @@ static void *delete_proc(void *arg)
 	do {
 		/*
 		 * Iterate through the tree from oldest to
-		 * newest. Delete any set older than the threshold
+		 * newest. Drop any DEL ENTRY older than the threshold.
 		 */
 		pthread_mutex_lock(&__del_tree_lock);
-		rbn = rbt_max(&__del_tree);
-		while (rbn) {
-			prev_rbn = rbn_pred(rbn);
-			set = container_of(rbn, struct ldms_set, del_node);
-			dur = time(NULL) - set->del_time;
+		while ((rbn = rbt_min(&__del_tree))) {
+			del_ent = container_of(rbn, struct __del_tree_ent_s, rbn);
+			dur = time(NULL) - del_ent->del.time;
 			if (dur < timeout)
 				break;
-
-			/*
-			 * Look for a connected push/lookup peer.
-			 * If there is a connected peer, we skip the set
-			 * and wait for the SET_DELETE reply from the connected peers.
-			 *
-			 * This prevents the race between the SET_DELETE timeout
-			 * and the SET_DELETE reply.
-			 */
-			pthread_mutex_lock(&set->lock);
-			xrbn = rbt_min(&set->lookup_coll);
-			while (xrbn) {
-				lp = container_of(xrbn, struct ldms_lookup_peer, rbn);
-				if (ldms_xprt_connected(lp->xprt)) {
-					/*
-					 * A push peer is connected... skip the set.
-					 */
-					pthread_mutex_unlock(&set->lock);
-					goto next;
-				}
-				xrbn = rbn_succ(xrbn);
-			}
-			xrbn = rbt_min(&set->push_coll);
-			while (xrbn) {
-				pp = container_of(xrbn, struct ldms_push_peer, rbn);
-				if (ldms_xprt_connected(pp->xprt)) {
-					/*
-					 * A lookup peer is connected ... skip the set.
-					 */
-					pthread_mutex_unlock(&set->lock);
-					goto next;
-				}
-			}
-			pthread_mutex_unlock(&set->lock);
-
-			/*
-			 * Since all peers have disconnected, the push and lookup
-			 * collections should be empty at this point.
-			 *
-			 * Below logic is for a corner case and makes sure
-			 * that we are not leaking and leaving the transport dangling.
-			 */
-			/* Clean up the push peer collection */
-			while ((rbn = rbt_min(&set->push_coll))) {
-				rbt_del(&set->push_coll, rbn);
-				pp = container_of(rbn, struct ldms_push_peer, rbn);
-				if (!pp->xprt)
-					goto free_pp;
-				x = pp->xprt;
-				pthread_mutex_lock(&x->lock);
-				TAILQ_FOREACH(ctxt, &x->ctxt_list, link) {
-					switch (ctxt->type) {
-					case LDMS_CONTEXT_LOOKUP_READ:
-						if (ctxt->lu_read.s == set)
-							ctxt->lu_read.s = NULL;
-						break;
-					case LDMS_CONTEXT_UPDATE:
-					case LDMS_CONTEXT_UPDATE_META:
-						if (ctxt->update.s == set)
-							ctxt->update.s = NULL;
-						break;
-					case LDMS_CONTEXT_REQ_NOTIFY:
-						if (ctxt->req_notify.s == set)
-							ctxt->req_notify.s = NULL;
-						break;
-					case LDMS_CONTEXT_SET_DELETE:
-						if (ctxt->set_delete.s == set)
-							ctxt->set_delete.s = NULL;
-						break;
-					default:
-						break;
-					}
-				}
-				pthread_mutex_unlock(&x->lock);
-				ldms_xprt_put(x, "push_peer");
-			free_pp:
-				free(pp);
-			}
-
-			/*
-			 * Clean up the lookup peer collection and
-			 * remove set from the transport's set collection.
-			 */
-			while ((rbn = rbt_min(&set->lookup_coll))) {
-				rbt_del(&set->lookup_coll, rbn);
-				lp = container_of(rbn, struct ldms_lookup_peer, rbn);
-				if (!lp->xprt)
-					goto free_lp;
-				x = lp->xprt;
-				pthread_mutex_lock(&x->lock);
-				TAILQ_FOREACH(ctxt, &x->ctxt_list, link) {
-					switch (ctxt->type) {
-					case LDMS_CONTEXT_LOOKUP_READ:
-						if (ctxt->lu_read.s == set)
-							ctxt->lu_read.s = NULL;
-						break;
-					case LDMS_CONTEXT_UPDATE:
-					case LDMS_CONTEXT_UPDATE_META:
-						if (ctxt->update.s == set)
-							ctxt->update.s = NULL;
-						break;
-					case LDMS_CONTEXT_REQ_NOTIFY:
-						if (ctxt->req_notify.s == set)
-							ctxt->req_notify.s = NULL;
-						break;
-					case LDMS_CONTEXT_SET_DELETE:
-						if (ctxt->set_delete.s == set)
-							ctxt->set_delete.s = NULL;
-						break;
-					default:
-						break;
-					}
-				}
-				pthread_mutex_unlock(&x->lock);
-				ldms_xprt_put(x, "lookup_peer");
-			free_lp:
-				free(lp);
-			}
-
-			__destroy_set_no_lock(set);
-		next:
-			rbn = prev_rbn;
-			fflush(stderr);
+			SETDEBUG("dur: %lu\n", dur);
+			SETDEBUG("timeout: %d\n", timeout);
+			__del_tree_ent_del_nolock(del_ent);
+			__del_tree_ent_free(del_ent);
 		}
 		pthread_mutex_unlock(&__del_tree_lock);
 		sleep(DELETE_CHECK);
@@ -6275,4 +6350,27 @@ const char *ldms_msg_event_type_sym(enum ldms_msg_event_type t)
 	if (t < sizeof(tbl) / sizeof(tbl[0]))
 		return tbl[t];
 	assert(NULL=="Invalid ldms_msg_event type");
+}
+
+void ldms_set_ref_dump(ldms_set_t set, const char *name, FILE *f)
+{
+	ref_dump(&set->ref, name, f);
+}
+
+void ldms_set_deleting_dump(FILE *f)
+{
+#ifdef LDMS_SET_DEBUG
+	ldms_set_t set;
+	if (!f)
+		f = stdout;
+	pthread_mutex_lock(&__del_tree_lock);
+	fprintf(f, "-------- ldms_set_deleting_dump BEGIN --------\n");
+	LIST_FOREACH(set, &del_set_list, del_entry) {
+		ldms_set_ref_dump(set, ldms_set_instance_name_get(set), f);
+	}
+	fprintf(f, "-------- ldms_set_deleting_dump END --------\n");
+	pthread_mutex_unlock(&__del_tree_lock);
+#else
+	fprintf(f, "ERROR: ldms library does not compile with -DLDMS_SET_DEBUG\n");
+#endif
 }

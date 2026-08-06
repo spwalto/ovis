@@ -248,6 +248,7 @@ expansion. The special ``%<CHAR>`` placeholders will be replaced as follows:
 - ``%P`` : ``load_term["producer"]``.
 - ``%L`` : ``load_term["plugin"]``.
 - ``%N`` : the policy name (from ``smplrp_add`` command).
+- ``%W`` : the ``WORKFLOW_ID`` (from job env).
 - ``%%`` : literal ``%``.
 
 
